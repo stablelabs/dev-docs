@@ -1,0 +1,157 @@
+---
+title: "Bridges"
+description: "Bridge providers, contract addresses, and fee structures for USDT0 transfers to and from Stable."
+diataxis: "reference"
+---
+
+# Bridges
+
+Bridge providers supporting USDT0 transfers to and from Stable. For how cross-chain USDT0 movement works, see [Bridging to Stable](/en/explanation/usdt0-bridging). For a hands-on walkthrough, see the [Bridge USDT0 to Stable Testnet](/en/tutorial/bridge-usdt0) tutorial.
+
+---
+
+## Supported source chains
+
+Any chain with USDT0 can bridge to Stable via the OFT Mesh. Any chain with native USDT can route through the Legacy Mesh via the Arbitrum hub. Current participants:
+
+| Path | Example chains | Mechanism | Fee |
+| :--- | :--- | :--- | :--- |
+| **OFT Mesh** | Arbitrum, Bera, Conflux, Ethereum, Flare, Hedera, Hyperliquid, Ink, Mantle, MegaETH, Monad, Morph, MP1, Optimism, Plasma, Polygon, Rootstock, Sei, Tempo, Unichain, X Layer | Burn on source, mint on Stable | Source chain gas only |
+| **Legacy Mesh** | Tron, TON | Lock native USDT → Arbitrum hub → mint USDT0 on Stable | 0.03% + source chain gas |
+
+Ethereum and Arbitrum support both paths: users holding native USDT can use the Legacy Mesh, while users holding USDT0 can use the OFT Mesh directly.
+
+---
+
+## Contract addresses
+
+| | Testnet (chain ID 2201) | Mainnet (chain ID 988) |
+| :--- | :--- | :--- |
+| **LayerZero EID** | `40374` | See [LayerZero deployed contracts](https://docs.layerzero.network/v2/deployments/deployed-contracts?chains=stable) |
+| **LayerZero Endpoint V2** | `0x3aCAAf60502791D199a5a5F0B173D78229eBFe32` | See LayerZero docs |
+| **USDT0 token** | `0x78Cf24370174180738C5B8E352B6D14c83a6c9A9` | `0x779Ded0c9e1022225f8E0630b35a9b54bE713736` |
+| **USDT0 OApp (on Stable)** | N/A | `0xedaba024be4d87974d5aB11C6Dd586963CcCB027` |
+| **Source USDT0 (Sepolia)** | `0xc4DCC311c028e341fd8602D8eB89c5de94625927` | Use mainnet USDT0 on source chain |
+| **Source OApp (Sepolia)** | `0xc099cD946d5efCC35A99D64E808c1430cEf08126` | Use mainnet OApp on source chain |
+| **LiFi Diamond (Stable mainnet)** | N/A | `0x026F252016A7C47CDEf1F05a3Fc9E20C92a49C37` |
+
+For the full testnet contract list (LayerZero endpoint, DVN, executor), see [Testnet ecosystem contracts](/en/reference/testnet-ecosystem).
+
+---
+
+## STABLE OFT contracts
+
+The STABLE token bridges to other chains using the LayerZero OFT standard. The adapter on Stable locks STABLE for outbound transfers; the upgradeable proxy on each remote chain mints and burns the wrapped supply. For the security model and a description of each contract's role, see [Bridge security and DVNs](/en/explanation/bridge-security).
+
+| Chain | Contract | Address |
+| :--- | :--- | :--- |
+| **Stable** | `StableOFTAdapter` | `0x386f92606b2D5E0A992ECc3704c31eF39Ff56392` |
+| **BSC** | `StableOFTUpgradeable` (proxy) | `0x011EBe7d75E2C9D1E0bD0be0bEf5C36f0A90075F` |
+| **HyperEVM** | `StableOFTUpgradeable` (proxy) | `0xa51dC81944a15623874981181a99D6c56B20ED56` |
+
+:::note
+The remote chain addresses differ even though both are EVM-compatible. Activating the destination address on HyperCore requires a transaction, which advances the deploy nonce and produces a different deterministic address than BSC. See [stablelabs/chain-oft](https://github.com/stablelabs/chain-oft) for the canonical config.
+:::
+
+---
+
+## Stable's DVN operators
+
+Stable's bridges run a 3/3 required DVN configuration: three independent operators must each sign every cross-chain message before it is accepted. There is no optional pool. The three required signers and their DVN contract addresses:
+
+| Operator | DVN address |
+| :--- | :--- |
+| **LayerZero Labs** | `0x9c061c9a4782294eef65ef28cb88233a987f4bdd` |
+| **Canary** | `0x8d6cc20d84fbeb5733c60436ceb8957da2ac02c8` |
+| **Horizen** | `0x965a80dc87cec5848310e612dead84b543aef874` |
+
+For the on-chain config per pathway, see [LayerZero deployed contracts](https://docs.layerzero.network/v2/deployments/deployed-contracts?chains=stable). For the security rationale, see [Bridge security and DVNs](/en/explanation/bridge-security).
+
+---
+
+## Bridge providers
+
+| Provider | Type | Status | Description | Docs |
+| :--- | :--- | :--- | :--- | :--- |
+| **[LayerZero](https://docs.layerzero.network/v2)** | Cross-chain messaging (OFT) | Live | Powers USDT0 OFT burn/mint transfers; dual DVN verification | [docs.layerzero.network/v2](https://docs.layerzero.network/v2) |
+| **[Stargate](https://docs.stargate.finance/introduction/overview)** | Direct bridge (liquidity pools) | Live | Unified liquidity pools; stablecoin-optimized routing | [docs.stargate.finance](https://docs.stargate.finance/introduction/overview) |
+| **[Gas.Zip](https://dev.gas.zip/overview)** | Direct bridge (liquidity routing) | Live | Liquidity routing across 350+ chains; fast finality | [dev.gas.zip](https://dev.gas.zip/overview) |
+| **[LiFi](https://docs.li.fi/api-reference/introduction)** | Bridge aggregator | Live | Routes across multiple bridges and DEX swaps; SDK + REST API | [docs.li.fi](https://docs.li.fi/api-reference/introduction) |
+| **[Polymer](https://docs.polymerlabs.org/docs/build/start/)** | Cross-chain interoperability (IBC) | Integration in progress | IBC-based messaging for Ethereum-native chains | [docs.polymerlabs.org](https://docs.polymerlabs.org/docs/build/start/) |
+| **[Relay](https://docs.relay.link/what-is-relay)** | Intent-based bridge | Integration in progress | Gasless execution via solver network | [docs.relay.link](https://docs.relay.link/what-is-relay) |
+
+### LayerZero
+
+Cross-chain messaging protocol powering USDT0 OFT burn/mint transfers with dual DVN verification.
+
+**Capabilities**
+
+- OFT-standard burn-on-source, mint-on-destination transfers
+- Dual DVN (Decentralized Verifier Network) message verification
+- Powers both OFT Mesh and Legacy Mesh paths
+
+### Stargate
+
+Liquidity pool-based bridge optimized for stablecoin routing.
+
+**Capabilities**
+
+- Unified liquidity pools across chains
+- Stablecoin-optimized routing
+- Instant guaranteed finality
+
+### Gas.Zip
+
+Liquidity routing protocol supporting fast transfers across 350+ chains.
+
+**Capabilities**
+
+- Cross-chain liquidity routing
+- Fast finality
+- Broad chain coverage (350+ chains)
+
+### LiFi
+
+Bridge aggregator routing transfers across multiple bridges and DEX swaps.
+
+**Capabilities**
+
+- Multi-bridge route optimization
+- SDK and REST API integration
+- DEX swap aggregation
+
+### Polymer
+
+IBC-based cross-chain messaging for Ethereum-native chains. Integration in progress.
+
+**Capabilities**
+
+- IBC protocol messaging on Ethereum
+- Native interoperability without external validators
+
+### Relay
+
+Intent-based bridge with gasless execution via a solver network. Integration in progress.
+
+**Capabilities**
+
+- Intent-based bridging
+- Gasless execution for users
+- Solver network settlement
+
+---
+
+## Fee structure
+
+| Provider | Fee model |
+| :--- | :--- |
+| **LayerZero (OFT Mesh)** | Source chain gas only (no protocol fee) |
+| **LayerZero (Legacy Mesh)** | 0.03% of transferred amount (charged by USDT0 team) + source chain gas |
+| **Stargate** | Liquidity pool fees apply; see [Stargate docs](https://docs.stargate.finance/introduction/overview) |
+| **LiFi** | Aggregator routing fee may apply depending on path |
+| **Gas.Zip** | See [Gas.Zip docs](https://dev.gas.zip/overview) for current fee schedule |
+| **Relay** | Solver fees; see [Relay docs](https://docs.relay.link/what-is-relay) |
+
+---
+
+Have a bridge integrating Stable? Reach out at [bizdev@stable.xyz](mailto:bizdev@stable.xyz).

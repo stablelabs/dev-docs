@@ -1,0 +1,149 @@
+---
+title: "Bridging to Stable"
+description: "Cross-chain bridging mechanics for USDT0 (OFT Mesh) and native USDT (Legacy Mesh) into Stable."
+diataxis: "explanation"
+---
+
+# Bridging to Stable
+
+USDT reaches Stable via one of two bridge paths, depending on what form it takes on the source chain. Both paths deliver USDT0 into the user's wallet on Stable.
+
+:::note
+**Two paths, one outcome:**
+- **OFT Mesh**: source chain already has USDT0. Burn on source, mint on Stable. 1:1 across chains. Examples: Arbitrum, Ethereum, Optimism, Polygon, Unichain, Ink, Bera, Mantle, Hyperliquid, MegaETH (21 chains total).
+- **Legacy Mesh**: source chain has native USDT only. Routes through Arbitrum as hub. 0.03% fee on the transferred amount. Examples: Tron, TON.
+:::
+
+The sections below describe each path in detail.
+
+## USDT0 OFT Mesh vs Legacy Mesh
+
+Stable participates in two complementary cross-chain transfer networks.
+
+### OFT Mesh
+
+Any chain that supports USDT0 can participate in the OFT Mesh. Within the OFT Mesh, USDT0 cross-chain transfers maintain a 1:1 value ratio. When a transfer occurs, the USDT0 tokens on the source chain are burned and an equivalent amount is minted on the destination chain. Current OFT Mesh participants include Arbitrum, Bera, Conflux, Ethereum, Flare, Hedera, Hyperliquid, Ink, Mantle, MegaETH, Monad, Morph, MP1, Optimism, Plasma, Polygon, Rootstock, Sei, Stable, Tempo, Unichain, and X Layer.
+
+### Legacy Mesh
+
+Any chain with native USDT (rather than USDT0) can route through the Legacy Mesh. The Legacy Mesh follows a hub-and-spoke architecture with Arbitrum serving as the central hub for USDT0. This model leverages a USDT0 liquidity pool on Arbitrum. The USDT0 team charges a 0.03% fee on the transferred amount. Current Legacy Mesh participants include Tron and TON.
+
+Ethereum and Arbitrum participate in both meshes: users on these chains can bridge via the OFT path (burn/mint USDT0) or the Legacy path (lock native USDT through the Arbitrum hub).
+
+---
+
+## Path 1: Bridging USDT0 to Stable (OFT-supported chains)
+
+This path applies when the user already holds USDT0 on an OFT-supported source chain such as Arbitrum or Ink.
+
+### Actors
+
+| Name | On-chain? | Responsible party |
+| --- | --- | --- |
+| User | N/A | User |
+| USDT0 OUpgradable | ✅ | Smart contract by USDT0 |
+| LayerZero Endpoint V2 | ✅ | Smart contract by LayerZero |
+| MessageLib Registry | ✅ | Smart contract by LayerZero |
+| Executor | ❌ | LayerZero Labs |
+| USDT0 DVN | ❌ | USDT0 |
+| Canary DVN | ❌ | Canary |
+| LayerZero DVN | ❌ | LayerZero Labs |
+
+### Flow diagram
+
+<img src="/images/to-stable.png" alt="Bridging USDT0 to Stable: OFT Mesh flow" />
+
+### Detailed steps
+
+#### 1. Initiate transfer (on-chain, source chain)
+
+The user calls the `lzSend` method on the **USDT0 OUpgradable** contract on the source chain. The transaction includes the message payload, destination LayerZero endpoint and contract address, and configuration parameters such as gas limits and fees.
+
+#### 2. Packet creation (on-chain, source chain)
+
+The source LayerZero Endpoint packages the OApp's message, encodes it using the designated source MessageLib contract, and emits it to the Security Stack (DVNs) and Executor, completing the send transaction.
+
+#### 3. Message verification (off-chain, DVNs)
+
+Decentralized Verifier Networks (DVNs) independently verify the message before the destination contract will execute it. Only DVNs authorized by the OApp can perform verification. USDT0 bridging requires three DVNs to sign every message: LayerZero Labs, Canary, and USDT0. For the canonical configuration on any pathway, see [USDT0's OApp on LayerZeroScan](https://layerzeroscan.com/).
+
+#### 4. Mark as verifiable (on-chain, Stable)
+
+Once all required DVNs verify the message, the destination MessageLib contract marks it as verifiable.
+
+#### 5. Verification commitment (off-chain, Executor)
+
+The Executor commits the verified message to the destination LayerZero Endpoint, preparing it for execution.
+
+#### 6. Packet validation (on-chain, Stable)
+
+The destination LayerZero Endpoint confirms that the Executor-delivered packet matches the one verified by the DVNs.
+
+#### 7. Message execution (off-chain, Executor)
+
+The Executor invokes `lzReceive` on the destination chain, triggering message processing by the USDT0 OUpgradable contract on Stable.
+
+#### 8. Completion (on-chain, Stable)
+
+The USDT0 OUpgradable contract on Stable processes the verified message, completing the cross-chain transfer. USDT0 is minted to the user's address.
+
+---
+
+## Path 2: Bridging native USDT to Stable (Legacy Mesh)
+
+This path applies when the user holds native USDT on a Legacy Mesh chain such as Tron. The transfer routes through Arbitrum as an intermediary hub before arriving on Stable.
+
+### Actors
+
+| Name | On-chain? | Responsible party |
+| --- | --- | --- |
+| User | N/A | User |
+| USDT Pool | ✅ | Smart contract by USDT0 |
+| USDT0 Pool | ✅ | Smart contract by USDT0 |
+| MultiHopComposer | ✅ | Smart contract by LayerZero |
+| USDT0 OUpgradable | ✅ | Smart contract by USDT0 |
+| LayerZero Endpoint | ✅ | Smart contract by LayerZero |
+| MessageLib Registry | ✅ | Smart contract by LayerZero |
+| USDT0 Legacy Mesh Operator | ❌ | USDT0 |
+| Executor | ❌ | LayerZero Labs |
+| USDT0 DVN | ❌ | USDT0 |
+| Canary DVN | ❌ | Canary |
+| LayerZero DVN | ❌ | LayerZero Labs |
+
+### Flow diagram
+
+<img src="/images/from-stable.png" alt="Bridging native USDT from Tron to Stable: Legacy Mesh flow" />
+
+### Detailed steps
+
+#### 1. Initiate transfer (on-chain, Tron)
+
+The user initiates the bridge transaction and sends native USDT to the **USDT Pool** contract on Tron. The USDT is locked in the pool. The USDT Pool contract then sends a message to the LayerZero Endpoint contract on Tron.
+
+#### 2. Send message to the Legacy Mesh (off-chain)
+
+The LayerZero Endpoint contract emits the message to the **USDT0 Legacy Mesh Operator**, which verifies the message.
+
+#### 3. Initiate MultiHop transfer (on-chain, Arbitrum)
+
+The USDT0 Legacy Mesh Operator calls the `lzCompose()` method on the LayerZero **MultiHopComposer** contract on Arbitrum. Without additional user interaction, the MultiHopComposer contract carries out the USDT0 mint-and-burn bridge transfer from Arbitrum to Stable.
+
+:::note
+The MultiHopComposer contract is completely permissionless and has no `owner()` to ensure immutability.
+:::
+
+#### 4. Transfer USDT0 to Stable (on-chain and off-chain)
+
+The remaining steps follow the exact same path as [bridging USDT0 to Stable](#path-1--bridging-usdt0-to-stable-oft-supported-chains) (steps 1–8 above). The USDT0 OUpgradable contract on Arbitrum sends via LayerZero, DVNs verify, and USDT0 is minted on Stable.
+
+### Things to note
+
+- USDT0 liquidity on Arbitrum is managed by the USDT0 team.
+- The Legacy Mesh incurs a 0.03% fee on the transferred amount.
+- The user does not need to interact with Arbitrum directly; the MultiHop flow is automatic.
+
+## Next recommended
+
+- [**Flow of funds**](/en/explanation/flow-of-funds) — See the end-to-end lifecycle of USDT from on-ramp through settlement.
+- [**Bridge tutorial**](/en/tutorial/bridge-usdt0) — Bridge Test USDT from Sepolia to Stable testnet using the LayerZero OFT Adapter.
+- [**USDT as gas**](/en/explanation/usdt-as-gas-token) — Understand what the asset does once it lands on Stable.

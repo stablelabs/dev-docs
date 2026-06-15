@@ -1,0 +1,93 @@
+---
+title: "Core concepts"
+description: "Understand Stable's four core concepts before you build: USDT0 as gas, guaranteed blockspace, transfer aggregation, and EVM compatibility."
+diataxis: "explanation"
+---
+
+# Core concepts
+
+Four concepts are enough to start building. Each section defines the concept, shows it, and links to the full reference.
+
+## USDT0 as gas
+
+You pay transaction fees in USDT0, the same asset you're already holding and transacting in. There's no second token to fund or manage.
+
+USDT0 is both the native gas asset (18 decimals, read via `address(x).balance`) and an ERC-20 token (6 decimals, read via `USDT0.balanceOf(x)`). Both interfaces operate on the same underlying balance, and the protocol reconciles the 12-digit precision gap automatically.
+
+```solidity
+// Both read the same balance:
+uint256 native = address(user).balance;        // 18 decimals
+uint256 erc20  = IERC20(USDT0).balanceOf(user); // 6 decimals
+```
+
+:::warning
+Balance reconciliation emits extra `Transfer` events at the reserve address `0x6D11e1A6BdCC974ebE1cA73CC2c1Ea3fDE624370`. Indexers that replay `Transfer` events must filter transfers to and from this address, or they will silently double-count balances.
+:::
+
+Read more: [USDT0 as gas](/en/explanation/usdt-as-gas-token) · [USDT0 behavior on Stable](/en/explanation/usdt0-behavior).
+
+## Guaranteed blockspace
+
+Stable reserves a portion of each block's capacity for pre-allocated enterprise workloads. Reserved traffic settles with predictable latency and cost even when general traffic is congested; it doesn't compete in the fee market.
+
+This behavior is transparent at the caller level. You submit transactions the normal way; allocations are applied at the protocol level for enrolled accounts.
+
+Read more: [Guaranteed blockspace](/en/explanation/guaranteed-blockspace).
+
+## USDT transfer aggregator
+
+High-volume USDT0 transfers are batched and verified in parallel using a MapReduce-inspired pipeline. Per-account failures are isolated, so one bad transfer doesn't abort the batch.
+
+The caller-side transfer API is unchanged. You submit transfers the normal way and gain throughput without code changes.
+
+Read more: [USDT transfer aggregator](/en/explanation/usdt-transfer-aggregator).
+
+## EVM compatibility
+
+Standard EVM tooling works unchanged. At the EVM level, three behaviors differ from Ethereum (USDT0 as gas, covered above, is the fourth).
+
+**Single-slot finality.** A transaction is final once included in a block. Blocks are produced roughly every 0.7 seconds.
+
+**No priority tips.** `maxPriorityFeePerGas` is always ignored. The effective gas price is the base fee set by the protocol.
+
+```typescript
+import { ethers } from "ethers";
+
+const block = await provider.getBlock("latest");
+const baseFee = block.baseFeePerGas;
+
+const tx = await wallet.sendTransaction({
+  to: "0xRecipientAddress",
+  value: ethers.parseEther("0.1"),
+  maxFeePerGas: baseFee * 2n,        // 2x base fee as safety margin
+  maxPriorityFeePerGas: 0n,          // always 0 on Stable
+});
+
+await tx.wait();
+console.log("Included at gas price:", tx.gasPrice?.toString());
+```
+
+```text
+Included at gas price: 1000000000
+```
+
+**Dual-role USDT0, porting risks.** Contracts ported from Ethereum should not mirror native balance, should reject `address(0)` transfers, and should not rely on `EXTCODEHASH` for address-reuse detection.
+
+:::warning
+Porting a contract that mirrors native balance in an internal variable is unsafe on Stable. An external `USDT0.transferFrom` call can drain the contract's native balance without invoking any contract code. Always solvency-check with `address(this).balance` at the moment of transfer.
+:::
+
+Read more: [Differences from Ethereum](/en/explanation/ethereum-comparison) · [Contracts on Stable](/en/explanation/contracts-overview) · [USDT0 migration checklist](/en/explanation/usdt0-behavior).
+
+## Confidential transfer (planned)
+
+Stable has a planned feature for zero-knowledge transfers that hide amounts while staying auditable for authorized parties. It is not yet live.
+
+Read more: [Confidential transfer](/en/explanation/confidential-transfer).
+
+## Next recommended
+
+- [**Quick start**](/en/tutorial/quick-start) — Connect to testnet and send a first transaction.
+- [**USDT0 behavior**](/en/explanation/usdt0-behavior) — Port a contract to Stable without hitting dual-role gotchas.
+- [**Gas pricing**](/en/reference/gas-pricing-api) — Construct transactions correctly on Stable's fee model.
+- [**Production readiness**](/en/how-to/production-readiness) — Validate an integration before shipping to mainnet.

@@ -1,0 +1,238 @@
+---
+title: "Deploy a smart contract"
+description: "Scaffold a Foundry project, fund a wallet with USDT0, deploy a contract to Stable testnet, and verify it on-chain."
+diataxis: "tutorial"
+---
+
+# Deploy a smart contract
+
+In this tutorial, you will deploy a simple smart contract to the Stable Testnet and read its state from the chain. Along the way, you will learn how Stable's network is configured, how USDT0 works as a gas token, and how to point standard EVM tooling at Stable.
+
+This tutorial assumes basic familiarity with Solidity and a Unix-like terminal. No prior Stable experience is required.
+
+## What you'll build
+
+A fresh Foundry project with the sample `Counter` contract, deployed to Stable testnet, with one state-changing call and one read call.
+
+### Demo
+
+```text
+step 1. Scaffold Foundry project → stable-hello/
+
+step 2. Configure testnet
+        RPC:      https://rpc.testnet.stable.xyz
+        Chain ID: 2201
+
+step 3. Fund wallet from faucet (1 USDT0)
+
+step 4. forge create Counter
+        Deployed to: 0xContract...
+
+step 5. cast send Counter.setNumber(42)
+
+step 6. cast call Counter.number()
+        → 42
+```
+
+## Prerequisites
+
+- [Foundry](https://book.getfoundry.sh/getting-started/installation) installed (`forge`, `cast`, and `anvil` available in your PATH)
+- A wallet with a private key you control (a fresh test key is fine; never use a key holding real funds on testnet)
+- An internet connection to reach the testnet RPC and faucet
+
+---
+
+## 1. Create a new Foundry project
+
+Run the following command to scaffold a fresh project:
+
+```bash
+forge init stable-hello && cd stable-hello
+```
+
+Foundry creates a `src/` directory with a sample `Counter.sol` contract and a matching test file. You will deploy this contract as-is. The goal is to get something real on-chain, not to write novel Solidity.
+
+## 2. Review the contract you are deploying
+
+Open `src/Counter.sol`. It contains two functions:
+
+```solidity
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.13;
+
+contract Counter {
+    uint256 public number;
+
+    function setNumber(uint256 newNumber) public {
+        number = newNumber;
+    }
+
+    function increment() public {
+        number++;
+    }
+}
+```
+
+`number` is a public state variable stored on-chain. `increment()` and `setNumber()` are the two ways to change it. Reading `number` costs no gas. It is a free `eth_call`.
+
+## 3. Configure the Stable Testnet
+
+Create a file named `.env` at the project root to store your network credentials:
+
+```bash
+touch .env
+```
+
+Add the following, replacing the placeholder with your actual private key:
+
+```bash
+PRIVATE_KEY=0xYOUR_PRIVATE_KEY_HERE
+```
+
+Next, open `foundry.toml` and add the Stable Testnet as a named network profile. Append this block below the existing `[profile.default]` section:
+
+```toml
+[rpc_endpoints]
+stable_testnet = "https://rpc.testnet.stable.xyz"
+```
+
+This tells Foundry where to send transactions when you target `stable_testnet`. Stable is EVM-compatible, so no other configuration is needed.
+
+---
+
+**Checkpoint:** Confirm your RPC endpoint is reachable:
+
+```bash
+cast chain-id --rpc-url https://rpc.testnet.stable.xyz
+```
+
+Expected output:
+
+```
+2201
+```
+
+Chain ID `2201` is the Stable Testnet. If you see this number, your machine can reach the network.
+
+---
+
+## 4. Get your wallet address
+
+Derive your deployer address from your private key so you know which account to fund:
+
+```bash
+source .env
+cast wallet address $PRIVATE_KEY
+```
+
+Copy the address that is printed. You need it in the next step.
+
+## 5. Fund your wallet with USDT0
+
+Stable uses **USDT0** as its gas token. The same asset you use to pay for goods and services is used directly to pay for computation. There is no secondary native token.
+
+Visit the testnet faucet and request funds:
+
+```
+https://faucet.stable.xyz
+```
+
+Paste the address from the previous step. The faucet sends 1 USDT0 to your wallet, which is enough to deploy and interact with several contracts.
+
+---
+
+**Checkpoint:** Confirm your balance arrived:
+
+```bash
+cast balance $PRIVATE_KEY --rpc-url https://rpc.testnet.stable.xyz
+```
+
+You should see a non-zero value. If the balance is still `0`, wait a few seconds and re-run. Stable produces a new block roughly every 0.7 seconds, so funds settle quickly.
+
+---
+
+## 6. Deploy the contract
+
+Run the deployment with `forge create`:
+
+```bash
+source .env
+forge create src/Counter.sol:Counter \
+  --rpc-url https://rpc.testnet.stable.xyz \
+  --private-key $PRIVATE_KEY \
+  --broadcast
+```
+
+Foundry compiles the contract, broadcasts a deployment transaction, and waits for the receipt. Because block time is ~0.7 seconds, this takes only a moment.
+
+---
+
+**Checkpoint:** The output should look like this:
+
+```
+[⠒] Compiling...
+No files changed, compilation skipped
+Deployer: 0xYourAddress
+Deployed to: 0xSomeContractAddress
+Transaction hash: 0xSomeTxHash
+```
+
+Copy the `Deployed to` address. You need it in the next two steps.
+
+---
+
+## 7. Call a write function
+
+Now call `setNumber()` to store a value on-chain:
+
+```bash
+cast send 0xSomeContractAddress "setNumber(uint256)" 42 \
+  --rpc-url https://rpc.testnet.stable.xyz \
+  --private-key $PRIVATE_KEY
+```
+
+This sends a transaction. You are paying a small USDT0 fee for the state change. The value `42` is now stored in the `number` variable on the Stable Testnet.
+
+## 8. Read state from the chain
+
+Call `number()` to read the value back. This is a free read, with no transaction and no gas:
+
+```bash
+cast call 0xSomeContractAddress "number()(uint256)" \
+  --rpc-url https://rpc.testnet.stable.xyz
+```
+
+Expected output:
+
+```
+42
+```
+
+You just wrote to and read from the Stable Testnet. The round-trip — deploy, write, read — is the core loop of EVM development, and it works identically here to any other EVM chain.
+
+## 9. Inspect your deployment on Stablescan
+
+Open the Stable Testnet block explorer and paste your contract address:
+
+```
+https://testnet.stablescan.xyz
+```
+
+You will see your deployment transaction and the `setNumber` call you made. Stablescan is the canonical tool for inspecting on-chain state, verifying contract source code, and reading transaction history on Stable.
+
+---
+
+## What you have built
+
+You deployed a contract, sent a state-changing transaction, and read on-chain state — all on the Stable Testnet. You now know how to:
+
+- Configure Foundry (or any EVM toolchain) to target Stable using a standard RPC endpoint
+- Fund a wallet using the USDT0 faucet
+- Pay for transactions with USDT0 as the gas token
+- Inspect your work on Stablescan
+
+## Next recommended
+
+- [**Verify the contract**](/en/how-to/verify-contract) — Upload your source to Stablescan so users can read and interact with it.
+- [**Index contract events**](/en/how-to/index-contract) — Subscribe to events with ethers.js and backfill historical logs.
+- [**Gas pricing reference**](/en/reference/gas-pricing-api) — Understand how USDT0-denominated fees are calculated.

@@ -1,0 +1,39 @@
+---
+title: "Send and receive USDT0"
+description: "Peer-to-peer USDT0 transfers on Stable via native transfers or ERC-3009 delegated settlement."
+diataxis: "reference"
+---
+
+# Send and receive USDT0
+
+On Stable, P2P payments settle in under a second. Two transfer methods are available depending on the use case.
+
+## Native transfer
+
+The sender signs and broadcasts a transaction directly to the recipient. This costs 21,000 gas (~0.00021 USDT0 at 100 gwei). No contract interaction is required.
+
+A native transfer is the simplest path: the sender signs a transaction sending USDT0 directly to the recipient. This is equivalent to entering an amount and selecting "Send" in any payment app.
+
+For a code walkthrough, see [Send your First USDT0](/en/tutorial/send-usdt0).
+
+## Application-initiated transfer (ERC-3009)
+
+The sender signs an off-chain authorization. An application or facilitator submits the transaction on their behalf. Combined with the [Gas Waiver](/en/how-to/integrate-gas-waiver), the gas cost is 0.
+
+[ERC-3009](/en/explanation/erc-3009) is more appropriate for application-initiated payments (e.g., a payment in a web app) because it separates the signer from the submitter. The sender only signs an authorization off-chain, and the application or a facilitator handles on-chain submission.
+
+## What makes it different
+
+On traditional payment rails, a P2P transfer involves bank processing, clearing, and settlement that can take 1–3 business days. Even on other blockchains, the sender needs to hold a volatile gas token (ETH, SOL) alongside the payment token. On Stable, the sender holds only USDT0, gas can be waived, and settlement is final in under a second.
+
+| **Aspect** | **Traditional (bank transfer)** | **Other blockchains** | **Stable** |
+| :--- | :--- | :--- | :--- |
+| Settlement time | 1–3 business days | Seconds to minutes, depending on the chain | Under 1 second (single-slot finality) |
+| Required assets | Fiat currency | Payment token + separate gas token (ETH, SOL, etc.) | USDT0 only (single asset) |
+| Transaction cost | Wire / intermediary fees | Can spike with network congestion | ~0.00021 USDT0 native transfer or $0 via Gas Waiver |
+
+**See also:**
+
+- [Send your First USDT0](/en/tutorial/send-usdt0)
+- [ERC-3009 (Transfer With Authorization)](/en/explanation/erc-3009)
+- [Gas Waiver](/en/how-to/integrate-gas-waiver)

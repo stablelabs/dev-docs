@@ -1,0 +1,414 @@
+---
+title: "Paying with invoice"
+description: "Settle invoices on Stable using ERC-3009 with deterministic nonces derived from invoice metadata. Reconcile through on-chain events."
+diataxis: "how-to"
+---
+
+# Paying with invoice
+
+This guide walks through settling an invoice on-chain using [ERC-3009](/en/explanation/erc-3009) with a deterministic nonce derived from invoice metadata. The nonce links each payment to its invoice and prevents double payment.
+
+:::note
+**Concept:** For the invoice settlement model and comparison to traditional B2B invoicing, see [Invoice settlement](/en/reference/invoices).
+:::
+
+## What you'll build
+
+A full invoice lifecycle: the buyer signs an ERC-3009 authorization off-chain, the vendor submits it on-chain, and reconciliation matches the resulting `AuthorizationUsed` event back to the invoice by deterministic nonce.
+
+### Demo
+
+```text
+step 1. Invoice issued
+        number:  INV-2026-001234
+        amount:  5000 USDT0
+        dueDate: 2026-04-30
+
+step 2. Buyer signs authorization (off-chain, no gas)
+        nonce:     0xa1b2...c3d4 (from invoice metadata)
+        signature: 0xf0e9...1234
+
+step 3. Vendor submits transferWithAuthorization
+        tx:     0x8f3a...2d41
+        amount: 5000 USDT0 transferred to vendor
+
+step 4. Reconciliation
+        AuthorizationUsed(nonce=0xa1b2...) → invoice INV-2026-001234
+        Transfer event verified for correct amount and parties
+        ERP: marked PAID at block 1284371
+```
+
+## Overview
+
+**Buyer:**
+
+```
+─── Buyer ───────────────────────────────────────────
+nonce = getInvoiceNonce(invoice)
+authorization = { from: buyer, to: vendor, value: amount, nonce, ... }
+signature = signTypedData(authorization)
+
+// Option A: Buyer submits the transaction directly.
+usdt0.transferWithAuthorization(authorization, signature)
+
+// Option B: Buyer sends {authorization, signature} to the vendor.
+//           The vendor (or a facilitator) submits on the buyer's behalf.
+```
+
+**Vendor:**
+
+```
+─── Vendor ──────────────────────────────────────────
+// If Option B: submit transferWithAuthorization using the buyer's signature
+
+// Reconcile via AuthorizationUsed event
+on AuthorizationUsed(authorizer, nonce):
+    invoice = nonceToInvoice.get(nonce)
+    transferLog = receipt.logs.find(Transfer matching invoice.buyer, invoice.vendor, invoice.amount)
+    if transferLog:
+        erpSystem.markPaid(invoice.id, txHash, settledAt)
+```
+
+## Configuration
+
+```typescript
+// config.ts
+import { ethers } from "ethers";
+
+export const STABLE_TESTNET_RPC = "https://rpc.testnet.stable.xyz";
+export const CHAIN_ID = 2201;
+export const USDT0_ADDRESS = "0x78Cf24370174180738C5B8E352B6D14c83a6c9A9";
+
+export const provider = new ethers.JsonRpcProvider(STABLE_TESTNET_RPC);
+
+export const EIP712_DOMAIN = {
+  name: "USDT0",
+  version: "1",
+  chainId: CHAIN_ID,
+  verifyingContract: USDT0_ADDRESS,
+};
+
+export const TRANSFER_WITH_AUTHORIZATION_TYPE = {
+  TransferWithAuthorization: [
+    { name: "from", type: "address" },
+    { name: "to", type: "address" },
+    { name: "value", type: "uint256" },
+    { name: "validAfter", type: "uint256" },
+    { name: "validBefore", type: "uint256" },
+    { name: "nonce", type: "bytes32" },
+  ],
+};
+
+export interface Invoice {
+  number: string;   // e.g. "INV-2026-001234"
+  vendor: string;   // vendor wallet address
+  buyer: string;    // buyer wallet address
+  amount: bigint;   // amount in USDT0 atomic units (6 decimals)
+  dueDate: number;  // Unix timestamp
+}
+```
+
+## Step 1: Generate a deterministic nonce
+
+Both the buyer and the vendor can independently compute the same nonce from invoice metadata. No external registry is needed.
+
+```typescript
+// nonce.ts
+import { ethers } from "ethers";
+import { Invoice } from "./config";
+
+export function getInvoiceNonce(invoice: Invoice): string {
+  return ethers.solidityPackedKeccak256(
+    ["string", "address", "address", "uint256", "uint256"],
+    [
+      invoice.number,
+      invoice.vendor,
+      invoice.buyer,
+      invoice.amount,
+      invoice.dueDate,
+    ]
+  );
+}
+
+// Example
+const invoice: Invoice = {
+  number: "INV-2026-001234",
+  vendor: "0xVendorAddress",
+  buyer: "0xBuyerAddress",
+  amount: ethers.parseUnits("5000", 6), // 5,000 USDT0
+  dueDate: Math.floor(new Date("2026-04-30").getTime() / 1000),
+};
+
+const nonce = getInvoiceNonce(invoice);
+// Same input always produces the same nonce.
+// This nonce is consumed on-chain upon payment, preventing double payment.
+```
+
+## Step 2: Sign the authorization (buyer)
+
+The buyer signs an ERC-3009 `transferWithAuthorization` using the deterministic nonce from Step 1.
+
+```typescript
+// sign-invoice.ts
+import { ethers } from "ethers";
+import {
+  provider,
+  EIP712_DOMAIN,
+  TRANSFER_WITH_AUTHORIZATION_TYPE,
+  Invoice,
+} from "./config";
+import { getInvoiceNonce } from "./nonce";
+
+const buyerWallet = new ethers.Wallet(process.env.BUYER_KEY!, provider);
+
+async function signInvoiceAuthorization(invoice: Invoice) {
+  const nonce = getInvoiceNonce(invoice);
+  const gracePeriod = 30 * 24 * 60 * 60; // 30 days after due date
+
+  const authorization = {
+    from: invoice.buyer,
+    to: invoice.vendor,
+    value: invoice.amount,
+    validAfter: 0,
+    validBefore: invoice.dueDate + gracePeriod,
+    nonce,
+  };
+
+  const signature = await buyerWallet.signTypedData(
+    EIP712_DOMAIN,
+    TRANSFER_WITH_AUTHORIZATION_TYPE,
+    authorization
+  );
+
+  return { authorization, signature };
+}
+```
+
+## Step 3: Submit the transaction
+
+Two options depending on who submits.
+
+### Option A: Buyer submits
+
+The buyer submits the `transferWithAuthorization` transaction directly and pays gas. Use this when the buyer controls when and how the payment is executed, for example when the buyer's accounting system needs the tx hash tied to an internal approval flow.
+
+```typescript
+// pay.ts
+import { ethers } from "ethers";
+import { provider, USDT0_ADDRESS } from "./config";
+
+const buyerWallet = new ethers.Wallet(process.env.BUYER_KEY!, provider);
+
+const usdt0 = new ethers.Contract(
+  USDT0_ADDRESS,
+  [
+    "function transferWithAuthorization(address from, address to, uint256 value, uint256 validAfter, uint256 validBefore, bytes32 nonce, uint8 v, bytes32 r, bytes32 s)",
+  ],
+  buyerWallet,
+);
+
+async function payInvoice(
+  authorization: { from: string; to: string; value: bigint; validAfter: number; validBefore: number; nonce: string },
+  signature: string,
+) {
+  const { v, r, s } = ethers.Signature.from(signature);
+
+  const tx = await usdt0.transferWithAuthorization(
+    authorization.from,
+    authorization.to,
+    authorization.value,
+    authorization.validAfter,
+    authorization.validBefore,
+    authorization.nonce,
+    v, r, s,
+  );
+
+  const receipt = await tx.wait(1);
+  console.log("Invoice paid, tx:", receipt.hash);
+  // The nonce is now consumed; the same invoice cannot be paid twice.
+  return { txHash: receipt.hash, blockNumber: receipt.blockNumber };
+}
+```
+
+### Option B: Vendor submits
+
+The buyer sends `{authorization, signature}` to the vendor through API, email, or any channel. The vendor (or a facilitator) submits the transaction on the buyer's behalf, so the buyer does not need to manage gas. Use this when the vendor needs synchronous confirmation within the same request flow.
+
+```typescript
+// settle.ts
+import { ethers } from "ethers";
+import { provider, USDT0_ADDRESS } from "./config";
+
+const vendorWallet = new ethers.Wallet(process.env.VENDOR_KEY!, provider);
+
+const usdt0 = new ethers.Contract(
+  USDT0_ADDRESS,
+  [
+    "function transferWithAuthorization(address from, address to, uint256 value, uint256 validAfter, uint256 validBefore, bytes32 nonce, uint8 v, bytes32 r, bytes32 s)",
+  ],
+  vendorWallet,
+);
+
+async function settleInvoice(
+  authorization: { from: string; to: string; value: bigint; validAfter: number; validBefore: number; nonce: string },
+  signature: string,
+) {
+  const { v, r, s } = ethers.Signature.from(signature);
+
+  const tx = await usdt0.transferWithAuthorization(
+    authorization.from,
+    authorization.to,
+    authorization.value,
+    authorization.validAfter,
+    authorization.validBefore,
+    authorization.nonce,
+    v, r, s,
+  );
+
+  const receipt = await tx.wait(1);
+  console.log("Invoice settled, tx:", receipt.hash);
+  return { txHash: receipt.hash, blockNumber: receipt.blockNumber };
+}
+```
+
+## Step 4: Reconcile via on-chain events (vendor)
+
+Regardless of who submitted the transaction, every invoice payment emits an `AuthorizationUsed` event carrying the deterministic nonce. The vendor listens for this event and matches it to a pending invoice by nonce. Because the nonce is derived from invoice metadata, matching is exact.
+
+:::note
+Matching by nonce identifies which invoice was paid, but the vendor should also verify the `Transfer` event in the same transaction to confirm that the correct amount was sent to the correct recipient. The code below includes this verification.
+:::
+
+```typescript
+// reconcile.ts
+import { ethers } from "ethers";
+import { provider, USDT0_ADDRESS, Invoice } from "./config";
+import { getInvoiceNonce } from "./nonce";
+
+const usdt0 = new ethers.Contract(
+  USDT0_ADDRESS,
+  [
+    "event AuthorizationUsed(address indexed authorizer, bytes32 indexed nonce)",
+    "event Transfer(address indexed from, address indexed to, uint256 value)",
+  ],
+  provider,
+);
+
+// Build a lookup map: nonce -> invoice.
+// In production, this comes from your invoice database.
+const invoices: Invoice[] = [
+  {
+    number: "INV-2026-001234",
+    vendor: "0xVendorAddress",
+    buyer: "0xBuyerAddress",
+    amount: ethers.parseUnits("5000", 6),
+    dueDate: Math.floor(new Date("2026-04-30").getTime() / 1000),
+  },
+];
+
+const nonceToInvoice = new Map<string, Invoice>();
+for (const inv of invoices) {
+  nonceToInvoice.set(getInvoiceNonce(inv), inv);
+}
+
+usdt0.on("AuthorizationUsed", async (authorizer: string, nonce: string, event: any) => {
+  const invoice = nonceToInvoice.get(nonce);
+  if (!invoice) return; // not one of our invoices
+
+  const receipt = await event.getTransactionReceipt();
+
+  const transferLog = receipt.logs
+    .map((log: any) => {
+      try { return usdt0.interface.parseLog(log); } catch { return null; }
+    })
+    .find(
+      (parsed: any) =>
+        parsed?.name === "Transfer" &&
+        parsed.args[0].toLowerCase() === invoice.buyer.toLowerCase() &&
+        parsed.args[1].toLowerCase() === invoice.vendor.toLowerCase() &&
+        parsed.args[2] === invoice.amount
+    );
+
+  if (!transferLog) {
+    console.error("No matching Transfer event for invoice:", invoice.number);
+    return;
+  }
+
+  // All checks passed
+  console.log(`Invoice ${invoice.number} PAID`);
+  console.log("  tx:", receipt.hash);
+  console.log("  settled at block:", receipt.blockNumber);
+
+  // In production: update your ERP/accounting system here
+  // erpSystem.markPaid(invoice.number, receipt.hash, receipt.blockNumber);
+});
+
+console.log("Listening for invoice settlements...");
+```
+
+```bash
+npx tsx reconcile.ts
+```
+
+```text
+Listening for invoice settlements...
+Invoice INV-2026-001234 PAID
+  tx: 0x8f3a...2d41
+  settled at block: 1284371
+```
+
+## Handle failed payments
+
+A submitted `transferWithAuthorization` can revert for several reasons. Detect and surface each one to the vendor or buyer so the invoice can be retried or closed.
+
+| **Revert reason** | **Cause** | **Recovery** |
+| :--- | :--- | :--- |
+| `FiatTokenV2: invalid signature` | Signature doesn't match the authorization fields. | Ask buyer to re-sign with unchanged invoice data. |
+| `FiatTokenV2: authorization is used or canceled` | Nonce was already consumed (double-submission) or the buyer cancelled it. | Mark the invoice as already-paid; look up the original tx by nonce. |
+| `FiatTokenV2: authorization is not yet valid` | Submitted before `validAfter`. | Wait until `validAfter` or issue a new authorization. |
+| `FiatTokenV2: authorization is expired` | Submitted after `validBefore`. | Issue a new authorization with an extended window. |
+| `FiatTokenV2: transfer amount exceeds balance` | Buyer's USDT0 balance is insufficient. | Notify buyer to fund their wallet, then retry the same signature. |
+
+Catch reverts and classify them before retrying.
+
+```typescript
+// retry.ts
+import { ethers } from "ethers";
+
+async function submitWithRetry(
+  submit: () => Promise<ethers.ContractTransactionResponse>,
+): Promise<string> {
+  try {
+    const tx = await submit();
+    const receipt = await tx.wait(1);
+    return receipt!.hash;
+  } catch (err: any) {
+    const reason = err?.info?.error?.message || err?.reason || err?.message || "";
+
+    if (reason.includes("authorization is used or canceled")) {
+      // Lookup the original tx by AuthorizationUsed event; mark invoice paid.
+      throw new Error("ALREADY_PAID");
+    }
+    if (reason.includes("authorization is expired")) {
+      throw new Error("AUTHORIZATION_EXPIRED");
+    }
+    if (reason.includes("invalid signature")) {
+      throw new Error("INVALID_SIGNATURE");
+    }
+    if (reason.includes("transfer amount exceeds balance")) {
+      throw new Error("INSUFFICIENT_BALANCE");
+    }
+    throw err;
+  }
+}
+```
+
+:::warning
+Never retry a failed submission without classifying the error. Blind retries on a reverted transferWithAuthorization can pass validation after the buyer tops up their balance, which may not match the buyer's latest intent.
+:::
+
+## Next recommended
+
+- [**Invoice settlement concept**](/en/reference/invoices) — Understand the deterministic-nonce reconciliation model.
+- [**ERC-3009**](/en/explanation/erc-3009) — Review the signed-authorization standard behind this flow.
+- [**Enable gas-free transactions**](/en/how-to/integrate-gas-waiver) — Combine with Gas Waiver to eliminate gas from the settlement path.

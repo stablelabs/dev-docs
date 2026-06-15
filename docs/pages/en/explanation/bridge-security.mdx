@@ -1,0 +1,48 @@
+---
+title: "Bridge security and DVNs"
+description: "Understand how Stable configures LayerZero DVNs to verify cross-chain messages and what makes a single key compromise non-fatal."
+diataxis: "explanation"
+---
+
+# Bridge security and DVNs
+
+A LayerZero bridge is only as secure as the verification layer that confirms a message sent on one chain happened on another. That layer is a Decentralized Verifier Network (DVN). This page explains what DVNs do, how Stable configures them on its bridges, and why a compromise of any single DVN does not put Stable at risk.
+
+## How DVNs work
+
+When a LayerZero message moves from chain A to chain B, the destination contract does not execute it until a configured set of DVNs independently attests that the message is real. Each application picks its own configuration:
+
+- **Required DVNs.** Every required DVN must sign before the message is accepted.
+- **Optional DVNs with an N-of-M threshold.** An optional pool can be added on top of the required set, with a threshold like 2-of-5 that must be met in addition to required signatures.
+- **Block confirmation depth.** The number of source-chain confirmations DVNs wait for before signing.
+
+The safety of a bridge is entirely a function of this configuration. A 1/1 setup with a single DVN as the sole verifier means any compromise of that one DVN's signing key allows an attacker to forge cross-chain messages. A 3/3 across three independent operators requires all three to be compromised simultaneously. The difference is the difference between losing a bridge to a single stolen key and surviving a targeted attack on one operator.
+
+## Stable's configuration
+
+Stable's bridges run a **3/3 required DVN** configuration with three independent operators: **LayerZero Labs**, **Canary**, and **Horizen**. All three must sign every cross-chain message before the destination contract will execute it. There is no optional pool with a threshold; the required set is the entire verification surface.
+
+A single compromised signing key, including LayerZero's own, does nothing against this posture. Forging a message would require simultaneous compromise of all three independent operators.
+
+For DVN contract addresses, see [Bridges: Stable's DVN operators](/en/reference/bridges#stable-s-dvn-operators).
+
+## STABLE OFT architecture
+
+The STABLE token bridges to other chains using LayerZero's Omnichain Fungible Token (OFT) standard. Two contract types are deployed:
+
+- **`StableOFTAdapter`** on Stable. The adapter locks STABLE on the home chain and emits a LayerZero message when STABLE is sent cross-chain.
+- **`StableOFTUpgradeable`** on each remote chain. This contract mints STABLE on the destination when the message is verified by the configured DVNs, and burns it on the return path so the home-chain supply remains canonical.
+
+For deployed addresses on each chain, see [Bridges: STABLE OFT contracts](/en/reference/bridges#stable-oft-contracts).
+
+## Operational dependencies
+
+Stable's own bridge security is independent of upstream protocols, but cross-chain flow through Stable can still pause when partner protocols pause their own bridges. For example, when USDT0 pauses cross-chain mint and burn, USDT0 cannot move to or from Stable until USDT0 resumes. Funds within Stable continue to move freely; only the specific cross-chain action is unavailable.
+
+Application surfaces routing through partner bridges should communicate this clearly so users understand the distinction: their funds are not at risk, only that a particular cross-chain path is temporarily unavailable.
+
+## Next recommended
+
+- [**Bridging USDT0 to Stable**](/en/explanation/usdt0-bridging) — See how USDT0 reaches Stable through the OFT Mesh and Legacy Mesh.
+- [**Bridge providers and addresses**](/en/reference/bridges) — Reference contract addresses, DVN operators, and supported bridge providers.
+- [**LayerZero DVN documentation**](https://docs.layerzero.network/v2/concepts/protocol/security-stack-dvns) — Read LayerZero's spec for required and optional DVN verification.

@@ -1,0 +1,102 @@
+---
+title: "Execution"
+description: "Stable EVM parallel execution using Block-STM, Optimistic Block Processing, and future StableVM++ improvements."
+diataxis: "explanation"
+---
+
+# Execution
+
+## Stable EVM
+
+<img
+  className="block"
+  src="/images/stableevm.png"
+  alt="Stable EVM"
+/>
+
+**Stable EVM** is Stable's Ethereum-compatible execution layer. Existing Ethereum tools and wallets like MetaMask interact with Stable unchanged. Stable EVM combines the EVM's developer experience with the modular infrastructure of the Stable SDK.
+
+To bridge the gap between the Stable EVM and the Stable SDK, Stable EVM introduces a set of **precompiles**. These precompiles expose native Stable SDK module functionality to EVM smart contracts, enabling them to call into the core chain logic securely and atomically. Smart contracts can then perform privileged operations such as token transfers, staking, or governance participation.
+
+## Future roadmap 1: Optimistic parallel execution
+
+Historically, blockchain systems have relied on sequential execution, where each transaction is processed one after another to ensure deterministic state across all nodes. While this design guarantees consistency, it severely limits throughput and scalability, especially as modern blockchains aim to support tens of thousands of transactions per second.
+
+To overcome this constraint, Stable is adopting **Block-STM**, a proven parallel execution engine that enables **Optimistic Parallel Execution (OPE)**. This allows transactions to be executed in parallel while preserving determinism, significantly enhancing performance.
+
+### How Block-STM works
+
+Block-STM uses an optimistic concurrency control mechanism: transactions are first executed in parallel under the assumption that they won’t conflict. Then, during a validation phase, any conflicts are detected and handled through re-execution. The process relies on the following five key techniques:
+
+**1. Multi-version memory structure**
+
+Block-STM stores multiple versions of each memory key:
+
+- Each transaction reads the latest version committed by prior transactions.
+- During execution, both reads and writes are versioned.
+- Later, during validation, these versions are checked for consistency to detect conflicts.
+
+**2. Read-Set / Write-Set based validation**
+
+- During execution, each transaction logs the keys and versions it reads in a Read-Set.
+- At the end of execution, it records its Write-Set into the multi-version memory.
+- During validation, if another transaction has modified any key in the Read-Set, the transaction is marked as conflicting. It is then aborted and re-executed with an incremented incarnation number.
+
+**3. Fast conflict detection with ESTIMATE markers**
+
+- When a transaction fails, its Write-Set is marked with an ESTIMATE flag.
+- If another transaction reads an ESTIMATE-marked value, it immediately halts and waits for re-execution (triggered by a `READ_ERROR`).
+- This helps reduce overhead by quickly identifying dependencies without re-executing the full transaction set.
+
+**4. Preset transaction order**
+
+- All transactions within a block are executed according to a preset, deterministic order.
+- Validation and commit stages also follow this same order.
+- This ensures that even with parallel execution, all nodes reach the same final state.
+
+**5. Collaborative scheduler**
+
+- A Collaborative Scheduler distributes tasks between execution and validation workers in a thread-safe manner.
+- It prioritizes lower-index transactions to accelerate early commits and minimize re-execution.
+- The scheduler manages transaction incarnations for repeated attempts until they commit successfully.
+
+### Key benefits of Block-STM
+
+- **Parallelism Without Locks**: By leveraging MVCC (Multi-Version Concurrency Control), Block-STM allows multiple transactions to read and write concurrently without the need for mutex locks. Conflicts are only checked after execution, allowing maximum throughput during the initial processing phase.
+- **Minimal Overhead via ESTIMATE Markers**: Failed transactions flag their Write-Sets with ESTIMATE markers, signaling dependent transactions to pause early, avoiding wasted execution. This results in faster convergence on valid execution paths.
+- **Efficient Scheduling and Prioritized Commits**: Using the Collaborative Scheduler, the system minimizes retries by committing lower-index transactions first. This improves overall throughput and shortens execution cycles.
+- **Determinism and Consensus Compatibility**: Because every transaction adheres to a fixed order, even re-executed transactions ultimately commit in the same sequence. This ensures safe and deterministic state agreement across all nodes, preserving consensus integrity even in a parallelized environment.
+
+### OPE on Stable
+
+<img
+  className="block"
+  src="/images/ope.png"
+  alt="Optimistic Parallel Execution on Stable"
+/>
+
+Stable will incorporate **Optimistic Parallel Execution (OPE)** as a core feature of its execution layer, in conjunction with **Optimistic Block Processing (OBP)**. Please note that OPE and OBP are complementary but fundamentally different strategies.
+
+### About OBP
+
+- OBP is not about parallelism, but about execution timing.
+- During the `ProcessProposal` stage, Stable pre-executes blocks while they are being gossiped to other nodes.
+- The resulting state is cached in memory and reused during `FinalizeBlock`, saving time and reducing duplicate computation.
+
+By combining OPE and OBP, Stable can minimize both execution latency and resource contention, delivering superior performance under high transaction load.
+
+### Expected performance gains
+
+Internal benchmarks suggest that with **Block-STM-based OPE** and **StableDB** integration, Stable can achieve **at least 2x throughput improvements** in end-to-end transaction processing.
+
+## Future roadmap 2: StableVM++
+
+While efforts like Optimistic Parallel Execution (OPE) and Optimistic Block Processing (OBP) focus on optimizing *how multiple transactions are executed concurrently*, there’s another vital performance lever: **how efficiently each individual transaction is processed**.
+
+Stable is currently exploring alternative EVM implementations to boost execution speed. Among the candidates, **EVMONE**, a high-performance EVM written in C++, stands out as a strong contender to replace the existing Go-based EVM. This switch is projected to deliver up to a **6x increase in EVM execution performance** based on theoretical benchmarks.
+
+## Next recommended
+
+- [**Storage (StableDB)**](/en/explanation/stable-db) — See how decoupled state commitment feeds execution without blocking on disk I/O.
+- [**High performance RPC**](/en/explanation/high-performance-rpc) — Understand the split-path RPC that surfaces execution results to clients.
+- [**Ethereum compatibility**](/en/explanation/ethereum-compatibility) — Port existing contracts using standard EVM tooling against Stable.

@@ -1,0 +1,186 @@
+---
+title: "Tracking unbonding completions"
+description: "Subscribe to UnbondingCompleted events emitted by the StableSystem precompile through system transactions. Filter by user or validator, query historical events."
+diataxis: "how-to"
+---
+
+# Tracking unbonding completions
+
+When an unbonding period completes, the protocol emits an `UnbondingCompleted` event through the `StableSystem` precompile (`0x0000000000000000000000000000000000009999`) via a system transaction. This lets dApps notify users and update balances in real time without running custom indexers or polling REST endpoints.
+
+:::note
+**Concept:** For how system transactions bridge SDK-layer events to the EVM and why it matters, see [System transactions](/en/explanation/system-transactions).
+:::
+
+## Prerequisites
+
+- Understanding of [System transactions](/en/explanation/system-transactions).
+- Familiarity with [Staking](/en/explanation/staking-module), specifically `undelegate` and the unbonding process.
+- Experience with contract event subscription and filtering using a standard web3 library (e.g. [ethers.js](https://docs.ethers.org/) v6).
+
+## Overview
+
+- **Set up the contract instance**: create a contract instance for the StableSystem precompile.
+- **Handle events in your application**: subscribe to real-time events or query historical data depending on your application logic.
+- **Handle connection issues**: implement reconnection logic for persistent WebSocket subscriptions.
+
+## Step 1: Set up the contract instance
+
+Create a contract instance for the `StableSystem` precompile using the `UnbondingCompleted` event ABI.
+
+```typescript
+// config.ts
+import { ethers } from "ethers";
+
+export const STABLE_SYSTEM_ADDRESS =
+  "0x0000000000000000000000000000000000009999";
+
+export const STABLE_SYSTEM_ABI = [
+  "event UnbondingCompleted(address indexed delegator, address indexed validator, uint256 amount)",
+];
+
+export const provider = new ethers.JsonRpcProvider("https://rpc.testnet.stable.xyz");
+export const stableSystem = new ethers.Contract(
+  STABLE_SYSTEM_ADDRESS,
+  STABLE_SYSTEM_ABI,
+  provider
+);
+```
+
+## Step 2: Handle events in your application
+
+Subscribe to real-time events, query historical data, or both depending on your application logic.
+
+### Real-time subscription
+
+Subscribe to `UnbondingCompleted` events for real-time notifications when any unbonding completes. Useful for triggering balance updates, sending notifications, or refreshing dashboard statistics.
+
+```typescript
+// subscribeBasic.ts
+import { stableSystem } from "./config";
+
+stableSystem.on("UnbondingCompleted", (delegator, validator, amount, event) => {
+  console.log("Unbonding completed:");
+  console.log("  Delegator:", delegator);
+  console.log("  Validator:", validator);
+  console.log("  Amount:", ethers.formatEther(amount), "tokens");
+  console.log("  Block:", event.log.blockNumber);
+  console.log("  Tx Hash:", event.log.transactionHash);
+});
+```
+
+### Filter by user
+
+To only receive events for a particular delegator address, use the indexed event parameters to create a filter.
+
+```typescript
+// subscribeByUser.ts
+import { ethers } from "ethers";
+import { stableSystem } from "./config";
+
+const userAddress = "0xabcd...";
+const filter = stableSystem.filters.UnbondingCompleted(userAddress);
+
+stableSystem.on(filter, (delegator, validator, amount, event) => {
+  refreshUserBalance(userAddress);
+  showNotification(
+    `Your unbonding of ${ethers.formatEther(amount)} tokens completed!`
+  );
+});
+```
+
+### Filter by validator
+
+```typescript
+// subscribeByValidator.ts
+import { stableSystem } from "./config";
+
+const validatorAddress = "0x1234...";
+const validatorFilter = stableSystem.filters.UnbondingCompleted(
+  null,
+  validatorAddress
+);
+
+stableSystem.on(validatorFilter, (delegator, validator, amount) => {
+  updateValidatorStats(validator, amount);
+});
+```
+
+### Historical query
+
+If your dApp needs to show a history of past unbonding completions, query historical events using event filters with block ranges.
+
+```typescript
+// queryHistory.ts
+import { ethers } from "ethers";
+import { provider, stableSystem } from "./config";
+
+async function getUnbondingHistory(
+  userAddress: string,
+  fromBlock: number,
+  toBlock: number
+) {
+  const filter = stableSystem.filters.UnbondingCompleted(userAddress);
+  const events = await stableSystem.queryFilter(filter, fromBlock, toBlock);
+
+  return events.map((event) => ({
+    delegator: event.args.delegator,
+    validator: event.args.validator,
+    amount: ethers.formatEther(event.args.amount),
+    blockNumber: event.blockNumber,
+    txHash: event.transactionHash,
+  }));
+}
+
+const currentBlock = await provider.getBlockNumber();
+const history = await getUnbondingHistory(
+  "0xabcd...",
+  currentBlock - 1000,
+  currentBlock
+);
+```
+
+## Step 3: Handle connection issues
+
+Event subscriptions rely on persistent WebSocket connections. Implement reconnection logic for production dApps.
+
+```typescript
+// subscribeWithReconnection.ts
+import { ethers } from "ethers";
+import { STABLE_SYSTEM_ADDRESS, STABLE_SYSTEM_ABI } from "./config";
+
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 5;
+
+function handleUnbonding(delegator: string, validator: string, amount: bigint) {
+  console.log("Unbonding completed:", { delegator, validator, amount });
+}
+
+function setupEventListener() {
+  const wsProvider = new ethers.WebSocketProvider("wss://rpc.testnet.stable.xyz");
+
+  wsProvider.on("error", (error) => {
+    console.error("Provider error:", error);
+    if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+      reconnectAttempts++;
+      setTimeout(() => setupEventListener(), 5000);
+    }
+  });
+
+  const stableSystem = new ethers.Contract(
+    STABLE_SYSTEM_ADDRESS,
+    STABLE_SYSTEM_ABI,
+    wsProvider
+  );
+
+  stableSystem.on("UnbondingCompleted", handleUnbonding);
+}
+
+setupEventListener();
+```
+
+## Next recommended
+
+- [**System transactions concept**](/en/explanation/system-transactions) — Understand how protocol-level events reach the EVM.
+- [**Staking module concept**](/en/explanation/staking-module) — Review the delegation and unbonding flow.
+- [**Staking precompile reference**](/en/reference/staking-module-api) — Look up the methods that trigger the events tracked here.

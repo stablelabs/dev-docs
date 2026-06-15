@@ -1,0 +1,153 @@
+---
+title: "Create a wallet"
+description: "Generate a new Stable wallet or restore one from a seed phrase using ethers.js or the Tether WDK."
+diataxis: "how-to"
+---
+
+# Create a wallet
+
+A Stable wallet is an Ethereum-standard key pair. Any wallet library that produces an EVM account works on Stable without modification. This guide shows two paths: ethers.js for most applications, and Tether's [WDK (Wallet Development Kit)](https://github.com/tetherto/wdk) for integrations that want a turnkey self-custody layer for agents and payments.
+
+:::note
+No registration, no Stable-specific account setup. A wallet can immediately receive USDT0 from the [testnet faucet](/en/how-to/use-faucet) or a mainnet transfer.
+:::
+
+## Prerequisites
+
+- Node.js 20 or later.
+
+## Option 1: ethers.js
+
+Install the library and generate a key pair.
+
+```bash
+npm install ethers
+```
+
+```typescript
+// wallet.ts
+import { ethers } from "ethers";
+
+const provider = new ethers.JsonRpcProvider("https://rpc.testnet.stable.xyz");
+
+/** Create a new wallet for a new user. */
+export function createWallet() {
+  const wallet = ethers.Wallet.createRandom(provider);
+  return {
+    wallet,
+    address: wallet.address,
+    seedPhrase: wallet.mnemonic!.phrase, // show to the user once for backup
+  };
+}
+
+/** Restore a wallet from a seed phrase (returning user). */
+export function restoreWallet(seedPhrase: string) {
+  const wallet = ethers.Wallet.fromPhrase(seedPhrase, provider);
+  return { wallet, address: wallet.address };
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const { address, seedPhrase } = createWallet();
+  console.log("Address:    ", address);
+  console.log("Seed phrase:", seedPhrase);
+}
+```
+
+```bash
+npx tsx wallet.ts
+```
+
+```text
+Address:     0xAlice...1234
+Seed phrase: liberty shoot ... (12 words)
+```
+
+:::warning
+Never log or store the seed phrase in plain text in production. Encrypt it at rest, or use a secrets manager. `ethers.Wallet.createRandom` returns the phrase once per call — if you lose it, funds are unrecoverable.
+:::
+
+## Option 2: Tether WDK
+
+The WDK wraps key derivation, signing, and transaction submission into a single interface. It's the right choice when you want self-custody without re-implementing common account flows, and it integrates directly with [x402](/en/how-to/build-pay-per-call) for agent payments.
+
+```bash
+npm install @tetherto/wdk @tetherto/wdk-wallet-evm
+```
+
+```typescript
+// wallet-wdk.ts
+import WDK from "@tetherto/wdk";
+import WalletManagerEvm from "@tetherto/wdk-wallet-evm";
+
+function initWdk(seedPhrase: string) {
+  return new WDK(seedPhrase)
+    .registerWallet("stable", WalletManagerEvm, {
+      provider: "https://rpc.testnet.stable.xyz",
+    });
+}
+
+/** Create a new wallet for a new user. */
+export async function createWallet() {
+  const seedPhrase = WDK.getRandomSeedPhrase();
+  const wdk = initWdk(seedPhrase);
+  const account = await wdk.getAccount("stable", 0);
+  return {
+    account,
+    address: await account.getAddress(),
+    seedPhrase, // show to the user once for backup
+  };
+}
+
+/** Restore a wallet from a seed phrase (returning user). */
+export async function restoreWallet(seedPhrase: string) {
+  const wdk = initWdk(seedPhrase);
+  const account = await wdk.getAccount("stable", 0);
+  return { account, address: await account.getAddress() };
+}
+```
+
+```bash
+npx tsx wallet-wdk.ts
+```
+
+```text
+Address:     0xAlice...1234
+Seed phrase: liberty shoot ... (12 words)
+```
+
+## Fund the wallet
+
+Before the wallet can transact, it needs USDT0 for gas. On testnet, request from the faucet:
+
+```bash
+open https://faucet.stable.xyz
+```
+
+Paste the address and select the button to receive 1 testnet USDT0 (enough for thousands of native transfers). For mainnet, send USDT0 from any supported exchange or bridge; see [Bridging to Stable](/en/explanation/usdt0-bridging).
+
+## Check the balance
+
+Native USDT0 uses 18 decimals. The native balance is the one gas is paid from.
+
+```typescript
+// balance.ts
+import { ethers } from "ethers";
+
+const provider = new ethers.JsonRpcProvider("https://rpc.testnet.stable.xyz");
+const balance = await provider.getBalance("0xYourAddress");
+console.log("Balance:", ethers.formatEther(balance), "USDT0");
+```
+
+```bash
+npx tsx balance.ts
+```
+
+```text
+Balance: 1.0 USDT0
+```
+
+## Next recommended
+
+- [**Delegate with EIP-7702**](/en/how-to/account-abstraction) — Add batch payments, spending limits, and session keys to this wallet.
+- [**Send your first USDT0**](/en/tutorial/send-usdt0) — Native and ERC-20 transfers on the same balance.
+- [**Fund a testnet wallet**](/en/how-to/use-faucet) — Faucet and Sepolia bridge options for larger test balances.

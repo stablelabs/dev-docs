@@ -1,0 +1,162 @@
+---
+title: "Send your first USDT0"
+description: "Send USDT0 on Stable as both a native transfer and an ERC-20 transfer, and verify that both operate on the same balance."
+diataxis: "tutorial"
+---
+
+# Send your first USDT0
+
+On Stable, USDT0 is both the chain's native asset and an ERC-20 token. This means `approve`, `transferFrom`, and `permit` remain fully available alongside standard value transfers, and both paths move funds from the same underlying balance.
+
+This page walks you through sending USDT0 through both paths and confirming they draw from one balance.
+
+:::note
+Prefer a typed client? The [Stable SDK](/en/explanation/sdk-overview) exposes a single `transfer({ to, amount, token? })` that covers both paths, handles decimals on-chain, and switches the wallet's chain for you.
+:::
+
+:::note
+**18 vs 6 decimals**: Native USDT0 uses 18 decimals (standard EVM precision), while the ERC-20 interface reports 6 decimals (standard USDT precision). Both reflect the same balance, so `address(x).balance` and `USDT0.balanceOf(x)` may differ by up to 0.000001 USDT0 due to fractional reconciliation. See [USDT0 behavior on Stable](/en/explanation/usdt0-behavior).
+:::
+
+## What you'll build
+
+A two-script flow that sends 0.001 USDT0 as a native transfer, sends 0.001 USDT0 as an ERC-20 transfer, and prints both balances.
+
+### Demo
+
+```text
+step 1. Connect wallet → balance displayed
+        0.01 USDT0
+
+step 2. Send 0.001 USDT0 (choose native or ERC-20 transfer)
+
+step 3. Result
+        Sent:              0.001 USDT0
+        Gas fee:           0.000021 USDT0
+        Native balance:    0.008979 USDT0
+        ERC-20 balance:    0.008979 USDT0
+```
+
+## Prerequisites
+
+- Node.js 20 or later
+- A private key with testnet USDT0. See [Quick start](/en/tutorial/quick-start) to fund a wallet.
+
+**USDT0 contract addresses**
+
+- Mainnet: `0x779ded0c9e1022225f8e0630b35a9b54be713736`
+- Testnet: `0x78cf24370174180738c5b8e352b6d14c83a6c9a9`
+
+## Setup
+
+```typescript
+// config.ts
+import { ethers } from "ethers";
+import "dotenv/config";
+
+export const STABLE_TESTNET_RPC = "https://rpc.testnet.stable.xyz";
+export const CHAIN_ID = 2201;
+export const USDT0_ADDRESS = "0x78Cf24370174180738C5B8E352B6D14c83a6c9A9";
+
+export const provider = new ethers.JsonRpcProvider(STABLE_TESTNET_RPC);
+export const wallet = new ethers.Wallet(process.env.PRIVATE_KEY!, provider);
+```
+
+## Option 1 (recommended): send as native transfer
+
+Native transfers work the same as sending ETH on Ethereum. The `value` field carries the USDT0 amount. A native transfer costs only 21,000 gas, the cheapest way to send USDT0.
+
+```typescript
+// sendNative.ts
+import { ethers } from "ethers";
+import { provider, wallet } from "./config";
+
+const recipient = "0xRecipientAddress";
+const amount = ethers.parseUnits("0.001", 18); // 18 decimals for native
+
+const block = await provider.getBlock("latest");
+const baseFee = block!.baseFeePerGas!;
+
+const tx = await wallet.sendTransaction({
+  to: recipient,
+  value: amount,
+  maxFeePerGas: baseFee * 2n,
+  maxPriorityFeePerGas: 0n, // always 0 on Stable
+});
+
+const receipt = await tx.wait(1);
+console.log("Native transfer tx:", receipt!.hash);
+```
+
+```bash
+npx tsx sendNative.ts
+```
+
+```text
+Native transfer tx: 0x8f3a...2d41
+```
+
+## Option 2: send as ERC-20 transfer
+
+USDT0 can also be sent as an ERC-20 transfer. This deducts from the same balance, but uses the ERC-20 interface with 6-decimal precision.
+
+```typescript
+// sendERC20.ts
+import { ethers } from "ethers";
+import { wallet, USDT0_ADDRESS } from "./config";
+
+const recipient = "0xRecipientAddress";
+const amount = ethers.parseUnits("0.001", 6); // 6 decimals for ERC-20
+
+const usdt0 = new ethers.Contract(USDT0_ADDRESS, [
+  "function transfer(address to, uint256 amount) returns (bool)"
+], wallet);
+
+const tx = await usdt0.transfer(recipient, amount);
+const receipt = await tx.wait(1);
+console.log("ERC-20 transfer tx:", receipt!.hash);
+```
+
+```bash
+npx tsx sendERC20.ts
+```
+
+```text
+ERC-20 transfer tx: 0xa2b1...77c0
+```
+
+## Verify the unified balance
+
+After either transfer, query both balances to confirm they draw from the same source.
+
+```typescript
+// balances.ts
+import { ethers } from "ethers";
+import { provider, wallet, USDT0_ADDRESS } from "./config";
+
+const nativeBalance = await provider.getBalance(wallet.address);
+console.log("Native balance:", ethers.formatEther(nativeBalance), "USDT0");
+
+const usdt0 = new ethers.Contract(USDT0_ADDRESS, [
+  "function balanceOf(address) view returns (uint256)"
+], provider);
+const erc20Balance = await usdt0.balanceOf(wallet.address);
+console.log("ERC-20 balance:", ethers.formatUnits(erc20Balance, 6), "USDT0");
+```
+
+```bash
+npx tsx balances.ts
+```
+
+```text
+Native balance: 0.008979 USDT0
+ERC-20 balance: 0.008979 USDT0
+```
+
+Both values represent the same balance. They may differ by up to 0.000001 USDT0 due to [fractional balance reconciliation](/en/explanation/usdt0-behavior#balance-reconciliation).
+
+## Next recommended
+
+- [**Zero gas transactions**](/en/how-to/zero-gas-transactions) — Send USDT0 with gas fees paid by a waiver service.
+- [**Build a P2P payment app**](/en/how-to/build-p2p-payments) — Create wallet, send, receive, and query payment history.
+- [**USDT0 behavior on Stable**](/en/explanation/usdt0-behavior) — Understand dual-role balance reconciliation and contract design.

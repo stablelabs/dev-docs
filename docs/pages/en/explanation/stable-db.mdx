@@ -1,0 +1,85 @@
+---
+title: "Storage (StableDB)"
+description: "StableDB architecture using decoupled state commitment, MemDB, and mmap to eliminate disk I/O bottlenecks."
+diataxis: "explanation"
+---
+
+# Storage (StableDB)
+
+One of the main bottlenecks in end-to-end blockchain performance is **Disk I/O**. Specifically, committing and storing state data after block execution creates the key bottleneck. Stable tackles this problem with architectural innovations such as `MemDB`, `VersionDB`, and memory-mapped storage (`mmap`) to dramatically improve throughput.
+
+## Why disk I/O is a bottleneck
+
+### State transition and persistence
+
+Every time a block of transactions is executed, the blockchain transitions from one state to the next. This process has two fundamental stages:
+
+1. **State Commitment**: The new application state is committed after transaction execution.
+2. **State Storage**: The committed state is persisted to disk for long-term access and historical verification.
+
+<img
+    className="block"
+    src="/images/coupled-sc-ss.png"
+    alt="Coupled State Commitment and Storage"
+/>
+
+In conventional architectures, state storage is **tightly coupled** with state commitment. This means that:
+
+- The node must wait for the new state to be fully stored on disk before proceeding with the next block's execution.
+- The state data is written in random disk locations that are not mapped to fixed addresses. This leads to high latency when retrieving state data during execution of subsequent transactions.
+
+Even if consensus and execution layers are heavily optimized, this serialized dependency on slow disk operations caps the achievable performance of the entire system.
+
+## Optimizing DB operations for higher throughput
+
+To overcome these limitations, Stable proposes a two-fold architectural enhancement focused on **decoupling state operations** and **introducing memory-mapped DB optimizations**.
+
+### 1. Decoupling state commitment and storage
+
+<img
+    className="block"
+    src="/images/sc-ss-decouple.png"
+    alt="Decoupled State Commitment and Storage"
+/>
+
+The first step is to decouple the state commitment from its storage:
+
+- After committing a new state, the node immediately proceeds to execute the next block.
+- The actual persistence of state to disk occurs asynchronously in the background.
+
+This separation allows execution to happen instantly and leapfrog the latency of slow disk writes, thereby eliminating blocking dependencies and eventually improving end-to-end performance.
+
+### 2. Introducing `MemDB` and `VersionDB` via `mmap`
+
+Stable enhances this with a dual-database model powered by `mmap` (memory-mapped file access):
+
+- **MemDB (Memory DB)**:
+    - Stores recent and active states that are frequently accessed.
+    - Uses fixed address mapping via `mmap`, enabling fast and deterministic lookups.
+    - Ideal for most transaction workloads which target recently modified state.
+- **VersionDB (Historical DB)**:
+    - Stores older, historical states on disk.
+    - Optimized for archival and long-range queries, not for high-frequency access.
+
+This design ensures that **hot data is served from fast, memory-resident structures**, while cold data is offloaded to slower, persistent storage. By combining `mmap` access with smart state tiering, Stable can significantly reduce the DB read/write latency during block execution.
+
+## Expected gains and precedents
+
+This architectural optimization is not just theoretical. It is already being implemented by high-performance blockchains such as Sei and Cronos. Both have adopted similar decoupled architectures with memory-mapped DBs and have observed **up to 2x increases in overall TPS**.
+
+Stable also anticipates comparable gains, as the architecture will no longer be bottlenecked by the storage layer. Instead, consensus and execution performance can scale without being throttled by disk operations.
+
+## Further reading
+
+For more technical deep-dives and implementation details, refer to:
+
+- [ADR-065: Cosmos Store V2 Architecture](https://docs.cosmos.network/main/build/architecture/adr-065-store-v2)
+- [MemIAVL: A Practical Guide](https://hackmd.io/@yihuang/rkeCvy5xh)
+- [Cronos MemIAVL Node Configuration](https://docs.cronos.org/for-node-hosts/running-nodes/memiavl)
+- [Sei’s DB Design Approach](https://4pillars.io/ko/articles/sei-db)
+
+## Next recommended
+
+- [**High performance RPC**](/en/explanation/high-performance-rpc) — See how the RPC layer exposes state reads without contending with writes.
+- [**Execution**](/en/explanation/execution) — Understand how execution writes into the storage layer covered here.
+- [**Consensus**](/en/explanation/consensus) — Review the consensus layer that orders blocks before they reach storage.

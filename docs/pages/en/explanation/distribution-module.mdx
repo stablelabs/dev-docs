@@ -1,0 +1,36 @@
+---
+title: "Distribution module"
+description: "The distribution precompile surfaces staking rewards (withdraw addresses, reward queries, and commission management) to EVM contracts."
+diataxis: "explanation"
+---
+
+# Distribution module
+
+The `x/distribution` module handles staking-reward accrual and withdrawal for delegators and validators. Its precompile bridges this behavior into the EVM so a Solidity contract can claim rewards, set withdraw addresses, and query outstanding rewards without interacting with the Cosmos SDK directly.
+
+## What it exposes
+
+- **Set withdraw address**: a delegator designates which address receives their rewards. By default, rewards go to the delegator's own address; setting a withdraw address routes them elsewhere (useful for contract-managed staking).
+- **Withdraw delegator rewards**: claims all outstanding rewards from a single validator in one call.
+- **Withdraw validator commission**: a validator claims their accumulated commission from delegators' rewards.
+- **Query methods**: read reward balances, commission rates, and community-pool state without a transaction.
+
+## Authorization semantics
+
+The precompile checks that the caller is the delegator (or validator) whose state is being modified. You cannot claim someone else's rewards or change their withdraw address.
+
+## When to use it
+
+- A vault or staking aggregator claims rewards on a schedule: call `withdrawDelegatorRewards` directly.
+- A DAO routes staking rewards to a treasury address: set a withdraw address once, then rewards flow automatically.
+- A front-end displays current reward balances: use the query methods (no transaction needed).
+
+## Where to find the ABI
+
+Full method signatures, input/output types, and emitted events are in the [Distribution precompile reference](/en/reference/distribution-module-api).
+
+## Next recommended
+
+- [**Distribution precompile reference**](/en/reference/distribution-module-api) — Call `withdrawDelegatorRewards`, set withdraw addresses, and read reward balances.
+- [**Staking module**](/en/explanation/staking-module) — See how delegation (the source of these rewards) works.
+- [**System transactions**](/en/explanation/system-transactions) — Learn how unbonding completions reach the EVM as events.

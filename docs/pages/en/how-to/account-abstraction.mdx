@@ -1,0 +1,269 @@
+---
+title: "Account abstraction with EIP-7702"
+description: "Implement batch payments, spending limits, and session keys on an existing EOA by delegating to an EIP-7702 smart contract."
+diataxis: "how-to"
+---
+
+# Account abstraction with EIP-7702
+
+This guide walks through applying EIP-7702 to an EOA and using the delegation for three patterns: batch payments, spending limits, and session keys. The EOA keeps its address and private key throughout.
+
+:::note
+**Concept:** For what EIP-7702 enables on Stable and the security considerations, see [EIP-7702](/en/explanation/eip-7702).
+:::
+
+## Prerequisites
+
+- Understanding of EOA vs. smart contract accounts (EOAs have no code by default).
+- Familiarity with EVM transaction types ([EIP-2718](https://eips.ethereum.org/EIPS/eip-2718)).
+
+## Overview
+
+EIP-7702 introduces a new transaction type (`0x04`) that carries an `authorizationList`. Each authorization designates a smart contract whose code the EOA will execute for that transaction. The flow is:
+
+1. **Choose or deploy a delegate contract**: a standard Solidity contract implementing the logic you want EOAs to use. You can use a deployed contract or deploy your own. Use an audited contract whenever possible.
+2. **Sign an authorization**: the EOA owner signs a message authorizing the delegate contract.
+3. **Submit an EIP-7702 transaction**: the transaction includes the authorization, and the EOA runs the delegate's code during execution.
+
+## Use case: batch transactions
+
+The steps below walk through this flow using `Multicall3` as the delegate contract. `Multicall3` is a widely deployed utility contract that aggregates multiple calls into a single transaction. By designating `Multicall3` as the EIP-7702 delegate, an EOA can batch arbitrary contract interactions (token transfers, approvals, contract reads, or any combination) into one atomic transaction. Batch payments are one example: instead of sending ten separate transactions for a payroll run, the EOA executes them all at once.
+
+### Step 1: Use Multicall3 as a delegate contract
+
+`Multicall3` is deployed at `0xcA11bde05977b3631167028862bE2a173976CA11` on Stable. Since it's already deployed and widely used, you don't need to deploy your own delegate. Signing an EIP-7702 authorization grants the delegate full execution authority over your EOA.
+
+```solidity
+// Multicall3 interface (relevant functions only)
+interface IMulticall3 {
+    struct Call3 {
+        address target;
+        bool allowFailure;
+        bytes callData;
+    }
+    struct Result {
+        bool success;
+        bytes returnData;
+    }
+
+    /// @notice Aggregate calls, allowing each to succeed or fail independently
+    function aggregate3(Call3[] calldata calls)
+        external payable returns (Result[] memory returnData);
+}
+```
+
+### Step 2: Sign an authorization
+
+The EOA owner signs an authorization that designates the delegate contract. This authorization is included in the EIP-7702 transaction.
+
+```javascript
+// config.ts
+import { ethers } from "ethers";
+
+export const STABLE_TESTNET_RPC = "https://rpc.testnet.stable.xyz";
+export const STABLE_TESTNET_CHAIN_ID = 2201;
+export const USDT0_ADDRESS = "0x78Cf24370174180738C5B8E352B6D14c83a6c9A9";
+export const DELEGATE_ADDRESS = "0xcA11bde05977b3631167028862bE2a173976CA11";
+
+export const provider = new ethers.JsonRpcProvider(STABLE_TESTNET_RPC);
+export const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+```
+
+```javascript
+// signAuthorization.ts
+import { ethers } from "ethers";
+import { DELEGATE_ADDRESS, STABLE_TESTNET_CHAIN_ID, provider, wallet } from "./config";
+
+export async function signAuthorization() {
+  const authorization = {
+    chainId: STABLE_TESTNET_CHAIN_ID,
+    address: DELEGATE_ADDRESS,
+    nonce: await provider.getTransactionCount(wallet.address),
+  };
+
+  return wallet.signAuthorization(authorization);
+}
+```
+
+### Step 3: Submit an EIP-7702 transaction
+
+Combine the authorization with a call to `Multicall3.aggregate3`. This example batches three USDT0 transfers in a single transaction.
+
+```javascript
+import { ethers } from "ethers";
+import { wallet, USDT0_ADDRESS } from "./config";
+import { signAuthorization } from "./signAuthorization";
+
+const usdt0Interface = new ethers.Interface([
+  "function transfer(address to, uint256 amount)",
+]);
+
+const batchInterface = new ethers.Interface([
+  "function aggregate3((address target, bool allowFailure, bytes callData)[] calls) returns ((bool success, bytes returnData)[])",
+]);
+
+async function main() {
+  const recipients = [
+    { to: "0xAlice...", amount: ethers.parseUnits("100", 6) },
+    { to: "0xBob...",   amount: ethers.parseUnits("200", 6) },
+    { to: "0xCarol...", amount: ethers.parseUnits("150", 6) },
+  ];
+
+  const batchData = batchInterface.encodeFunctionData("aggregate3", [
+    recipients.map(({ to, amount }) => ({
+      target: USDT0_ADDRESS,
+      allowFailure: false,
+      callData: usdt0Interface.encodeFunctionData("transfer", [to, amount]),
+    })),
+  ]);
+
+  const signedAuth = await signAuthorization();
+
+  const tx = await wallet.sendTransaction({
+    type: 4,                          // EIP-7702 transaction type
+    to: wallet.address,               // call is directed at the EOA itself
+    data: batchData,                  // aggregate3 call to execute
+    authorizationList: [signedAuth],
+    maxPriorityFeePerGas: 0n,
+  });
+
+  const receipt = await tx.wait(1);
+  console.log("Batch transactions executed in tx:", receipt.hash);
+}
+```
+
+```text
+Batch transactions executed in tx: 0x...
+```
+
+The EOA executes all three calls in a single atomic transaction via `Multicall3.aggregate3`. The delegation persists until explicitly changed or cleared. While this example shows batch payments, the same pattern works for any combination of contract calls.
+
+## Use case: spending limits
+
+A delegate contract can enforce per-transaction or daily caps on an EOA without account migration.
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+/// @title SpendingLimitExecutor
+/// @notice Delegate contract that enforces daily spending caps
+contract SpendingLimitExecutor {
+    mapping(address => uint256) public dailyLimit;
+    mapping(address => uint256) public spentToday;
+    mapping(address => uint256) public lastResetDay;
+
+    function setDailyLimit(uint256 limit) external {
+        dailyLimit[msg.sender] = limit;
+    }
+
+    function executeWithLimit(
+        address target,
+        uint256 value,
+        bytes calldata data
+    ) external payable {
+        uint256 today = block.timestamp / 1 days;
+
+        if (today > lastResetDay[msg.sender]) {
+            spentToday[msg.sender] = 0;
+            lastResetDay[msg.sender] = today;
+        }
+
+        spentToday[msg.sender] += value;
+        require(
+            spentToday[msg.sender] <= dailyLimit[msg.sender],
+            "daily limit exceeded"
+        );
+
+        (bool success,) = target.call{value: value}(data);
+        require(success, "call failed");
+    }
+}
+```
+
+## Use case: session keys
+
+Session keys allow a dApp to execute transactions on behalf of an EOA within scoped permissions: a time window and an allowed set of target contracts. This is useful for dApps where frequent on-chain interactions would otherwise require repeated wallet approvals.
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+/// @title SessionKeyExecutor
+/// @notice Delegate contract that grants scoped, time-limited access to a session key
+contract SessionKeyExecutor {
+    struct Session {
+        address key;
+        uint256 validUntil;
+        uint256 spendingLimit;
+        uint256 spent;
+    }
+
+    mapping(address => Session) public sessions;
+    mapping(address => mapping(address => bool)) public allowedTargets;
+
+    /// @notice Register a session key with scoped permissions
+    function startSession(
+        address key,
+        uint256 validUntil,
+        uint256 spendingLimit,
+        address[] calldata targets
+    ) external {
+        sessions[msg.sender] = Session({
+            key: key,
+            validUntil: validUntil,
+            spendingLimit: spendingLimit,
+            spent: 0
+        });
+
+        for (uint256 i = 0; i < targets.length; i++) {
+            allowedTargets[msg.sender][targets[i]] = true;
+        }
+    }
+
+    /// @notice Execute a call using the session key
+    function executeAsSessionKey(
+        address owner,
+        address target,
+        uint256 value,
+        bytes calldata data
+    ) external {
+        Session storage session = sessions[owner];
+
+        require(msg.sender == session.key, "not session key");
+        require(block.timestamp <= session.validUntil, "session expired");
+        require(allowedTargets[owner][target], "target not allowed");
+
+        uint256 beforeBalance = owner.balance;
+
+        (bool success,) = target.call{value: value}(data);
+        require(success, "call failed");
+
+        session.spent += owner.balance - beforeBalance;
+        require(session.spent <= session.spendingLimit, "budget exceeded");
+    }
+
+    /// @notice Revoke the active session
+    function revokeSession() external {
+        delete sessions[msg.sender];
+    }
+}
+```
+
+## Important considerations
+
+- **Persistent delegation**: the delegation persists until the EOA explicitly changes or clears it. It is not limited to a single transaction.
+- **Gas costs**: EIP-7702 transactions have slightly higher base gas due to authorization processing, offset when the delegate batches multiple calls.
+- **Use audited delegates**: a malicious delegate contract can drain the EOA's assets. Only delegate to contracts that have been audited.
+
+## Key takeaways
+
+- EIP-7702 lets EOAs execute smart contract logic without migrating to a new account type.
+- On Stable, EIP-7702 enables batch payments, spending limits, and scoped session keys on existing EOAs.
+- The delegation persists until explicitly changed. Always use an audited delegate contract.
+
+## Next recommended
+
+- [**Subscribe and collect**](/en/how-to/subscribe-and-collect) — Apply EIP-7702 to recurring subscription payments with a SubscriptionManager.
+- [**EIP-7702 concept**](/en/explanation/eip-7702) — Understand the delegation model before you ship it.
+- [**EIP-7702 reference**](/en/reference/eip-7702-api) — Look up the `0x04` transaction format and authorization fields.

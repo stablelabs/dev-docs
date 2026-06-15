@@ -1,0 +1,58 @@
+---
+title: "Confidential transfer"
+description: "Confidential transfer mechanism for privacy-preserving USDT transactions with regulatory compliance on Stable."
+diataxis: "explanation"
+---
+
+# Confidential transfer
+
+**Confidential Transfer** is a privacy layer on Stable that shields the **amount** of a USDT0 transfer while keeping sender and recipient addresses publicly visible. The shielded amount is readable only by the transacting parties and authorized regulatory auditors, using zero-knowledge (ZK) cryptography to prove validity without revealing the value. The feature is under development; this page describes the target model.
+
+## The problem it solves
+
+Standard on-chain transfers are fully transparent; anyone can read the sender, recipient, and amount. For business payments, that transparency is a data-leakage problem:
+
+- A retailer paying suppliers on-chain exposes order volumes and wholesale pricing to any observer.
+- A treasury moving funds between accounts advertises its position sizes.
+- A payroll run publishes salary data to the entire network.
+
+Full opacity (Monero-style) would solve this but breaks compliance: regulators and auditors can't verify the transaction. Selective confidentiality (amounts hidden, parties auditable) is the model Stable targets.
+
+## What stays visible, what doesn't
+
+| Field | Visible on-chain | Shielded |
+| :--- | :--- | :--- |
+| Sender address | ✓ | |
+| Recipient address | ✓ | |
+| Transfer amount | | ✓ |
+| Auxiliary metadata | | ✓ |
+
+The shielded amount is encrypted. Valid proofs attest that the transfer is balance-consistent (no inflation, no negative amounts) without revealing the value itself. Only the sender, recipient, and authorized regulatory auditors can decrypt the shielded value.
+
+## How it fits the compliance model
+
+Two properties make the design auditable:
+
+- **Deterministic auditor access.** Regulatory auditors hold keys that decrypt shielded amounts for transactions in their jurisdiction. Business privacy is preserved against random observers; compliance scrutiny is not.
+- **Standard address transparency.** AML/KYC tooling that operates on address-level flows (sanction checks, source-of-funds analysis) works against the same public address graph as any transparent chain.
+
+## When to use it
+
+Confidential Transfer fits any flow where the amount is commercially sensitive but the counterparties are appropriately public:
+
+- Supplier and invoice payments where order sizes reveal pricing.
+- Treasury operations where position sizes reveal strategy.
+- Payroll where individual salaries shouldn't be indexable by competitors.
+- Large OTC settlements where price discovery against orderbook tape is a risk.
+
+For flows that need address-level privacy as well (e.g. whistleblower donations), Confidential Transfer alone isn't sufficient. Those use cases need additional address-obscuring primitives that Stable doesn't provide.
+
+## Status
+
+Confidential Transfer is in development. See [Roadmap](/en/explanation/technical-roadmap) for timing. The mechanism will ship as a dedicated transfer path alongside standard USDT0 transfers; existing applications that don't opt in are unaffected.
+
+## Next recommended
+
+- [**USDT as gas**](/en/explanation/usdt-as-gas-token) — Understand the asset model confidential transfers shield.
+- [**Flow of funds**](/en/explanation/flow-of-funds) — See where confidentiality fits in the end-to-end payment lifecycle.
+- [**Roadmap**](/en/explanation/technical-roadmap) — Track when confidential transfer ships.

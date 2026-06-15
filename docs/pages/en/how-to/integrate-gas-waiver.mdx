@@ -1,0 +1,207 @@
+---
+title: "Enable gas-free transactions"
+description: "Integrate the Stable Gas Waiver to enable gas-free transactions by submitting signed InnerTx payloads to the Waiver Server API."
+diataxis: "how-to"
+---
+
+# Enable gas-free transactions
+
+Gas Waiver enables gas-free transactions on Stable. With Gas Waiver, applications cover gas fees on behalf of users, so users can interact with contracts without holding USDT0 for gas.
+
+This guide covers integrating via the Waiver Server API.
+
+:::note
+**Concept:** For what Gas Waiver is, why it exists, and how governance-authorized waivers work, see [Gas waiver](/en/explanation/gas-waiver). For the full protocol specification (wrapper transaction format, marker address, execution semantics, security model), see [Gas waiver protocol](/en/reference/gas-waiver-api).
+:::
+
+## Prerequisites
+
+- An API key for the Waiver Server, issued by the Stable team
+- Target contract address must be registered in the waiver's `AllowedTarget` policy
+
+## Waiver Server
+
+**Base URLs:**
+
+- Mainnet: TBD
+- Testnet: `https://waiver.testnet.stable.xyz`
+
+**Authorization:** `Bearer <your-api-key>`
+
+## Overview
+
+The integration flow has three steps:
+
+1. **Build an InnerTx**: the user signs a transaction with `gasPrice = 0`.
+2. **Submit to Waiver Server**: submit the signed transaction to the Waiver Server API.
+3. **Handle the response**: the waiver server wraps and broadcasts the transaction. Process the streamed results and surface the transaction hash to the user.
+
+## Step 1: create the user's InnerTx
+
+The user signs a standard transaction with `gasPrice = 0`. The `to` address and method selector must be permitted by the waiver's `AllowedTarget` policy.
+
+```typescript
+// config.ts
+export const CONFIG = {
+  RPC_URL: "https://rpc.testnet.stable.xyz",
+  CHAIN_ID: 2201, // 988 for mainnet
+  WAIVER_SERVER: "https://waiver.testnet.stable.xyz",
+  USDT0_ADDRESS: "0x78Cf24370174180738C5B8E352B6D14c83a6c9A9",
+};
+```
+
+```typescript
+import { ethers } from "ethers";
+import { CONFIG } from "./config";
+
+const provider = new ethers.JsonRpcProvider(CONFIG.RPC_URL);
+const usdt0 = new ethers.Contract(CONFIG.USDT0_ADDRESS, [
+  "function transfer(address to, uint256 amount) returns (bool)"
+], provider);
+
+const callData = usdt0.interface.encodeFunctionData("transfer", [
+  recipientAddress,
+  ethers.parseUnits("0.01", 18)
+]);
+
+const gasEstimate = await provider.estimateGas({
+  from: userWallet.address,
+  to: CONFIG.USDT0_ADDRESS,
+  data: callData,
+});
+
+const nonce = await provider.getTransactionCount(userWallet.address);
+
+const innerTx = {
+  to: CONFIG.USDT0_ADDRESS,
+  data: callData,
+  value: 0,
+  gasPrice: 0,
+  gasLimit: gasEstimate,
+  nonce: nonce,
+  chainId: CONFIG.CHAIN_ID,
+};
+
+const signedInnerTx = await userWallet.signTransaction(innerTx);
+```
+
+:::warning
+`gasPrice` must be `0`. If it is non-zero, the waiver server rejects the transaction.
+:::
+
+## Step 2: submit to the Waiver Server
+
+```typescript
+import { CONFIG } from "./config";
+
+const API_KEY = process.env.WAIVER_API_KEY;
+
+const response = await fetch(`${CONFIG.WAIVER_SERVER}/v1/submit`, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${API_KEY}`,
+  },
+  body: JSON.stringify({
+    transactions: [signedInnerTx],
+  }),
+});
+```
+
+### Batch submissions
+
+You can submit multiple signed transactions in a single request:
+
+```typescript
+body: JSON.stringify({
+  transactions: [signedTx1, signedTx2, signedTx3],
+})
+```
+
+Each result line includes an `index` field corresponding to the transaction's position in the array.
+
+## Step 3: handle the response
+
+The response is streamed as NDJSON (newline-delimited JSON). Each line corresponds to one submitted transaction.
+
+```typescript
+const reader = response.body.getReader();
+const decoder = new TextDecoder();
+
+while (true) {
+  const { done, value } = await reader.read();
+  if (done) break;
+
+  const lines = decoder.decode(value).trim().split("\n");
+  for (const line of lines) {
+    const result = JSON.parse(line);
+    if (result.success) {
+      console.log(`tx ${result.index} confirmed: ${result.txHash}`);
+    } else {
+      console.error(`tx ${result.index} failed: ${result.error.message}`);
+    }
+  }
+}
+```
+
+**Success response:**
+
+```json
+{"index": 0, "id": "abc123", "success": true, "txHash": "0x..."}
+```
+
+**Failure response:**
+
+```json
+{"index": 1, "id": "def456", "success": false, "error": {"code": "VALIDATION_FAILED", "message": "invalid signature"}}
+```
+
+## Error codes
+
+| **Code** | **Description** |
+| :--- | :--- |
+| `PARSE_ERROR` | Failed to parse transaction |
+| `INVALID_REQUEST` | Malformed request body |
+| `BATCH_SIZE_EXCEEDED` | Batch size exceeds allowed maximum |
+| `VALIDATION_FAILED` | Transaction validation failed (e.g., invalid signature, disallowed target) |
+| `BROADCAST_FAILED` | Failed to broadcast to chain |
+| `RATE_LIMITED` | Rate limit exceeded |
+| `QUEUE_FULL` | Server queue at capacity |
+| `TIMEOUT` | Request timed out |
+
+## API reference
+
+### GET `/v1/health`
+
+Health check endpoint. Authentication: none.
+
+### POST `/v1/submit`
+
+Submit a batch of signed inner transactions. Authentication: required (Bearer).
+
+**Request body:**
+
+```json
+{
+  "transactions": ["0x<signedInnerTx1>", "0x<signedInnerTx2>"]
+}
+```
+
+Response is streamed as NDJSON. Each line corresponds to a submitted transaction index.
+
+### GET `/v1/submit`
+
+WebSocket interface for streaming submissions. Authentication: required (Bearer).
+
+## Key takeaways
+
+- Gas Waiver is a server-side integration: your backend submits signed user transactions to the Waiver Server. Users never interact with the Waiver Server directly.
+- The user always signs the InnerTx, preserving signature integrity. The waiver cannot modify the user's transaction.
+- The target contract must be on the waiver's `AllowedTarget` list.
+
+## Next recommended
+
+- [**Zero gas transactions**](/en/how-to/zero-gas-transactions) — See the demo-focused flow and how to verify zero gas on a receipt.
+- [**Self-hosted Gas Waiver**](/en/how-to/self-hosted-gas-waiver) — Run your own waiver without the hosted API.
+- [**Gas waiver protocol**](/en/reference/gas-waiver-api) — Full wrapper transaction spec and governance model.
+- [**Stable SDK**](/en/explanation/sdk-overview) — Use the typed client to sign user transactions you then submit to the Waiver Server.

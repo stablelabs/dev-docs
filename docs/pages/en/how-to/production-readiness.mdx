@@ -1,0 +1,78 @@
+---
+title: "Production readiness"
+description: "Validate an integration before shipping to mainnet: security, reliability, operations, and where to escalate."
+diataxis: "how-to"
+---
+
+# Production readiness
+
+Work through each section below before switching from testnet to mainnet.
+
+## Before you launch
+
+- **Network targets.** Your application reads mainnet values, not testnet: chain ID `988`, RPC `https://rpc.stable.xyz`, explorer `https://stablescan.xyz`. Full configuration is in [Connect](/en/reference/connect).
+- **Contracts verified.** Deployed contracts are verified on [stablescan.xyz](https://stablescan.xyz) so users and partners can inspect them.
+- **Mainnet funding path.** You have a documented way for production wallets to acquire USDT0: direct, bridge via LayerZero, or custodian. Faucets are testnet-only.
+- **Environment isolation.** Keys, RPC credentials, and signing paths are separated between testnet and mainnet.
+
+## Security checks
+
+USDT0's dual-role behavior breaks a handful of assumptions ported from Ethereum. Each item below should be validated. The full list is in the [migration checklist](/en/explanation/usdt0-behavior).
+
+**Solvency checks read real native balance, not a mirror.**
+
+:::warning
+Tracking deposited native value in an internal variable is unsafe. An external `USDT0.transferFrom` call can drain the contract's native balance without invoking any contract code.
+:::
+
+```solidity
+// SAFE — checks real balance at the moment of transfer
+function withdraw() external {
+    uint256 amount = credit[msg.sender];
+    credit[msg.sender] = 0;
+
+    require(address(this).balance >= amount, "insufficient balance");
+    payable(msg.sender).call{value: amount}("");
+}
+```
+
+**Allowance-based drain paths are covered by tests.** Every `approve` / `transferFrom` / `permit` path has a test that attempts to drain the contract's native balance.
+
+**Zero-address transfers are rejected before the call.**
+
+:::warning
+Both native and ERC-20 transfers to `address(0)` revert on Stable. Validate recipients explicitly, or your transaction will fail.
+:::
+
+```solidity
+require(recipient != address(0), "zero address recipient");
+payable(recipient).call{value: amount}("");
+```
+
+**Address-reuse detection does not rely on `EXTCODEHASH`.** Permit-based approvals change native balance without a nonce increment, so `EXTCODEHASH` can oscillate between zero hash and empty hash. Use explicit tracking instead.
+
+## Performance and reliability
+
+- **RPC redundancy.** Production traffic has a failover plan. Third-party providers are listed in [RPC providers](/en/reference/rpc-providers).
+- **Gas estimation.** Transactions set `maxPriorityFeePerGas` to `0` and compute `maxFeePerGas` from the current base fee. See [Gas pricing](/en/reference/gas-pricing-api).
+- **Block time.** Blocks are produced roughly every 0.7 seconds with single-slot finality. Poll intervals and confirmation thresholds are tuned to this cadence.
+- **Retries.** Transient RPC errors are retried idempotently. For financially sensitive flows, inclusion is verified via receipts or logs before downstream state changes.
+
+## Operational ownership
+
+- **Monitoring.** If you run your own nodes, alerts watch block production, peer health, and RPC latency; see [Monitoring](/en/how-to/monitor-node). If you use a third-party RPC, track provider SLAs and failover telemetry.
+- **Upgrades.** Protocol releases are tracked so node operators can schedule upgrades; see [Mainnet version history](/en/reference/mainnet-version-history).
+- **Runbooks.** Rollback procedures exist for contract pauses, key rotation, and RPC provider switches.
+
+## Support and escalation
+
+- [Developer assistance](/en/reference/developer-assistance): FAQ and reference pointers.
+- [Discord](https://discord.gg/stablexyz): community support and protocol updates.
+- `bizdev@stable.xyz`: partnership and integration conversations.
+
+## Next recommended
+
+- [**USDT0 behavior**](/en/explanation/usdt0-behavior) — Read the full migration checklist and contract design requirements.
+- [**Mainnet information**](/en/reference/mainnet-information) — Check mainnet chain parameters and version history.
+- [**RPC providers**](/en/reference/rpc-providers) — Pick third-party RPC providers for redundancy.
+- [**Monitoring**](/en/how-to/monitor-node) — Wire metrics and alerts for block production and RPC health.

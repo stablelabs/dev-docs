@@ -1,0 +1,299 @@
+---
+title: USDT as gas
+description: "How USDT0 functions as Stable's native gas token, replacing volatile assets for predictable transaction fees."
+diataxis: "explanation"
+---
+
+# USDT as gas
+
+**You pay fees in USDT0. No second token, no wrapping, no ETH-equivalent to keep topped up.** USDT0 serves as both the native gas token and an ERC-20 token on the same balance. The same asset that moves as payment also pays for the transaction that moves it. Fees are denominated in dollars, not a volatile native token.
+
+This design comes with behavioral differences from Ethereum that affect balance semantics, allowance safety, and certain opcode assumptions. If you're porting a contract from Ethereum, see [USDT0 behavior on Stable](/en/explanation/usdt0-behavior) for the migration checklist before deploying.
+
+## Abstract
+
+Stable is an EVM-compatible blockchain that uses USDT0 as its native gas token. USDT0 simultaneously functions as the native asset for gas payment and value transfer, and as an ERC-20 token supporting `approve`, `transfer`, `transferFrom`, and `permit`.
+
+This document specifies Stable's USDT0 gas mechanism, describes the resulting behavioral differences, and defines required and recommended development patterns for smart contracts deployed on Stable.
+
+## Version note
+
+With Stable v1.2.0, USDT0 becomes the native gas token on Stable, replacing gUSDT. As part of this transition:
+
+- gUSDT is being sunset.
+- Existing gUSDT balances are automatically converted to USDT0.
+- Users and applications no longer need wrapping and unwrapping flows to pay fees or move value.
+
+After v1.2.0, USDT0 serves as both:
+
+- the network fee asset (gas), and
+- a standard ERC20 token with `approve`, `permit`, `transfer`, and `transferFrom`.
+
+## Network addresses
+
+USDT0 token contract addresses:
+
+- Testnet: [0x78cf24370174180738c5b8e352b6d14c83a6c9a9](https://testnet.stablescan.xyz/token/0x78cf24370174180738c5b8e352b6d14c83a6c9a9)
+- Mainnet: [0x779ded0c9e1022225f8e0630b35a9b54be713736](https://stablescan.xyz/token/0x779ded0c9e1022225f8e0630b35a9b54be713736)
+
+## Terminology
+
+- **Stable**: An EVM-compatible blockchain where USDT0 is the native gas token.
+- **USDT0**: An omnichain version of USDT that functions both as:
+    - the native asset used for gas and value transfers, and
+    - an ERC20 token with allowance and permit semantics.
+- **Native balance**: The balance returned by `address(x).balance`, denominated in USDT0.
+- **Gas fee**: The transaction fee paid in USDT0, calculated under an EIP-1559-style fee market.
+
+## What is USDT0?
+
+USDT0 is an omnichain representation of USDT using LayerZero’s Omnichain Fungible Token (OFT) standard. USDT0 is pegged 1:1 with USDT and is designed to move across multiple blockchains without requiring traditional bridge workflows or wrapped representations.
+
+When transferring USDT0 across chains, the token is locked on some source chains (depending on the chain’s native USDT support) or burned. It is then minted on the destination chain via LayerZero’s cross-chain messaging. This preserves a 1:1 peg while consolidating liquidity into a single interoperable asset rather than fragmented chain-local pools.
+
+For users, this enables faster onboarding, reduced operational complexity, and improved liquidity mobility.
+
+## USDT0 and Stable
+
+USDT0 is the core asset that powers Stable’s onchain economics and day-to-day usage. Because the same asset is used for both paying fees and transferring value, Stable reduces friction for:
+
+- **Everyday users**: Simpler onboarding and fewer token concepts
+- **Developers**: Simpler fee and value flows
+- **Enterprises**: Simplified accounting and treasury operations
+
+Stable can also access deep USDT liquidity from day one by enabling users to onboard USDT0 from other networks via LayerZero.
+
+## Assumptions and prerequisites
+
+For the content below, you are expected to understand:
+
+- Solidity execution semantics and native value transfers
+- ERC20 allowance mechanics and permit flows
+- Standard smart contract security patterns, including Checks-Effects-Interactions
+
+## 1. Gas and fee model
+
+### 1.1 Overview
+
+Stable denominates all transaction fees in USDT0. Gas pricing follows an EIP-1559-style model with a dynamically adjusting base fee.
+
+The transaction fee is defined as:
+
+```
+fee = gasUsed × baseFee
+```
+Transactions may specify `maxFeePerGas` using standard EIP-1559 parameters.
+
+*Note: Stable does not support priority tips. Do not set `maxPriorityFeePerGas`, or the tip amount will be lost.*
+
+### 1.2 Transaction submission
+
+Clients should fetch the latest base fee from the most recent block and include a safety margin when computing `maxFeePerGas`.
+
+Example (illustrative):
+
+```javascript
+const block = await provider.getBlock("latest");
+const baseFee = block.baseFeePerGas;
+
+const maxPriorityFeePerGas = 1n;
+const maxFeePerGas = baseFee * 2n + maxPriorityFeePerGas;
+```
+
+### 1.3 Acquiring USDT0
+
+Accounts obtain USDT0 by:
+
+- Bridging USDT0 from other supported chains
+- Receiving transfers from other accounts on Stable
+
+## 2. How Stable enables USDT0 as the gas token
+
+Stable charges gas in USDT0 using a pre-charge and refund settlement model.
+
+### Example transaction
+
+Alice sends 100 USDT0 to Bob.
+
+### 2.1 Ante-handler phase
+
+During transaction validation in `MonoEVMAnteHandler`:
+
+1. Alice’s USDT0 balance is read.
+2. The protocol verifies Alice can cover:
+    - the transaction value (100 USDT0), and
+    - the maximum possible gas fee (`gasWanted × fee`).
+3. The maximum gas fee is transferred upfront:
+    - `alice → fee_collector` in USDT0.
+
+### 2.2 Execution phase
+
+During `ApplyTransaction`:
+
+1. The EVM executes the transaction.
+2. Actual gas consumption is recorded.
+3. The value transfer is applied:
+    - `alice → bob` transfers 100 USDT0.
+
+### 2.3 Settlement phase
+
+After execution:
+
+1. The protocol computes the unused portion of the pre-charged fee:
+    ```
+    refund = (gasWanted − gasUsed) × baseFee
+    ```
+2. The unused fee is refunded:
+    - `fee_collector → alice` in USDT0.
+
+## 3. Balance semantics and behavioral differences
+
+### 3.1 Native balance mutability
+
+On Ethereum, a contract’s native balance typically changes only as a result of contract execution.
+
+On Stable, a contract’s native USDT0 balance may also change due to ERC20 allowance-based operations, including `transferFrom` and `permit`. These operations can reduce a contract’s native balance without invoking any contract code.
+
+As a result, the following assumption is invalid on Stable:
+- A contract’s native balance can only decrease if the contract is called.
+
+## 4. Contract design requirements
+
+### 4.1 Prohibited pattern: mirrored balance accounting
+
+Contracts must not rely on internal variables to mirror native balance.
+
+Example of an unsafe pattern:
+
+```solidity
+uint256 public deposited;
+
+function deposit() external payable {
+  deposited += msg.value;
+}
+```
+
+Such variables can diverge from the actual native balance if USDT0 is drained through allowance-based transfers.
+
+### 4.2 Required pattern: real-balance solvency checks
+
+All native value transfers must verify solvency using `address(this).balance` immediately before transfer.
+
+Example:
+
+```solidity
+require(address(this).balance >= amount, "insufficient balance");
+```
+
+Withdrawals must follow Checks-Effects-Interactions ordering:
+
+```solidity
+uint256 amount = credit[msg.sender];
+credit[msg.sender] = 0;
+
+require(address(this).balance >= amount);
+payable(msg.sender).call{value: amount}("");
+```
+
+### 4.3 State progression must be balance-independent
+
+Protocol logic that depends on progression, milestones, or completion conditions must track these explicitly using non-balance state variables, such as counters or epochs.
+
+Native balances must be used only for solvency verification at the moment of payout.
+
+### 4.4 Allowance exposure
+
+Contracts that custody user funds should not grant USDT0 allowances to external addresses.
+
+If allowances are unavoidable, contracts should:
+
+- Approve only exact amounts
+- Reset allowances immediately after use
+- Treat residual drain risk as a known limitation
+
+## 5. Address state assumptions
+
+### 5.1 EXTCODEHASH
+
+Contracts must not rely on `EXTCODEHASH(addr) == 0x0` to infer that an address has never been used.
+
+Any notion of address usage must be tracked explicitly within contract state.
+
+Example:
+
+```solidity
+mapping(address => bool) public used;
+```
+
+## 6. Zero address handling
+
+On Stable:
+
+- Native USDT0 transfers to `address(0)` revert.
+- ERC20 USDT0 transfers to `address(0)` also revert.
+
+There is no supported mechanism for burning USDT0 by transferring to the zero address.
+
+Contracts must:
+
+- Explicitly reject `address(0)` as a recipient
+- Redesign any logic that assumes zero-address burns
+- Use explicit sink contracts if irreversible loss semantics are required
+
+## 7. Testing requirements
+
+Test suites for Stable deployments should include:
+
+- Allowance-based drain scenarios (`approve` + `transferFrom`)
+- Solvency enforcement using real native balance
+- Address usage logic without reliance on `EXTCODEHASH`
+- Explicit failure cases for zero-address transfers
+
+## 8. Migration checklist
+
+When porting contracts from Ethereum to Stable:
+
+- Remove internal native balance mirrors
+- Replace all solvency checks with `address(this).balance`
+- Remove all native or ERC20 transfers to `address(0)`
+- Audit all USDT0 approvals
+- Add tests covering permit and allowance-based flows
+
+## 9. Summary
+
+Stable’s use of USDT0 as a gas token provides predictable fees and unified value accounting while changing core assumptions about native balance behavior.
+
+Correct contract design on Stable requires:
+
+- Treating USDT0 as a dual-role asset
+- Enforcing solvency against real balances
+- Avoiding allowance-based drain paths
+- Eliminating reliance on Ethereum-specific balance and address assumptions
+
+## FAQ
+
+**We’re using USDT0 as the wrapped native token today. After this upgrade, which token should be treated as the wrapped native?**
+
+USDT0 becomes both the native token and an ERC-20 token after the upgrade. You should use USDT0 directly, and wrapping or unwrapping is no longer required.
+
+**What happens to the original USDT0 contract address (`0x779Ded0c9e1022225f8E0630b35a9b54bE713736`)?**
+
+Nothing changes. The same address remains valid and continues to represent USDT0.
+
+**After the upgrade, is the native token address `0x779Ded0c9e1022225f8E0630b35a9b54bE713736` (instead of `0x0000000000000000000000000000000000001000`)?**
+
+Yes. After the upgrade, the native token identifier/address is `0x779Ded0c9e1022225f8E0630b35a9b54bE713736`.
+
+**What about `0x0000000000000000000000000000000000001000`? Is it still used as the token address for gUSDT, and should we keep it on our side?**
+
+No. You can remove it. It will not be used after the upgrade.
+
+**For DEX calldata, will protocols stop using `0x0000000000000000000000000000000000001000` as the “native token” identifier and use `0x779Ded0c9e1022225f8E0630b35a9b54bE713736` instead?**
+
+Correct. After the upgrade, DEXs should use `0x779Ded0c9e1022225f8E0630b35a9b54bE713736` as the native token identifier.
+
+## Next recommended
+
+- [**Send your first USDT0**](/en/tutorial/send-usdt0) — Submit a USDT0 transfer on testnet using standard EVM tooling.
+- [**Gas pricing**](/en/reference/gas-pricing-api) — Build transactions against Stable's single-component fee model.
+- [**USDT0 behavior on Stable**](/en/explanation/usdt0-behavior) — Audit contracts for dual-role asset semantics, balance reconciliation, and `EXTCODEHASH` behavior.

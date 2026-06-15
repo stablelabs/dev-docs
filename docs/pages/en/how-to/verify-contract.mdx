@@ -1,0 +1,85 @@
+---
+title: "Verify a smart contract"
+description: "Verify your Stable contract source on Stablescan with forge verify-contract so users can read and interact with it."
+diataxis: "how-to"
+---
+
+# Verify a smart contract
+
+Verification uploads your contract's source code to the block explorer and proves it compiles to the deployed bytecode. Once verified, users can read state, call functions, and audit the source on Stablescan without re-hosting your code. This guide walks through verifying a Foundry-deployed contract on Stable.
+
+## Prerequisites
+
+- A contract already deployed on Stable testnet or mainnet. If you haven't deployed yet, see [Deploy a smart contract](/en/tutorial/smart-contract).
+- Foundry installed (`forge` available in your PATH).
+- The deployed contract address from your `forge create` output.
+
+## 1. Confirm the deployed address
+
+Make sure you have the `Deployed to` address from your earlier deployment. From the [Deploy a smart contract](/en/tutorial/smart-contract) flow, this was the value printed after `forge create`.
+
+```bash
+cast code 0xDeployedContractAddress --rpc-url https://rpc.testnet.stable.xyz | head -c 20
+```
+
+```text
+0x6080604052600436...
+```
+
+A non-empty bytecode confirms the contract is deployed at that address.
+
+## 2. Run forge verify-contract
+
+Foundry's verification flow submits your source to the Stablescan verifier.
+
+```bash
+forge verify-contract \
+  0xDeployedContractAddress \
+  src/Counter.sol:Counter \
+  --chain-id 2201 \
+  --verifier blockscout \
+  --verifier-url https://testnet.stablescan.xyz/api \
+  --watch
+```
+
+```text
+Start verifying contract `0xDeployedContractAddress` deployed on 2201
+
+Submitting verification of contract: Counter
+Submitted contract for verification:
+        Response: `OK`
+        GUID: `abc123...`
+        URL: https://testnet.stablescan.xyz/address/0xDeployedContractAddress
+Contract verification status:
+Response: `OK`
+Details: `Pass - Verified`
+Contract successfully verified
+```
+
+`--watch` blocks until verification finishes so you don't have to poll. On mainnet, swap the chain ID to `988` and the verifier URL to `https://stablescan.xyz/api`.
+
+:::note
+**Constructor arguments**: If your contract takes constructor arguments, add `--constructor-args $(cast abi-encode "constructor(uint256,address)" 42 0xSomeAddress)` to the command. Without this flag, verification fails for any contract with a non-empty constructor.
+:::
+
+## 3. Confirm verification on Stablescan
+
+Open the contract page on the explorer.
+
+```text
+https://testnet.stablescan.xyz/address/0xDeployedContractAddress
+```
+
+The **Contract** tab should now show source code, a green "Verified" badge, and the full ABI. Users can read state under **Read Contract** and send transactions under **Write Contract**.
+
+## Troubleshooting
+
+- **"Bytecode does not match"**: your source compiles to different bytecode than what's deployed. Most often caused by mismatched Solidity version or optimizer settings. Pass `--compiler-version` and `--optimizer-runs` explicitly to match your `foundry.toml`.
+- **"GUID not found"**: the verifier hasn't registered your submission yet. Re-run with `--watch` or manually check the URL printed in the response.
+- **Contract uses libraries**: add `--libraries src/Lib.sol:Lib:0xDeployedLibAddress` for each linked library.
+
+## Next recommended
+
+- [**Index contract events**](/en/how-to/index-contract) — Subscribe to on-chain events with ethers.js and build a live event stream.
+- [**Deploy a smart contract**](/en/tutorial/smart-contract) — Scaffold a fresh Foundry project and deploy to Stable testnet.
+- [**JSON-RPC reference**](/en/reference/json-rpc-api) — See which `eth_*` methods Stable supports for on-chain interactions.

@@ -1,0 +1,25 @@
+---
+title: "Payroll & mass payouts"
+description: "How Stable handles high-volume disbursements with batched settlement, reserved blockspace, and shielded amounts."
+diataxis: "explanation"
+---
+
+# Payroll & mass payouts
+
+Paying employees, contractors, and suppliers at scale, with predictable throughput, predictable cost, and privacy for sensitive amounts.
+
+## The problem
+
+High-volume stablecoin disbursements hit per-transaction throughput limits on shared chains. Costs fluctuate with network congestion, so a payroll run that cleared cheaply yesterday can spike today. On top of that, salary and supplier amounts are publicly visible to anyone watching the chain, which leaks commercially sensitive data.
+
+## How Stable addresses it
+
+- **The USDT transfer aggregator batches high-volume transfers into parallelized settlement bundles**, so a single run isn't bottlenecked by per-transaction overhead. See [USDT transfer aggregator](/en/explanation/usdt-transfer-aggregator).
+- **Guaranteed blockspace gives enrolled partners reserved capacity in every block**, so inclusion and cost stay predictable regardless of what else the network is doing. See [Guaranteed blockspace](/en/explanation/guaranteed-blockspace).
+- **Confidential transfer shields amounts using zero-knowledge cryptography**, so payroll and supplier runs don't publish sensitive numbers on-chain. See [Confidential transfer](/en/explanation/confidential-transfer).
+
+## Next recommended
+
+- [**USDT transfer aggregator**](/en/explanation/usdt-transfer-aggregator) — Understand how high-volume USDT0 transfers batch into parallelized settlement bundles.
+- [**Guaranteed blockspace**](/en/explanation/guaranteed-blockspace) — See how enrolled partners secure reserved capacity in every block.
+- [**Confidential transfer**](/en/explanation/confidential-transfer) — Review how ZK cryptography shields transfer amounts while keeping parties auditable.

@@ -1,0 +1,69 @@
+---
+title: "Operate"
+description: "Run a Stable node. Install, configure, monitor, and upgrade."
+diataxis: "reference"
+---
+
+# Operate
+
+Operate covers running a Stable node: full or archive, testnet or mainnet, from install through monitoring. For the chain-level behavior your node enforces (fee model, finality, USDT0 as gas), see [Gas pricing](/en/explanation/gas-pricing), [Finality](/en/explanation/finality), and the [Architecture overview](/en/explanation/core-optimization-overview).
+
+## Quick links
+
+- **[System Requirements](/en/reference/node-system-requirements)** - Hardware and software requirements for different node types
+- **[Installation Guide](/en/how-to/install-node)** - Step-by-step installation instructions for various platforms
+- **[Configuration](/en/reference/node-configuration)** - Detailed configuration options and best practices
+- **[Snapshots & Sync](/en/how-to/use-node-snapshots)** - Fast sync options using snapshots
+- **[Create a validator](/en/how-to/run-validator)** - Register a synced node as a validator and self-delegate
+- **[Upgrade Guide](/en/how-to/upgrade-node)** - Node upgrade procedures and version history
+- **[Monitoring](/en/how-to/monitor-node)** - Tools and metrics for node monitoring
+- **[Troubleshooting](/en/how-to/troubleshoot-node)** - Common issues and solutions
+
+To read validator data (stake, uptime, voting history) from the chain instead of running `stabled`, see [Index validator data](/en/how-to/index-validator-data).
+
+## Node types
+
+### Full node
+A full node maintains a complete copy of the blockchain and validates all transactions and blocks. Full nodes:
+- Verify all transactions and blocks
+- Maintain the entire blockchain history
+- Can serve data to other nodes
+- Support the network's decentralization
+
+### Archive node
+An archive node stores the complete history of all states and can serve historical queries. Archive nodes:
+- Store all historical states
+- Support historical queries at any block height
+- Require significantly more storage
+- Essential for block explorers and analytics
+
+## Network information
+
+For complete network details including RPC endpoints, block explorers, and chain parameters, see:
+- **[Mainnet](/en/reference/mainnet-information)** - Mainnet details
+- **[Testnet](/en/reference/testnet-information)** - Testnet details
+
+## Support and community
+
+- **Discord**: [Join the Stable Discord](https://discord.gg/stablexyz)
+
+## Quick start
+
+For experienced operators who want to get started quickly:
+
+1. Check [System Requirements](/en/reference/node-system-requirements)
+2. Follow the [Installation Guide](/en/how-to/install-node)
+3. Configure your node using [Configuration Guide](/en/reference/node-configuration)
+4. Speed up sync with [Snapshots](/en/how-to/use-node-snapshots)
+5. Monitor your node with [Monitoring Guide](/en/how-to/monitor-node)
+
+For network parameters and RPC endpoints, see [Mainnet Information](/en/reference/mainnet-information) or [Testnet Information](/en/reference/testnet-information).
+
+## How node ops connect to the chain
+
+Running a node means enforcing Stable's chain-level rules. These pages explain the behavior your node implements:
+
+- **[Contracts overview](/en/explanation/contracts-overview)** covers the fee model, JSON-RPC surface, and system modules your node serves.
+- **[Finality](/en/explanation/finality)** explains single-slot finality and what "confirmed" means at the consensus layer.
+- **[Architecture overview](/en/explanation/core-optimization-overview)** walks through consensus, execution, database, and RPC layers.
+- **[Gas pricing](/en/explanation/gas-pricing)** explains how USDT0-denominated fees are priced and collected.

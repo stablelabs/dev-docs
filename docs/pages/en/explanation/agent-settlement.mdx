@@ -1,0 +1,55 @@
+---
+title: "Agent settlement"
+description: "How autonomous agents hold, pay, and settle in USDT on Stable, with no separate gas token and sub-second finality."
+diataxis: "explanation"
+---
+
+# Agent settlement
+
+Agent settlement is Stable's rail for machine payments. An agent holds a USDT0 balance, pays for a resource over HTTP, and the payment settles on-chain in the same request cycle. The agent spends down from one balance for both the payment and the network fee. There is no separate gas token, no sign-up, and no API key rotation.
+
+## Why this matters for agents
+
+Agents transact differently from humans. They run continuously, make many small payments, and cannot complete sign-up flows or rotate API keys. Settlement on Stable matches that workload:
+
+- **USDT0 is the gas token and the payment token.** An agent wallet holds a single asset and spends it down for both fees and payments.
+- **Sub-cent, predictable fees.** Fees are denominated in dollars, so agents can budget cost per action without converting from a volatile gas asset.
+- **Sub-second finality.** A paid HTTP call settles inside the request lifecycle (~700 ms block time), which makes high-frequency machine traffic viable.
+- **USDT distribution.** USDT is the most widely held stablecoin; Stable is the venue purpose-built for it.
+
+## How the layers fit
+
+Two layers do different jobs and are complementary, not alternatives:
+
+- **x402** is the *payment standard*. It is an HTTP-native protocol where a server responds with `402 Payment Required`, a client signs an authorization, and a facilitator submits it.
+- **MPP (Machine Payments Protocol)** is the IETF-track standard that supersedes x402 with broader intents and multi-rail support; x402 is the backward-compatible subset Stable supports today. See [MPP](/en/explanation/mpp).
+- **Stable** is the *settlement layer*. It is where the on-chain transfer of USDT0 actually happens.
+
+A **facilitator** sits between the two: it verifies the signed payment and submits the on-chain call so the developer does not run settlement infrastructure. See [Facilitators](/en/reference/agentic-facilitators) for the providers that support Stable today.
+
+```text
+agent (client)  ──HTTP──▶  resource server  ──signed payment──▶  facilitator  ──tx──▶  Stable
+                          (returns 402)                          (verify + submit)     (USDT0 settles)
+```
+
+## What you can build
+
+- **Pay-per-call APIs** priced per request in USDT0, settled via x402 or MPP.
+- **Agent-to-agent commerce** where one agent pays another for a service over HTTP.
+- **Paid MCP tools** that wrap x402 endpoints so an AI client calls and pays for them through prompts.
+- **Autonomous procurement** against a budgeted USDT0 balance.
+- **Usage-based billing** that settles per request instead of per invoice.
+- **Agent wallets** funded with USDT0 only, no custodial middleware.
+
+## Start here
+
+- [**Build a pay-per-call API**](/en/how-to/build-pay-per-call) — Stand up an x402-gated endpoint and settle a real USDT0 payment in the request.
+- [**Build an MPP endpoint on Stable**](/en/how-to/build-mpp-endpoint) — Write the three MPP custom-method hooks for USDT0 and settle on Stable.
+- [**Develop with AI**](/en/how-to/develop-with-ai) — Wire Docs MCP and Runtime MCP into your AI editor and paste the Stable context block.
+- [**Pay with an MCP server**](/en/how-to/pay-with-mcp) — Expose x402-paid APIs as MCP tools an agent can call through natural-language prompts.
+
+## Next recommended
+
+- [**x402 in depth**](/en/explanation/x402) — Read how the HTTP payment protocol works end to end on Stable.
+- [**MPP**](/en/explanation/mpp) — The broader IETF-track standard that x402 belongs to.
+- [**Facilitators**](/en/reference/agentic-facilitators) — See which facilitators already settle USDT0 payments on Stable.

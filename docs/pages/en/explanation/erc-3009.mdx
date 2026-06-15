@@ -1,0 +1,96 @@
+---
+title: "Settle with signed authorizations"
+description: "ERC-3009 allows a token holder to authorize a transfer by signing a message, without calling the contract directly. The settlement mechanism behind x402 payments on Stable."
+diataxis: "explanation"
+---
+
+# Settle with signed authorizations
+
+ERC-3009 lets a token holder authorize a transfer by signing a message. Anyone can then submit that signed authorization to execute the transfer on-chain. The sender never needs to call the contract directly.
+
+This is the settlement mechanism behind [x402](/en/explanation/x402) payments on Stable.
+
+## What problem does it solve?
+
+### The allowance problem
+
+The traditional ERC-20 pattern for third-party transfers is `approve` + `transferFrom`. The sender first calls `approve` to grant a spending allowance, then the third party calls `transferFrom` to move funds. This has well-known issues:
+
+- **Two transactions required**: The sender must send an on-chain `approve` transaction before any transfer can happen. This costs gas and adds latency.
+- **Infinite allowance risk**: To avoid repeated approval transactions, many applications request unlimited spending permission, creating a significant security risk.
+
+ERC-3009 takes a different approach. Instead of granting an allowance, the sender signs a one-time authorization for a specific transfer. No separate approval step, no lingering spending permissions.
+
+### The sequential nonce problem
+
+ERC-2612 (`permit`) also enables signed authorizations, but it uses sequential nonces. Multiple permits carry ordering dependencies: if nonce 5 is not consumed, nonce 6 can never execute.
+
+ERC-3009 solves this with **unique nonces**. Each authorization uses a 32-byte value instead of a sequential counter. Multiple authorizations can be created and submitted independently, in any order, without depending on each other.
+
+### Comparison
+
+| **Property** | **ERC-20** (`approve`) | **ERC-2612** (`permit`) | **ERC-3009** |
+| :--- | :--- | :--- | :--- |
+| On-chain steps | 2 (`approve` + `transferFrom`) | 1 (`transferFrom`) | 1 (`transferWithAuthorization`) |
+| Uses allowance model | Required (on-chain tx) | Yes (sets allowance via `permit`) | Not required (signature) |
+| Nonce model | Sequential | Sequential | Unique |
+| Concurrent authorizations | No | No | Yes |
+
+## How it works
+
+### transferWithAuthorization
+
+The sender signs an EIP-712 typed data message containing the transfer details. Anyone can then call `transferWithAuthorization` on the token contract with that signed message. The contract verifies the signature, checks the validity window, executes the transfer, and marks the nonce as used.
+
+The signed authorization contains:
+
+- `from`: address of the sender (the signer)
+- `to`: address of the recipient
+- `value`: transfer amount
+- `validAfter`: earliest time this authorization can be executed (Unix timestamp)
+- `validBefore`: latest time this authorization can be executed (Unix timestamp)
+- `nonce`: 32-byte value ensuring uniqueness
+
+The time window (`validAfter`/`validBefore`) gives the sender precise control over when the transfer can happen. An authorization can be scheduled for the future, given a deadline, or both. If the window expires before submission, the authorization becomes invalid and the funds stay with the sender.
+
+### receiveWithAuthorization
+
+This function works identically to `transferWithAuthorization`, with one additional check: **the caller must be the recipient**. This prevents front-running attacks where a third party observes a pending authorization and submits it first to manipulate transaction ordering.
+
+This is useful in payment scenarios where the recipient (a merchant or service provider) should be the one to initiate settlement.
+
+### cancelAuthorization
+
+The sender can revoke an unused authorization before it is executed. The sender signs an EIP-712 cancellation message, and the contract marks the nonce as used without executing the transfer. The original authorization can no longer be submitted.
+
+## Built-in safety properties
+
+- **One-time use**: Each unique nonce can only be used once. Resubmitting the same signed authorization reverts.
+- **Time-bound**: The `validAfter`/`validBefore` window ensures authorizations do not remain valid indefinitely.
+- **Self-contained**: One signature authorizes one specific transfer to one specific recipient for one specific amount. No lingering permissions.
+- **Non-custodial**: The submitter never holds the sender's funds. The transfer moves directly from sender to recipient within the contract.
+
+## ERC-3009 on Stable
+
+USDT0 on Stable natively implements ERC-3009. Any application can use `transferWithAuthorization` without deploying additional contracts or relay infrastructure.
+
+### Single-asset settlement
+
+On Ethereum, even with ERC-3009, the submitter needs ETH to pay gas for calling `transferWithAuthorization`. The transfer itself is in USDT, but execution depends on a separate native asset.
+
+On Stable, USDT0 serves as both the payment token and the gas token. The entire payment lifecycle, from authorization to on-chain settlement, runs on a single stablecoin. No separate native asset is needed at any step.
+
+This property is what makes ERC-3009 on Stable a strong foundation for higher-level payment protocols. [x402](/en/explanation/x402) leverages this directly, using ERC-3009 as its on-chain settlement mechanism within standard HTTP communication.
+
+## Key takeaways
+
+- ERC-3009 lets a token holder authorize a transfer by signing a message. Anyone can submit that signed authorization to execute the transfer.
+- It replaces the ERC-20 allowance model with one-time-use, self-contained authorizations. No `approve` step, no lingering permissions, no double-spend risk.
+- Unique nonces allow multiple authorizations to be created and submitted concurrently, in any order.
+- USDT0 on Stable natively supports ERC-3009, and because settlement can be completed using USDT0 alone, it provides a practical foundation for x402.
+
+**See also:**
+
+- [USDT as Gas](/en/explanation/usdt-as-gas-token)
+- [USDT0 Behavior on Stable](/en/explanation/usdt0-behavior)
+- [x402 (HTTP-Native Payments)](/en/explanation/x402)

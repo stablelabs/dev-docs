@@ -1,0 +1,23 @@
+---
+title: "Private transfers"
+description: "How Stable shields commercially sensitive transfer amounts using zero-knowledge cryptography while keeping parties auditable."
+diataxis: "explanation"
+---
+
+# Private transfers
+
+Treasury operations, supplier payments, and salary runs where the amount is commercially sensitive and shouldn't be published to the world.
+
+## The problem
+
+All standard EVM transfers are publicly observable. A payroll run or supplier settlement leaks business-critical data on-chain: who paid whom, how much, and how often. Competitors, counterparties, and anyone scraping the network can reconstruct payroll bands, vendor pricing, and treasury moves without asking.
+
+## How Stable addresses it
+
+- **Confidential transfer uses zero-knowledge cryptography to shield transfer amounts** while keeping the parties auditable for compliance, so sensitive numbers stay private without sacrificing the audit trail. See [Confidential transfer](/en/explanation/confidential-transfer).
+- **Flow of funds shows where confidential transfer sits** in the full USDT lifecycle from on-ramp to off-ramp. See [Flow of funds](/en/explanation/flow-of-funds).
+
+## Next recommended
+
+- [**Confidential transfer**](/en/explanation/confidential-transfer) — Review how ZK cryptography shields transfer amounts while keeping parties auditable.
+- [**Flow of funds**](/en/explanation/flow-of-funds) — Trace USDT from on-ramp through on-chain transfer to off-ramp settlement.

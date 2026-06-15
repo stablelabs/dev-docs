@@ -1,0 +1,207 @@
+---
+title: "Zero gas transactions"
+description: "Send a USDT0 transfer that costs the user no gas using Stable's Gas Waiver, and verify that the receipt shows a zero fee."
+diataxis: "how-to"
+---
+
+# Zero gas transactions
+
+Gas Waiver lets an application cover gas on behalf of a user. The user signs a transaction with `gasPrice = 0`, a governance-registered waiver wraps it, and validators execute the call at zero cost to the user. This guide walks through a qualifying transfer, shows how to verify gas was waived, and explains what the waiver does and doesn't cover.
+
+:::note
+**Concept**: For the wrapper transaction mechanism, authorization model, and security guarantees, see [Gas waiver](/en/explanation/gas-waiver) and the [Gas waiver protocol reference](/en/reference/gas-waiver-api).
+:::
+
+## What you'll build
+
+A two-script flow that submits a USDT0 transfer through the hosted Waiver Server, fetches the receipt, and confirms `gasPrice = 0`.
+
+### Demo
+
+```text
+step 1. Connect wallet, balance displayed as 0.01 USDT0
+
+step 2. Send transaction via Gas Waiver → [Run]
+
+step 3. Result
+        tx:                   0x8f3a...2d41
+        Gas fee paid by you:  0.000000 USDT0
+        Balance after:        0.01 USDT0
+```
+
+## When the waiver applies
+
+A transaction qualifies when all of these hold:
+
+- The user signs the inner transaction with `gasPrice = 0`.
+- The submitter is a governance-registered waiver address.
+- The target `to` address and method selector are on the waiver's `AllowedTarget` policy.
+- The wrapper is sent to the marker address `0x000000000000000000000000000000000000f333` with `value = 0` and `gasPrice = 0`.
+
+If any of these fails, validators reject the wrapper without executing the inner call. Contract calls not listed in `AllowedTarget` are not covered. Arbitrary self-serve waivers are not possible; every waiver must be registered through validator governance.
+
+## Prerequisites
+
+- An API key for the Waiver Server, issued by the Stable team.
+- The target contract address and method selector registered on the waiver's `AllowedTarget` policy.
+- A user wallet on testnet with no USDT0 required for gas.
+
+## Step 1: sign a qualifying InnerTx
+
+The user signs a standard transaction with `gasPrice = 0`. In this example the call is a USDT0 `transfer`, which is a common `AllowedTarget` for application-covered gas flows.
+
+```typescript
+// config.ts
+import { ethers } from "ethers";
+import "dotenv/config";
+
+export const CONFIG = {
+  RPC_URL: "https://rpc.testnet.stable.xyz",
+  CHAIN_ID: 2201, // 988 for mainnet
+  WAIVER_SERVER: "https://waiver.testnet.stable.xyz",
+  USDT0_ADDRESS: "0x78Cf24370174180738C5B8E352B6D14c83a6c9A9",
+};
+
+export const provider = new ethers.JsonRpcProvider(CONFIG.RPC_URL);
+export const userWallet = new ethers.Wallet(process.env.USER_PRIVATE_KEY!, provider);
+```
+
+```typescript
+// signInner.ts
+import { ethers } from "ethers";
+import { CONFIG, provider, userWallet } from "./config";
+
+const usdt0 = new ethers.Contract(CONFIG.USDT0_ADDRESS, [
+  "function transfer(address to, uint256 amount) returns (bool)"
+], provider);
+
+const callData = usdt0.interface.encodeFunctionData("transfer", [
+  "0xRecipientAddress",
+  ethers.parseUnits("0.001", 18),
+]);
+
+const gasLimit = await provider.estimateGas({
+  from: userWallet.address,
+  to: CONFIG.USDT0_ADDRESS,
+  data: callData,
+});
+
+const nonce = await provider.getTransactionCount(userWallet.address);
+
+const innerTx = {
+  to: CONFIG.USDT0_ADDRESS,
+  data: callData,
+  value: 0,
+  gasPrice: 0,
+  gasLimit,
+  nonce,
+  chainId: CONFIG.CHAIN_ID,
+};
+
+export const signedInnerTx = await userWallet.signTransaction(innerTx);
+console.log("Signed InnerTx:", signedInnerTx);
+```
+
+```bash
+npx tsx signInner.ts
+```
+
+```text
+Signed InnerTx: 0xf8a8...c1
+```
+
+:::warning
+`gasPrice` must be `0`. A non-zero value causes the waiver server to reject the submission and validators to reject the wrapper.
+:::
+
+## Step 2: submit through the Waiver Server
+
+The Waiver Server wraps the signed inner transaction and broadcasts it. You need a server-issued API key.
+
+```typescript
+// submit.ts
+import { CONFIG } from "./config";
+import { signedInnerTx } from "./signInner";
+
+const response = await fetch(`${CONFIG.WAIVER_SERVER}/v1/submit`, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${process.env.WAIVER_API_KEY}`,
+  },
+  body: JSON.stringify({ transactions: [signedInnerTx] }),
+});
+
+const reader = response.body!.getReader();
+const decoder = new TextDecoder();
+let txHash = "";
+
+while (true) {
+  const { done, value } = await reader.read();
+  if (done) break;
+  for (const line of decoder.decode(value).trim().split("\n")) {
+    const result = JSON.parse(line);
+    if (result.success) {
+      txHash = result.txHash;
+      console.log(`tx confirmed: ${txHash}`);
+    } else {
+      console.error(`tx failed: ${result.error.message}`);
+    }
+  }
+}
+export { txHash };
+```
+
+```bash
+npx tsx submit.ts
+```
+
+```text
+tx confirmed: 0x8f3a...2d41
+```
+
+## Step 3: verify the receipt shows zero gas
+
+Fetch the receipt and confirm `effectiveGasPrice` is 0. That is the cryptographic proof that the user paid no gas.
+
+```typescript
+// verify.ts
+import { provider } from "./config";
+import { txHash } from "./submit";
+
+const receipt = await provider.getTransactionReceipt(txHash);
+
+const gasUsed = receipt!.gasUsed;
+const effectiveGasPrice = receipt!.gasPrice;
+const totalFee = gasUsed * effectiveGasPrice;
+
+console.log("Gas used:           ", gasUsed.toString());
+console.log("Effective gas price:", effectiveGasPrice.toString());
+console.log("Gas fee paid:       ", `${totalFee.toString()} USDT0 (wei-equivalent)`);
+```
+
+```bash
+npx tsx verify.ts
+```
+
+```text
+Gas used:            21000
+Effective gas price: 0
+Gas fee paid:        0 USDT0 (wei-equivalent)
+```
+
+An `effectiveGasPrice` of `0` confirms the transaction executed under a registered waiver and the user was not charged.
+
+## What Gas Waiver doesn't cover
+
+- **Contracts outside `AllowedTarget`**: arbitrary contract calls aren't covered. Every target is scoped per waiver through governance.
+- **User-submitted wrappers**: if the user submits directly to `0x...f333`, it fails. Only registered waiver addresses can wrap.
+- **Fee extraction**: validators don't accept a non-zero `gasPrice` on either the inner or wrapper transaction.
+
+For the full policy model and per-waiver scope rules, see [Gas waiver protocol](/en/reference/gas-waiver-api).
+
+## Next recommended
+
+- [**Integrate the Waiver Server**](/en/how-to/integrate-gas-waiver) — Full API reference, batch submissions, error codes, and NDJSON streaming.
+- [**Self-hosted Gas Waiver**](/en/how-to/self-hosted-gas-waiver) — Register your own waiver address and broadcast wrappers without the hosted API.
+- [**Gas waiver protocol**](/en/reference/gas-waiver-api) — Read the full spec: marker routing, wrapper format, governance controls.

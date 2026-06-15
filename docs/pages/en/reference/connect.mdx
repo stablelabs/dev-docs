@@ -1,0 +1,84 @@
+---
+title: "Connect"
+description: "Mainnet and testnet chain IDs, RPC endpoints, block explorers, and faucet for Stable."
+diataxis: "reference"
+---
+
+# Connect
+
+This page consolidates the network details you need to connect to Stable.
+
+## Mainnet
+
+| **Field** | **Value** |
+| :--- | :--- |
+| Network Name | Stable Mainnet |
+| Chain ID | `988` |
+| Currency Symbol | USDT0 |
+| EVM JSON-RPC | `https://rpc.stable.xyz` |
+| WebSocket | `wss://rpc.stable.xyz` |
+| Block Explorer | [https://stablescan.xyz](https://stablescan.xyz) |
+
+## Testnet
+
+| **Field** | **Value** |
+| :--- | :--- |
+| Network Name | Stable Testnet |
+| Chain ID | `2201` |
+| Currency Symbol | USDT0 |
+| EVM JSON-RPC | `https://rpc.testnet.stable.xyz` |
+| WebSocket | `wss://rpc.testnet.stable.xyz` |
+| Block Explorer | [https://testnet.stablescan.xyz](https://testnet.stablescan.xyz) |
+
+For third-party RPC providers, see [RPC Providers](/en/reference/rpc-providers). For a typed client that wires these endpoints in for you, see the [Stable SDK](/en/explanation/sdk-overview).
+
+## Rate limits
+
+The public RPC endpoints (`https://rpc.stable.xyz` and `https://rpc.testnet.stable.xyz`) are rate-limited to **1,000 requests per 10 seconds per IP**. Requests over the limit return `HTTP 429`.
+
+For higher throughput, use a [third-party RPC provider](/en/reference/rpc-providers).
+
+:::note
+USDT0 uses **18 decimals** as the native gas token (returned by `address(x).balance`) and **6 decimals** as an ERC-20 token (returned by `USDT0.balanceOf(x)`). Both interfaces operate on the same underlying balance. Libraries like viem and ethers.js report 18 decimals because they read the native gas token. For details on how the precision gap is reconciled, see [USDT0 Behavior on Stable](/en/explanation/usdt0-behavior).
+:::
+
+## Add Stable to your wallet
+
+To add Stable manually, open your browser wallet's network settings and enter the values from the tables above. The required fields are:
+
+- **Network Name**
+- **RPC URL** (the EVM JSON-RPC endpoint)
+- **Chain ID**
+- **Currency Symbol**: `USDT0`
+
+## Verify connectivity
+
+Confirm your RPC endpoint is reachable by querying the chain ID:
+
+```bash
+cast chain-id --rpc-url https://rpc.stable.xyz
+```
+
+Expected output:
+
+```text
+988
+```
+
+For the testnet:
+
+```bash
+cast chain-id --rpc-url https://rpc.testnet.stable.xyz
+```
+
+Expected output:
+
+```text
+2201
+```
+
+## Next recommended
+
+- [**Quick start**](/en/tutorial/quick-start) — Send your first testnet transaction in five minutes.
+- [**Get testnet USDT0**](/en/how-to/use-faucet) — Fund a wallet from the faucet or bridge from Sepolia.
+- [**USDT0 behavior on Stable**](/en/explanation/usdt0-behavior) — Understand the 18/6-decimal dual role before you code against balances.

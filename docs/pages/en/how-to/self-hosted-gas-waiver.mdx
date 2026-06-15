@@ -1,0 +1,142 @@
+---
+title: "Self-hosted gas waiver"
+description: "Run your own gas waiver on Stable. Register a waiver address through governance, construct wrapper transactions, and broadcast them directly without the hosted Waiver Server API."
+diataxis: "how-to"
+---
+
+# Self-hosted gas waiver
+
+Self-hosted Gas Waiver lets you operate your own waiver infrastructure instead of using the hosted Waiver Server API. You register a waiver address through on-chain governance, then broadcast wrapper transactions directly to the network.
+
+This guide covers registering a waiver address, collecting signed user transactions, constructing wrapper transactions, and broadcasting them.
+
+:::note
+**Concept:** For what Gas Waiver is and why it exists, see [Gas waiver](/en/explanation/gas-waiver). For the full protocol specification (wrapper transaction mechanism, authorization, policy checks, execution semantics, security model), see [Gas waiver protocol](/en/reference/gas-waiver-api).
+:::
+
+For the hosted Waiver Server API integration path, see [Enable gas-free transactions](/en/how-to/integrate-gas-waiver).
+
+## Prerequisites
+
+- A waiver address registered on-chain via validator governance.
+- `AllowedTarget` policy configured for your target contracts.
+
+## Overview
+
+The self-hosted flow:
+
+1. **Collect a signed InnerTx** from the user with `gasPrice = 0`.
+2. **Construct a WrapperTx**: RLP-encode the InnerTx and wrap it in a transaction sent to the marker address.
+3. **Broadcast** the WrapperTx via `eth_sendRawTransaction`.
+
+## Step 1: Collect the user's InnerTx
+
+The user signs a transaction with `gasPrice = 0`. The `to` address and method selector must match your waiver's `AllowedTarget` policy.
+
+```typescript
+// config.ts
+export const CONFIG = {
+  RPC_URL: "https://rpc.testnet.stable.xyz",
+  CHAIN_ID: 2201, // 988 for mainnet
+  MARKER_ADDRESS: "0x000000000000000000000000000000000000f333",
+  USDT0_ADDRESS: "0x78Cf24370174180738C5B8E352B6D14c83a6c9A9",
+};
+```
+
+```typescript
+// collectInnerTx.ts
+import { ethers } from "ethers";
+import { CONFIG } from "./config";
+
+const provider = new ethers.JsonRpcProvider(CONFIG.RPC_URL);
+
+const usdt0 = new ethers.Contract(CONFIG.USDT0_ADDRESS, [
+  "function transfer(address to, uint256 amount) returns (bool)"
+], provider);
+
+const callData = usdt0.interface.encodeFunctionData("transfer", [
+  recipientAddress,
+  ethers.parseUnits("0.01", 18)
+]);
+
+const gasEstimate = await provider.estimateGas({
+  from: userWallet.address,
+  to: CONFIG.USDT0_ADDRESS,
+  data: callData,
+});
+
+const nonce = await provider.getTransactionCount(userWallet.address);
+
+const innerTx = {
+  to: CONFIG.USDT0_ADDRESS,
+  data: callData,
+  value: 0,
+  gasPrice: 0,
+  gasLimit: gasEstimate,
+  nonce: nonce,
+  chainId: CONFIG.CHAIN_ID,
+};
+
+const signedInnerTx = await userWallet.signTransaction(innerTx);
+```
+
+## Step 2: Construct the WrapperTx
+
+RLP-encode the signed InnerTx and wrap it in a transaction to the marker address. The `gasLimit` must cover both the inner execution and the wrapping overhead.
+
+```typescript
+// constructWrapper.ts
+import { ethers } from "ethers";
+import { CONFIG } from "./config";
+
+const innerTxBytes = ethers.decodeRlp(signedInnerTx);
+const rlpEncoded = ethers.encodeRlp(innerTxBytes);
+
+const waiverNonce = await provider.getTransactionCount(waiverWallet.address);
+
+const wrapperTx = {
+  to: CONFIG.MARKER_ADDRESS,
+  data: rlpEncoded,
+  value: 0,
+  gasPrice: 0,
+  gasLimit: (gasEstimate * 12n / 10n) * 2n,  // ~2x inner gas for overhead
+  nonce: waiverNonce,
+  chainId: CONFIG.CHAIN_ID,
+};
+
+const signedWrapperTx = await waiverWallet.signTransaction(wrapperTx);
+```
+
+:::warning
+Both `InnerTx.gasPrice` and `WrapperTx.gasPrice` must be `0`. `WrapperTx.value` must also be `0`. If any of these conditions are not met, validators will reject the transaction.
+:::
+
+## Step 3: Broadcast
+
+Submit the signed WrapperTx via standard JSON-RPC.
+
+```typescript
+// broadcast.ts
+const txHash = await provider.send("eth_sendRawTransaction", [signedWrapperTx]);
+console.log("Wrapper tx broadcast:", txHash);
+
+const receipt = await provider.waitForTransaction(txHash);
+console.log("Confirmed:", receipt.status === 1);
+```
+
+```text
+Wrapper tx broadcast: 0x...
+Confirmed: true
+```
+
+## Key takeaways
+
+- Self-hosted waiver requires a waiver address registered through on-chain validator governance.
+- The WrapperTx is sent to the marker address (`0x...f333`) with the RLP-encoded InnerTx as data.
+- Both InnerTx and WrapperTx must have `gasPrice = 0` and `value = 0`.
+
+## Next recommended
+
+- [**Gas waiver concept**](/en/explanation/gas-waiver) — Understand the mechanism before you run your own.
+- [**Gas waiver protocol**](/en/reference/gas-waiver-api) — Reference the full protocol spec for marker routing, authorization, and execution semantics.
+- [**Enable gas-free transactions**](/en/how-to/integrate-gas-waiver) — Use the hosted Waiver Server API instead of self-hosting.

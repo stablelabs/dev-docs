@@ -1,0 +1,35 @@
+---
+title: "Accounts on Stable"
+description: "Wallets, EIP-7702 delegation, session keys, and spending limits for user and agent accounts on Stable."
+diataxis: "explanation"
+---
+
+# Accounts on Stable
+
+An account on Stable is a standard Ethereum EOA that can optionally execute smart contract logic through [EIP-7702 delegation](/en/explanation/eip-7702). Users keep one address and one private key across wallets, batch payments, recurring subscriptions, and session keys. Agents run the same account model without any custodial middleware.
+
+## What you can build
+
+- **Wallets** from a seed phrase, with native USDT0 balance queries and signed transactions.
+- **Batched payments**: execute multiple transfers in one atomic transaction via a delegated EOA.
+- **Spending limits**: enforce per-transaction or per-day caps on the EOA itself through delegate logic.
+- **Session keys**: grant a scoped, time-bound, budget-bound key to a dApp so users don't re-sign every action.
+- **Agent wallets**: fund an AI agent with a self-custodied key and let it pay for x402 services autonomously. See [Agentic wallets](/en/reference/agentic-wallets) for providers and integration patterns.
+
+## How Stable differs
+
+- **One address for everything.** No account migration to unlock smart contract features. EIP-7702 delegates code *onto* the existing EOA.
+- **USDT0-only gas.** Users don't need a separate native token. A new account funds with USDT0 and can transact immediately.
+- **Multi-function delegate pattern.** A single delegate can combine batch, spending limits, session keys, and subscriptions so one delegation covers every feature you ship.
+
+## Start here
+
+- [**Create a wallet**](/en/how-to/create-wallet) — Generate or restore a wallet with ethers.js or the Tether WDK.
+- [**Delegate with EIP-7702**](/en/how-to/account-abstraction) — Apply batch payments, spending limits, and session keys to an existing EOA.
+- [**Stable SDK**](/en/explanation/sdk-overview) — Use the typed client to sign and send transactions from any account.
+
+## Next recommended
+
+- [**Accounts guide index**](/en/explanation/accounts-index) — Jump to the full list of account guides and references.
+- [**EIP-7702 concept**](/en/explanation/eip-7702) — Why delegation works without account migration.
+- [**Subscribe and collect**](/en/how-to/subscribe-and-collect) — Apply the Accounts model to a recurring payment flow.

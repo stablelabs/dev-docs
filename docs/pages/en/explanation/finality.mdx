@@ -1,0 +1,51 @@
+---
+title: "Finality rules & compatibility guarantees"
+description: "Stable's single-slot finality rules and developer guidelines for confirming transaction settlement."
+diataxis: "explanation"
+---
+
+# Finality rules & compatibility guarantees
+
+Stable processes transactions within an EVM-based execution environment. When a block includes a transaction, the chain applies its effects to state and makes them immediately visible to applications, contracts, and indexers.
+
+### Execution confirmation
+
+A transaction is considered **confirmed** once:
+- It is successfully included in a produced block
+- State changes (balances, storage, events) can be observed through RPC
+
+During the public testnet phase:
+- Treat confirmed state as valid for application logic
+- Use monitoring systems to track block continuity
+
+### Settlement considerations
+
+Stable provides single-slot finality, meaning transactions are finalized as soon as they are included in a valid block.
+
+**For developers, this ensures:**
+
+- Once a transaction appears in a confirmed block, its state changes are final and irreversible.
+- Applications can safely rely on block inclusion as confirmation of settlement.
+
+**Even with deterministic finality, applications handling financially sensitive flows should:**
+
+- Verify transaction success via RPC or emitted events before proceeding with dependent actions (e.g., unlocks, redemptions).
+- Implement retry and reconciliation logic for automation and batch operations to handle transient submission or RPC errors.
+
+### Compatibility commitments
+
+Stable intends to maintain a consistent execution surface for developers throughout testnet growth phases.
+
+**Current commitments:**
+
+- Stable will maintain published system module interfaces and execution behavior unless explicitly noted
+- Any potentially disruptive changes will be:
+  - Announced in advance
+  - Documented in the Release & Change Log
+  - Accompanied by migration instructions when necessary
+
+Future updates will introduce:
+
+- A formal compatibility policy
+- Change-level classification for developer-facing features
+- Clear handling guidance for version transitions

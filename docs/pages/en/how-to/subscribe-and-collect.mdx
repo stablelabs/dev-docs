@@ -1,0 +1,389 @@
+---
+title: "Subscribe and collect"
+description: "Build pull-based subscription payments on Stable using EIP-7702 delegation. Set up subscriber authorization and automate billing-cycle collection."
+diataxis: "how-to"
+---
+
+# Subscribe and collect
+
+This guide walks through building a subscription payment system where the subscriber authorizes once and the service provider collects each billing cycle automatically via EIP-7702 account abstraction.
+
+:::note
+**Concept:** For the subscription model, trade-offs, and comparison to card-on-file billing, see [Subscription billing](/en/reference/subscriptions).
+:::
+
+## What you'll build
+
+A full subscription lifecycle: the subscriber delegates and subscribes once, the provider collects on schedule (second cycle shown to prove repeat behavior), and the subscriber cancels.
+
+### Demo
+
+```text
+step 1. Subscriber delegates EOA to SubscriptionManager (EIP-7702)
+        tx: 0x7702...aaaa
+
+step 2. Subscriber registers subscription (10 USDT0 / 30 days)
+        subscriptionId: 0xabc...
+        nextChargeAt:   2026-05-23T12:00:00Z
+
+step 3. Provider calls collect() on day 30
+        collected:    10 USDT0
+        gas cost:     ~0.000050 USDT0
+        nextChargeAt: 2026-06-22T12:00:00Z
+
+step 4. Provider calls collect() on day 60
+        collected:    10 USDT0
+        gas cost:     ~0.000050 USDT0
+        nextChargeAt: 2026-07-22T12:00:00Z
+
+step 5. Subscriber cancels
+        subscription: inactive
+```
+
+## Overview
+
+**Subscriber:**
+
+```
+─── Subscriber ───────────────────────────────────────
+// One-time setup: delegate EOA to the subscription contract
+signAuthorization(delegateContract)
+sendTransaction({ type: 4, authorizationList: [signedAuth] })
+
+// Subscribe: set billing terms on own EOA
+sendTransaction({ to: self, data: subscribe(subscriptionId, provider, amount, interval) })
+
+// Cancel: revoke billing access at any time
+sendTransaction({ to: self, data: cancelSubscription(subscriptionId) })
+```
+
+**Service provider:**
+
+```
+─── Service Provider ────────────────────────────────
+// Each billing cycle: collect payment from subscriber's EOA
+// The delegate contract verifies caller, billing schedule, and amount
+sendTransaction({ to: subscriberEOA, data: collect(subscriptionId) })
+
+// Automate with a cron job matching the billing interval
+// The contract reverts if called before the interval has elapsed
+```
+
+## Delegate contract
+
+Subscription billing works by delegating the subscriber's EOA to a contract that enforces billing terms. Through EIP-7702, the subscriber's account temporarily gains contract logic, allowing a service provider to collect payments at each billing cycle without requiring the subscriber to sign every time.
+
+You can use an existing deployed contract or deploy your own. The example below is a minimal `SubscriptionManager` contract that supports three operations:
+
+- `subscribe`: register billing terms for a `subscriptionId`.
+- `collect`: provider pulls the next scheduled payment for that `subscriptionId`.
+- `cancelSubscription`: subscriber revokes a specific subscription.
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+/// @title SubscriptionManager (example)
+/// @notice Delegate contract for EIP-7702 subscription billing.
+///         Runs on the subscriber's EOA via delegation.
+contract SubscriptionManager {
+    struct Subscription {
+        address provider;
+        uint256 amount;
+        uint256 interval;
+        uint256 nextChargeAt;
+        bool active;
+    }
+
+    // Keyed by subscriptionId.
+    // Storage is already per subscriber EOA under delegation.
+    mapping(bytes32 => Subscription) public subscriptions;
+
+    IERC20 public immutable usdt0;
+
+    event SubscriptionCreated(
+        bytes32 indexed subscriptionId,
+        address indexed provider,
+        uint256 amount,
+        uint256 interval,
+        uint256 nextChargeAt
+    );
+
+    event SubscriptionCollected(
+        bytes32 indexed subscriptionId,
+        address indexed provider,
+        uint256 amount,
+        uint256 collectedAt
+    );
+
+    event SubscriptionCancelled(bytes32 indexed subscriptionId);
+
+    constructor(address _usdt0) {
+        usdt0 = IERC20(_usdt0);
+    }
+
+    /// @notice Register a subscription. Called by the subscriber on their own EOA.
+    function subscribe(
+        bytes32 subscriptionId,
+        address provider,
+        uint256 amount,
+        uint256 interval
+    ) external {
+        require(msg.sender == address(this), "subscriber only");
+        require(provider != address(0), "invalid provider");
+        require(amount > 0, "invalid amount");
+        require(interval > 0, "invalid interval");
+        require(!subscriptions[subscriptionId].active, "already exists");
+
+        uint256 nextChargeAt = block.timestamp + interval;
+
+        subscriptions[subscriptionId] = Subscription({
+            provider: provider,
+            amount: amount,
+            interval: interval,
+            nextChargeAt: nextChargeAt,
+            active: true
+        });
+
+        emit SubscriptionCreated(subscriptionId, provider, amount, interval, nextChargeAt);
+    }
+
+    /// @notice Collect a payment for a specific subscription. Called by the service provider.
+    function collect(bytes32 subscriptionId) external {
+        Subscription storage sub = subscriptions[subscriptionId];
+
+        require(sub.active, "not active");
+        require(msg.sender == sub.provider, "not provider");
+        require(block.timestamp >= sub.nextChargeAt, "too early");
+
+        sub.nextChargeAt += sub.interval;
+
+        require(usdt0.transfer(sub.provider, sub.amount), "transfer failed");
+
+        emit SubscriptionCollected(subscriptionId, sub.provider, sub.amount, block.timestamp);
+    }
+
+    /// @notice Cancel a specific subscription. Called by the subscriber.
+    function cancelSubscription(bytes32 subscriptionId) external {
+        require(msg.sender == address(this), "subscriber only");
+        require(subscriptions[subscriptionId].active, "not active");
+
+        delete subscriptions[subscriptionId];
+
+        emit SubscriptionCancelled(subscriptionId);
+    }
+}
+```
+
+:::note
+This contract is provided as a reference implementation for testing purposes. A delegate contract has full execution authority over the subscriber's EOA, so in production, use an audited and verified contract. For more context on EIP-7702 delegation and security, see [EIP-7702](/en/explanation/eip-7702).
+:::
+
+## Configuration
+
+```typescript
+// config.ts
+import { ethers } from "ethers";
+
+export const STABLE_TESTNET_RPC = "https://rpc.testnet.stable.xyz";
+export const CHAIN_ID = 2201;
+export const USDT0_ADDRESS = "0x78Cf24370174180738C5B8E352B6D14c83a6c9A9";
+export const SUBSCRIPTION_MANAGER = "0xYourDeployedSubscriptionManager";
+
+export const provider = new ethers.JsonRpcProvider(STABLE_TESTNET_RPC);
+export const subscriberWallet = new ethers.Wallet(process.env.SUBSCRIBER_KEY!, provider);
+```
+
+## Step 1: Delegate the subscriber's EOA (EIP-7702)
+
+The subscriber signs an EIP-7702 authorization to delegate their EOA to the `SubscriptionManager`. After this, the subscriber's EOA executes the delegate contract's logic.
+
+```typescript
+// delegate.ts
+import { subscriberWallet, provider, CHAIN_ID, SUBSCRIPTION_MANAGER } from "./config";
+
+const authorization = {
+  chainId: CHAIN_ID,
+  address: SUBSCRIPTION_MANAGER,
+  nonce: await provider.getTransactionCount(subscriberWallet.address),
+};
+
+const signedAuth = await subscriberWallet.signAuthorization(authorization);
+
+const tx = await subscriberWallet.sendTransaction({
+  type: 4,
+  to: subscriberWallet.address,
+  authorizationList: [signedAuth],
+  maxPriorityFeePerGas: 0n,
+});
+
+const receipt = await tx.wait(1);
+console.log("Delegation tx:", receipt.hash);
+```
+
+```bash
+npx tsx delegate.ts
+```
+
+```text
+Delegation tx: 0x7702...aaaa
+```
+
+## Step 2: Register a subscription (subscriber)
+
+The subscriber calls `subscribe()` on their own EOA. Since the EOA is delegated, this executes `SubscriptionManager.subscribe`.
+
+```typescript
+// subscribe.ts
+import { ethers } from "ethers";
+import { subscriberWallet } from "./config";
+
+const subscriptionManager = new ethers.Interface([
+  "function subscribe(bytes32 subscriptionId, address provider, uint256 amount, uint256 interval)",
+]);
+
+const serviceProvider = "0xServiceProviderAddress";
+const monthlyAmount = ethers.parseUnits("10", 6); // 10 USDT0
+const interval = 30 * 24 * 60 * 60;              // 30 days in seconds
+
+// Derive a unique subscriptionId from provider + plan name + local nonce
+const subscriptionId = ethers.solidityPackedKeccak256(
+  ["address", "string", "uint256"],
+  [serviceProvider, "pro-monthly", 1]
+);
+
+const tx = await subscriberWallet.sendTransaction({
+  to: subscriberWallet.address, // call self (delegate code executes)
+  data: subscriptionManager.encodeFunctionData("subscribe", [
+    subscriptionId,
+    serviceProvider,
+    monthlyAmount,
+    interval,
+  ]),
+  maxPriorityFeePerGas: 0n,
+});
+
+const receipt = await tx.wait(1);
+console.log("Subscription registered, tx:", receipt.hash);
+console.log("Subscription ID:", subscriptionId);
+```
+
+```bash
+npx tsx subscribe.ts
+```
+
+```text
+Subscription registered, tx: 0xabcd...1234
+Subscription ID: 0xfedc...9876
+```
+
+## Step 3: Collect a payment (service provider)
+
+Each billing cycle, the service provider calls `collect(subscriptionId)` on the subscriber's EOA. The delegate logic verifies the caller, billing schedule, and amount before transferring USDT0.
+
+```typescript
+// collect.ts
+import { ethers } from "ethers";
+
+const provider = new ethers.JsonRpcProvider("https://rpc.testnet.stable.xyz");
+const providerWallet = new ethers.Wallet(process.env.PROVIDER_KEY!, provider);
+
+const subscriptionManager = new ethers.Interface([
+  "function collect(bytes32 subscriptionId)",
+]);
+
+const subscriberEOA = "0xSubscriberEOAAddress";
+const subscriptionId = "0xYourSubscriptionId";
+
+const tx = await providerWallet.sendTransaction({
+  to: subscriberEOA, // subscriber's EOA (runs delegate code)
+  data: subscriptionManager.encodeFunctionData("collect", [subscriptionId]),
+  maxPriorityFeePerGas: 0n,
+});
+
+const receipt = await tx.wait(1);
+console.log("Payment collected, tx:", receipt.hash);
+console.log("Gas used:", receipt.gasUsed.toString());
+
+// In production, run this on a cron schedule matching the billing interval.
+// The delegate contract will revert if called before the interval has elapsed.
+```
+
+```bash
+npx tsx collect.ts
+```
+
+```text
+Payment collected, tx: 0x8f3a...2d41
+Gas used: 52000
+```
+
+A `collect()` call costs roughly **50k-55k gas** on Stable (21k base + 7702 delegation overhead + ERC-20 `transfer`). At a 1 gwei base fee, that's approximately `0.000050 USDT0` per billing cycle paid by the provider.
+
+## Step 4: Cancel a subscription (subscriber)
+
+The subscriber calls `cancelSubscription(subscriptionId)` on their own EOA to revoke billing access for that specific subscription.
+
+```typescript
+// cancel.ts
+import { ethers } from "ethers";
+import { subscriberWallet } from "./config";
+
+const subscriptionManager = new ethers.Interface([
+  "function cancelSubscription(bytes32 subscriptionId)",
+]);
+
+const subscriptionId = "0xYourSubscriptionId";
+
+const tx = await subscriberWallet.sendTransaction({
+  to: subscriberWallet.address,
+  data: subscriptionManager.encodeFunctionData("cancelSubscription", [subscriptionId]),
+  maxPriorityFeePerGas: 0n,
+});
+
+const receipt = await tx.wait(1);
+console.log("Subscription cancelled, tx:", receipt.hash);
+```
+
+```bash
+npx tsx cancel.ts
+```
+
+```text
+Subscription cancelled, tx: 0xdef0...5678
+```
+
+## Security model
+
+The subscriber is authorizing the delegate contract to pull funds from their EOA. Understand exactly what that authorization covers and how to limit exposure.
+
+**What the subscriber is authorizing.** By delegating to `SubscriptionManager`, the subscriber grants the contract's logic full execution authority over their EOA. The delegate can only transfer funds under the conditions coded into it: caller is the registered provider, the interval has elapsed, the amount matches the stored subscription. It cannot transfer to other addresses or bypass the interval check, because the contract code doesn't allow those actions.
+
+**Failure modes to mitigate.**
+
+- **Malicious delegate upgrade**: if the `SubscriptionManager` is a proxy whose implementation can be changed by an admin, the authorization effectively trusts that admin. Delegate only to immutable contracts or proxies with transparent, time-locked upgrades.
+- **Provider compromise**: if the provider's key leaks, an attacker can collect early payments up to the per-cycle amount. Subscribers should set a `spendingLimit` per subscription and monitor for unauthorized `SubscriptionCollected` events.
+- **Delegation replacement**: subscribing again with a different delegate wipes the subscription state. Use a modular delegate that supports multiple functions (subscription, batch payments, spending limits) under a single delegation, rather than one delegate per feature.
+- **Replayable signatures**: all signatures use EIP-7702 nonces tied to the subscriber's EOA, so they can't replay across chains or across delegations.
+
+**Recommended guardrails.**
+
+- Audit the delegate contract before production use.
+- Keep per-subscription amounts small relative to the subscriber's balance.
+- Monitor `SubscriptionCreated` / `SubscriptionCollected` events and surface them to the subscriber.
+- Offer the subscriber a clear "cancel" UI that calls `cancelSubscription(subscriptionId)` on their own EOA.
+
+## Important considerations
+
+- **Persistent delegation**: the EIP-7702 delegation persists until the subscriber explicitly changes or clears it. No re-delegation needed each billing cycle.
+- **Single delegation per EOA**: if the subscriber later delegates to a different contract, the subscription delegate logic is replaced and collection fails. Use a modular delegate contract that supports multiple functions (subscriptions, batch payments, spending limits, session keys) under a single delegation.
+- **Schedule behavior**: this example advances `nextChargeAt` by one interval on each successful collection. If more than one billing period has elapsed, repeated `collect()` calls can catch up one period at a time. Extend the logic if your product requires a different policy.
+- **Use audited delegates**: only delegate to contracts that have been audited.
+
+## Next recommended
+
+- [**Subscription billing concept**](/en/reference/subscriptions) — Understand the pull-based billing model.
+- [**Account abstraction**](/en/how-to/account-abstraction) — See how batch payments, spending limits, and session keys combine under one delegation.
+- [**EIP-7702 concept**](/en/explanation/eip-7702) — Review the delegation model that makes this possible.

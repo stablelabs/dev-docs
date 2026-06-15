@@ -1,0 +1,245 @@
+/* ===========================================================================
+   Stable docs — minimal custom styling.
+   Self-hosts the brand fonts and points Vocs' font-family variables at them.
+   Everything else (colors, accent, light/dark) uses Vocs' default theme.
+   =========================================================================== */
+
+/* ----------------------------- Fonts ------------------------------------- */
+@font-face {
+  font-family: 'Aeonik';
+  src: url('/fonts/Aeonik Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Atkinson Hyperlegible Next';
+  src: url('/fonts/AtkinsonHyperlegibleNext-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Atkinson Hyperlegible Next';
+  src: url('/fonts/AtkinsonHyperlegibleNext-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Atkinson Hyperlegible Next';
+  src: url('/fonts/AtkinsonHyperlegibleNext-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Atkinson Hyperlegible Next';
+  src: url('/fonts/AtkinsonHyperlegibleNext-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Atkinson Hyperlegible Next';
+  src: url('/fonts/AtkinsonHyperlegibleNext-Italic.ttf') format('truetype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Atkinson Hyperlegible Mono';
+  src: url('/fonts/AtkinsonHyperlegibleMono-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Atkinson Hyperlegible Mono';
+  src: url('/fonts/AtkinsonHyperlegibleMono-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  src: url('/fonts/IBM%20Plex%20Mono.ttf') format('truetype');
+  font-weight: 400;
+  font-display: swap;
+}
+
+/* ----------------------------- Font wiring -------------------------------- */
+/* Point Vocs' font-family variables at the self-hosted brand fonts above. */
+
+:root {
+  --vocs-fontFamily_default: 'Atkinson Hyperlegible Next', -apple-system,
+    BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --vocs-fontFamily_mono: 'Atkinson Hyperlegible Mono', 'IBM Plex Mono',
+    ui-monospace, monospace;
+}
+
+/* Headings use Aeonik, matching the Mintlify config. */
+.vocs_Heading,
+.vocs_H1,
+.vocs_H2,
+.vocs_H3,
+.vocs_H4 {
+  font-family: 'Aeonik', 'Atkinson Hyperlegible Next', sans-serif;
+}
+
+/* ----------------------------- Nav alignment ----------------------------- */
+/* Vertically center every item in the desktop top nav — logo, links, the
+   language dropdown, socials, search and the injected theme toggle — so they
+   share a common centerline regardless of their individual heights. */
+.vocs_DesktopTopNav,
+.vocs_DesktopTopNav_content,
+.vocs_DesktopTopNav_section,
+.vocs_DesktopTopNav_group,
+.vocs_DesktopTopNav_item,
+.vocs_DesktopTopNav_logoWrapper,
+.vocs_NavigationMenu_list {
+  align-items: center;
+}
+
+/* The language dropdown trigger is a bare button whose text and ::after chevron
+   sit on the baseline; make it a full-height centered flex row so both the label
+   and chevron line up on the nav's centerline. */
+.vocs_NavigationMenu_trigger {
+  display: inline-flex;
+  align-items: center;
+  height: 100%;
+}
+
+/* ----------------------------- Nav theme toggle -------------------------- */
+/* Injected at the end of the desktop top nav via docs/layout.tsx (TopNavEnd).
+   Hidden ≤1080px, where Vocs' own mobile toggle takes over, to avoid a
+   duplicate. */
+.stable-nav-theme {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin-left: 4px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--vocs-color_text3);
+  cursor: pointer;
+  transition: color 0.1s ease, background-color 0.1s ease;
+}
+.stable-nav-theme:hover {
+  color: var(--vocs-color_text);
+  background: var(--vocs-color_background3);
+}
+.stable-nav-theme svg {
+  width: 18px;
+  height: 18px;
+}
+@media (max-width: 1080px) {
+  .stable-nav-theme {
+    display: none;
+  }
+}
+
+/* --------------------------- Landing-only nav ---------------------------- */
+/* The landing page has its own in-hero search, so hide the nav search there
+   only (scoped via the root's data-layout). Hiding the trigger with
+   display:none keeps Vocs' search component mounted, so the hero search (which
+   replays the `/` shortcut) still opens the dialog. The mobile menu trigger is
+   left intact. */
+[data-layout='landing'] .vocs_DesktopSearch_search,
+[data-layout='landing'] .vocs_MobileSearch_searchButton {
+  display: none;
+}
+
+/* ===========================================================================
+   Stable design language — decorative layer.
+   Ported from the Mintlify site (dev-docs/style.css), retargeted onto Vocs'
+   DOM classes (vocs_<Component>_<export>). Color/radius tokens live in
+   vocs.config.ts; this file carries the bits Vocs has no config knob for.
+   =========================================================================== */
+
+/* --------------------------- Brand constants ----------------------------- */
+:root {
+  --stable-green: #b4ff82;
+  --stable-green-soft: rgba(180, 255, 130, 0.14);
+}
+
+/* ------------------------------ Bottom glow ------------------------------ */
+/* Fixed radial green wash along the bottom of the viewport (dark only; a
+   fainter neutral tint would only muddy the light scheme, so it's omitted). */
+.dark body::after {
+  content: '';
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 35vh;
+  background: radial-gradient(
+    ellipse 100% 100% at 50% 100%,
+    rgba(180, 255, 130, 0.05),
+    transparent 70%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* --------------------------- Content fade-up ----------------------------- */
+@keyframes stableFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.vocs_Content > * {
+  animation: stableFadeUp 0.3s ease-out both;
+}
+.vocs_Content > *:nth-child(1) { animation-delay: 0s; }
+.vocs_Content > *:nth-child(2) { animation-delay: 0.06s; }
+.vocs_Content > *:nth-child(3) { animation-delay: 0.12s; }
+.vocs_Content > *:nth-child(4) { animation-delay: 0.18s; }
+.vocs_Content > *:nth-child(5) { animation-delay: 0.24s; }
+.vocs_Content > *:nth-child(6) { animation-delay: 0.3s; }
+.vocs_Content > *:nth-child(7) { animation-delay: 0.36s; }
+.vocs_Content > *:nth-child(8) { animation-delay: 0.42s; }
+.vocs_Content > *:nth-child(n + 9) { animation-delay: 0.48s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .vocs_Content > * {
+    animation: none;
+  }
+}
+
+/* ---------------------------- Eyebrow type ------------------------------- */
+/* Mono + uppercase treatment for structural labels: sidebar group headers,
+   the on-page outline (TOC), and table headers. Matches style.css L832-875. */
+.vocs_Sidebar_sectionTitle,
+.vocs_Sidebar_sectionTitle *,
+.vocs_Outline_heading {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.08em !important;
+}
+
+.vocs_Content th {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+
+/* ----------------------- Shiki palette → Stable -------------------------- */
+/* Remap VS Code dark-plus tokens to the Stable palette by overriding the
+   per-token --shiki-dark var Vocs/Shiki emits as inline styles. Verbatim from
+   style.css L623-632. */
+.dark .shiki span[style*='#DCDCAA'] { --shiki-dark: #b4ff82 !important; } /* functions, commands */
+.dark .shiki span[style*='#CE9178'] { --shiki-dark: #9abbb4 !important; } /* strings */
+.dark .shiki span[style*='#569CD6'] { --shiki-dark: #7fd4ff !important; } /* keywords, flags */
+.dark .shiki span[style*='#D4D4D4'] { --shiki-dark: #e8fbf7 !important; } /* plain text */
+.dark .shiki span[style*='#4EC9B0'] { --shiki-dark: #5ee3c9 !important; } /* types */
+.dark .shiki span[style*='#6A9955'] { --shiki-dark: #6e8984 !important; } /* comments */
+.dark .shiki span[style*='#B5CEA8'] { --shiki-dark: #b4ff82 !important; } /* numbers */
+.dark .shiki span[style*='#C586C0'] { --shiki-dark: #e89ae4 !important; } /* control flow */
+.dark .shiki span[style*='#9CDCFE'] { --shiki-dark: #b0e6ff !important; } /* variables */

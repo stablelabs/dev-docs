@@ -1,0 +1,40 @@
+---
+title: "Gas pricing"
+description: "Stable uses a single-component gas fee model with no priority tips, delivering predictable costs denominated in USDT0."
+diataxis: "explanation"
+---
+
+# Gas pricing
+
+Stable uses a simplified, single-component gas fee model designed to remove fee volatility and deliver predictable, low transaction costs. Transaction ordering is not influenced by tip bidding. The effective gas price is determined solely by the protocol's base fee.
+
+## Why this model
+
+Three properties fall out of the single-component design:
+
+- **Predictable costs**: fees are based purely on base execution cost. Tip auctions don't introduce variance.
+- **USDT-denominated pricing**: gas is priced in USDT0, so a developer or user reasoning about cost in dollar terms doesn't have to account for native-token price fluctuations.
+- **Extremely low fees**: at a base fee of 1 gwei, a native USDT0 transfer (21,000 gas) costs approximately **0.0000021 USDT0**. Even complex contract interactions stay well under a cent.
+
+## How it compares to Ethereum
+
+| **Parameter** | **Stable** | **Ethereum** |
+| :--- | :--- | :--- |
+| Gas token | USDT0 | ETH |
+| Base fee | Yes | Yes |
+| Priority tip (`maxPriorityFeePerGas`) | Ignored (always 0) | Used for ordering |
+| EIP-1559 transaction format | Supported | Supported |
+
+Stable accepts EIP-1559 (Type 2) transactions, but `maxPriorityFeePerGas` is always ignored. Transaction ordering is not influenced by tip bidding.
+
+## Implications
+
+- **Wallets** should hide or disable priority-tip input fields. Displaying them may confuse users since the value has no effect.
+- **Analytics dashboards** should not track priority fees. They will always be zero.
+- **Transaction-construction tooling** should set `maxPriorityFeePerGas` to `0` explicitly, then compute `maxFeePerGas` from the latest block's base fee with a safety margin.
+
+## Next recommended
+
+- [**Gas pricing reference**](/en/reference/gas-pricing-api) — Construct transactions, estimate gas, and configure tooling against Stable's fee model.
+- [**USDT as gas**](/en/explanation/usdt-as-gas-token) — See how USDT0 serves as both native gas and ERC-20 balance.
+- [**Ethereum comparison**](/en/explanation/ethereum-comparison) — Review every behavior difference you'll encounter porting from Ethereum.

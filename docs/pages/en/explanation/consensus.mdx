@@ -1,0 +1,40 @@
+---
+title: "Consensus"
+description: "StableBFT consensus protocol design, DAG-based upgrade roadmap, and 200,000 TPS throughput benchmarks."
+diataxis: "explanation"
+---
+
+# Consensus
+
+## PoS consensus with StableBFT
+
+Stable Blockchain leverages **StableBFT**, a customized PoS consensus protocol built on CometBFT, to deliver high throughput, low latency, and strong reliability. StableBFT provides deterministic finality (blocks are final on inclusion, without forks) and Byzantine fault tolerance up to 1/3 of validators failing or acting maliciously.
+
+To further optimize consensus performance, Stable plans to implement the following improvements in the near future:
+
+- **Decoupled Transaction and Consensus Gossiping**: Separating the transaction gossiping layer from the consensus gossiping layer prevents network congestion on the transaction side from interfering with consensus communications.
+- **Direct Transaction Broadcasting to the Block Proposer**: In the current model, transactions propagate through peer-to-peer gossiping among nodes, creating high gossip traffic across the network. Stable aims to improve efficiency by enabling transactions to broadcast directly to the block proposer.
+
+## Future roadmap: DAG-based consensus
+
+To significantly accelerate consensus, Stable intends to upgrade its protocol to a DAG-based design capable of delivering up to 5x speed improvements.
+
+Traditional view-based BFT protocols like PBFT and HotStuff are optimized for low latency under stable network conditions. However, they degrade significantly during disruptions, often experiencing long recovery delays after temporary faults.
+
+First-generation DAG-based engines like Narwhal and Tusk demonstrate that decoupling data dissemination from consensus ordering can eliminate single-proposer bottlenecks and also improve robustness under network instability. However, their architecture is not directly compatible with systems like CometBFT, as they diverge from conventional height-based block semantics and mempool designs.
+
+[Autobahn](/en/explanation/autobahn) offers a PBFT-on-DAG architecture that integrates more naturally with Stable’s consensus layer, while delivering low latency under normal conditions and fast recovery in the face of network faults. The Stable team maintains a close relationship with the authors of the Autobahn paper and will leverage Autobahn’s architecture to maximize the performance of StableBFT. 
+
+StableBFT, built atop Autobahn, will enable:
+
+- Parallel proposal processing by eliminating the single-leader limitation.
+- Faster finality by separating data propagation from final ordering.
+- Enhanced resilience against network adversities through robust BFT mechanisms.
+
+This advanced consensus design supports much higher throughput based on the internal proof-of-concept, which has demonstrated over 200,000 TPS (Consensus only) in controlled environments.
+
+## Next recommended
+
+- [**Autobahn**](/en/explanation/autobahn) — Read the protocol paper that underpins StableBFT's DAG-based upgrade path.
+- [**Execution**](/en/explanation/execution) — See how blocks move from consensus into parallel execution.
+- [**Finality**](/en/explanation/finality) — Apply Stable's single-slot finality when building against the RPC.

@@ -1,0 +1,180 @@
+---
+title: "Index validator data"
+description: "Read validator identity, join date, stake, commission, uptime, and voting history directly from Stable precompiles and event logs, without running stabled."
+diataxis: "how-to"
+---
+
+# Index validator data
+
+Validator data lives on-chain and is readable over standard EVM JSON-RPC. You query current state through the staking, slashing, and governance precompiles, and you reconstruct history from their event logs. This means an indexer or analytics platform reads everything it needs through `eth_call` and `eth_getLogs`, with no access to a node's `stabled` CLI or Cosmos REST.
+
+:::note
+**Concept:** For what the staking module tracks and how delegation works, see [Staking module](/en/explanation/staking-module). For per-method inputs and outputs, see the [Staking precompile reference](/en/reference/staking-module-api).
+:::
+
+## Where each data point comes from
+
+| **Data point** | **Source** | **How to read it** |
+| :--- | :--- | :--- |
+| Validator name, identity, website | Staking precompile `validators()` | `description.moniker` and related fields |
+| Stake (bonded tokens) | Staking precompile `validators()` | `tokens` field |
+| Commission | Staking precompile `validators()` | `commission` field |
+| Stake changes over time | Staking precompile events | `Delegate`, `Unbond`, `Redelegate` logs |
+| Join date | Staking precompile event | `CreateValidator` log → block timestamp |
+| Uptime | Slashing precompile `getSigningInfos()` | `(signedBlocksWindow − missedBlocksCounter) / signedBlocksWindow` |
+| Voting history (aggregate) | Gov precompile `getTallyResult()` | Per-proposal tally |
+| Voting history (per validator) | Gov precompile events | `Vote`, `VoteWeighted` logs, voter = operator address |
+
+## Precompile addresses
+
+| **Module** | **Address** | **Use for** |
+| :--- | :--- | :--- |
+| Staking | `0x0000000000000000000000000000000000000800` | Validator set, stake, commission, delegation events |
+| Distribution | `0x0000000000000000000000000000000000000801` | Rewards and commission withdrawals |
+| Gov | `0x0000000000000000000000000000000000000805` | Proposals, tallies, and vote logs |
+| Slashing | `0x0000000000000000000000000000000000000806` | Signing info and uptime |
+
+Connect to Mainnet (Chain ID `988`) at `https://rpc.stable.xyz`. See [Mainnet information](/en/reference/mainnet-information) for endpoints and limits.
+
+## Validator name, stake, and commission
+
+Call `validators()` on the staking precompile to read the current validator set. Pass a bond status to filter (for example `BOND_STATUS_BONDED`). Each entry exposes the validator's `description` (including `moniker`), `tokens` (bonded stake), and `commission`.
+
+```typescript
+// validators.ts
+import { createPublicClient, http } from "viem";
+
+const STAKING_PRECOMPILE = "0x0000000000000000000000000000000000000800";
+
+const client = createPublicClient({
+  transport: http("https://rpc.stable.xyz"),
+});
+
+// See the staking precompile reference for the full validators() ABI and structs.
+const validators = await client.readContract({
+  address: STAKING_PRECOMPILE,
+  abi: stakingAbi,
+  functionName: "validators",
+  args: ["BOND_STATUS_BONDED", { key: "0x", offset: 0n, limit: 100n, countTotal: true, reverse: false }],
+});
+
+for (const v of validators[0]) {
+  console.log(v.description.moniker, v.tokens.toString(), v.commission.toString());
+}
+```
+
+```text
+StableNode-01 4500000000000000000000000 50000000000000000
+StableNode-02 3900000000000000000000000 100000000000000000
+```
+
+The `tokens` and `commission` values are scaled to 18 decimals. Divide `commission` by 1e18 to get the rate as a fraction (for example `0.05` for 5%). For the complete `Validator` struct and the `BOND_STATUS_*` values, see the [Staking precompile reference](/en/reference/staking-module-api#validators).
+
+## Stake changes over time
+
+`validators()` returns a snapshot. To track how stake moved, index the staking precompile's delegation events. `Delegate`, `Unbond`, and `Redelegate` carry the indexed `validatorAddr` and the `amount`, so you can attribute every stake change to a validator and block.
+
+```typescript
+// stakeChanges.ts
+import { parseAbiItem } from "viem";
+
+const logs = await client.getLogs({
+  address: STAKING_PRECOMPILE,
+  event: parseAbiItem(
+    "event Delegate(address indexed delegatorAddr, string indexed validatorAddr, uint256 amount, uint256 newShares)"
+  ),
+  fromBlock: 0n,
+  toBlock: "latest",
+});
+
+console.log(`${logs.length} delegations indexed`);
+```
+
+```text
+1842 delegations indexed
+```
+
+`Unbond` and `Redelegate` follow the same shape and additionally carry a `completionTime`. See the [Events section](/en/reference/staking-module-api#events) of the staking reference for exact signatures.
+
+## Join date
+
+A validator's join date is the block timestamp of its `CreateValidator` event. The event is indexed by validator address, so you filter for a single validator or sweep the full set, then resolve each log's `blockNumber` to a timestamp with `eth_getBlockByNumber`.
+
+```typescript
+// joinDate.ts
+import { parseAbiItem } from "viem";
+
+const logs = await client.getLogs({
+  address: STAKING_PRECOMPILE,
+  event: parseAbiItem("event CreateValidator(address indexed valiAddr, uint256 value)"),
+  fromBlock: 0n,
+  toBlock: "latest",
+});
+
+for (const log of logs) {
+  const block = await client.getBlock({ blockNumber: log.blockNumber });
+  console.log(log.args.valiAddr, new Date(Number(block.timestamp) * 1000).toISOString());
+}
+```
+
+```text
+0xAbc...123 2025-11-04T09:12:44.000Z
+0xDef...456 2025-12-18T17:03:01.000Z
+```
+
+:::warning
+Genesis validators have no `CreateValidator` event. They were created in the genesis block, not by a transaction, so no log exists. Treat their join date as the chain genesis: **2025-10-29**. Index `CreateValidator` for everyone who joined after genesis, and backfill the genesis set from the genesis validator list.
+:::
+
+## Uptime
+
+Read signing information from the slashing precompile (`0x...806`) using `getSigningInfos()`. Each record reports `signedBlocksWindow` (the size of the sliding window) and `missedBlocksCounter` (blocks missed within it). Compute uptime as:
+
+```text
+uptime = (signedBlocksWindow − missedBlocksCounter) / signedBlocksWindow
+```
+
+A validator with a `signedBlocksWindow` of `10000` and a `missedBlocksCounter` of `25` has 99.75% uptime over the window. This is a rolling figure, not lifetime uptime. To track uptime history, snapshot the counters on a fixed interval and store each reading.
+
+:::note
+The slashing precompile follows the Cosmos EVM `x/slashing` interface. Its address is listed in the [system modules precompile table](/en/how-to/use-system-modules#whats-exposed). Generate the exact method ABI from the chain's precompile interface.
+:::
+
+## Voting history
+
+Governance data has two layers. For the aggregate outcome of a proposal, call `getTallyResult()` on the gov precompile (`0x...805`). For who voted what, index the `Vote` and `VoteWeighted` event logs. The voter address in these logs is the validator's operator address, so you can join votes to validators directly.
+
+```typescript
+// votes.ts
+import { parseAbiItem } from "viem";
+
+const GOV_PRECOMPILE = "0x0000000000000000000000000000000000000805";
+
+const logs = await client.getLogs({
+  address: GOV_PRECOMPILE,
+  event: parseAbiItem(
+    "event Vote(uint64 indexed proposalId, address indexed voter, uint8 option, uint256 weight)"
+  ),
+  fromBlock: 0n,
+  toBlock: "latest",
+});
+
+console.log(`${logs.length} votes indexed across all proposals`);
+```
+
+```text
+38 votes indexed across all proposals
+```
+
+Live vote logs are confirmed for every proposal to date (proposals #1 through #7). Use `getTallyResult()` when you only need the final counts per proposal, and the event logs when you need per-validator records.
+
+:::note
+The gov precompile follows the Cosmos EVM `x/gov` interface. Its address is listed in the [system modules precompile table](/en/how-to/use-system-modules#whats-exposed). Generate the exact method ABI and the `VoteOption` enum from the chain's precompile interface.
+:::
+
+## Next recommended
+
+- [**Staking precompile reference**](/en/reference/staking-module-api) — Look up the full validators(), delegation methods, and event signatures.
+- [**Create a validator**](/en/how-to/run-validator) — Register a synced node as a validator so it appears in the data above.
+- [**Indexers and analytics**](/en/reference/indexers) — Browse indexing providers that already serve normalized Stable data.
+- [**Mainnet information**](/en/reference/mainnet-information) — Get Chain ID, RPC endpoints, and rate limits before you start indexing.

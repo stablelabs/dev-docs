@@ -1,0 +1,37 @@
+---
+title: "System modules"
+description: "Stable exposes Cosmos-SDK protocol modules to the EVM through precompiled contracts, so dApps can call staking, distribution, and bank operations without rewriting them."
+diataxis: "explanation"
+---
+
+# System modules
+
+Stable's core protocol behavior lives in SDK modules: `x/bank`, `x/distribution`, `x/staking`. To make this behavior accessible from the EVM, Stable exposes each module as a **precompiled contract** at a fixed address. Contracts written in Solidity call the precompile directly, and the EVM routes the call into the native SDK handler. Precompiles are implemented at the protocol level, making them significantly more gas-efficient than an equivalent Solidity re-implementation.
+
+## The three modules
+
+| Module | Precompile address | Purpose |
+| :--- | :--- | :--- |
+| [Bank](/en/explanation/bank-module) | `0x0000…1003` (STABLE) | Token transfers, balance accounting, allowance management, mint/burn for authorized contracts. |
+| [Distribution](/en/explanation/distribution-module) | `0x0000…0801` | Staking-reward claims, reward queries, withdraw-address management. |
+| [Staking](/en/explanation/staking-module) | `0x0000…0800` | Delegation, undelegation, redelegation, validator queries. |
+| [System transactions](/en/explanation/system-transactions) | `0x0000…9999` | Protocol-emitted EVM events for SDK-layer operations (e.g. unbonding completions). |
+
+Each page above explains what the module does, when to use it, and where to find its ABI.
+
+## Why precompiles, not Solidity
+
+Two reasons:
+
+- **Gas efficiency.** A precompile runs in the protocol's native execution path. An equivalent Solidity contract would re-implement the same logic with significantly higher gas cost.
+- **Single source of truth.** Staking, distribution, and token supply are protocol-level state. Exposing them through precompiles avoids maintaining a duplicate Solidity implementation that could drift from the SDK.
+
+## Authorization
+
+Some precompile methods (`mint`, `burn`, protocol-level staking operations) require caller authorization. The `x/precompile` module maintains an on-chain whitelist, and calls from unregistered contracts revert. This keeps privileged operations governance-gated without blocking general EVM use of read/transfer methods.
+
+## Next recommended
+
+- [**Bank module**](/en/explanation/bank-module) — Understand token transfers, allowances, and the mint/burn authorization model.
+- [**Staking module**](/en/explanation/staking-module) — See how delegation and validator management reach the EVM.
+- [**System transactions**](/en/explanation/system-transactions) — Learn how protocol-level events like unbonding completions surface as EVM logs.

@@ -1,0 +1,82 @@
+---
+title: "DEXes"
+description: "Decentralized exchanges live on Stable, including the canonical Uniswap v3 deployment and its contract addresses."
+diataxis: "reference"
+---
+
+# DEXes
+
+DEX deployments on Stable for spot trading, liquidity provision, and on-chain routing. Stable is on the [Official Uniswap v3 Deployments List](https://gov.uniswap.org/t/official-uniswap-v3-deployments-list/24323/13#p-58106-stable-4): the Uniswap v3 contracts on Stable are governance-recognized as canonical and are routed through [Stable Swap](https://swap.stable.xyz) as the default frontend.
+
+## Overview table
+
+| **Provider** | **Category** | **Status** | **Docs / Get Started** | **Notes** |
+| :--- | :--- | :--- | :--- | :--- |
+| [**Uniswap v3**](https://swap.stable.xyz) | Concentrated-liquidity AMM | Canonical (live on mainnet) | [docs.uniswap.org](https://docs.uniswap.org/contracts/v3/overview) | Recognized on the Official Uniswap v3 Deployments List on May 12, 2026. Frontend: Stable Swap. Deployer: Protofire. |
+
+## Uniswap v3
+
+Canonical Uniswap v3 deployment on Stable, with concentrated-liquidity pools and standard fee tiers. Stable Swap is the actively maintained default frontend; trades route through the contracts below. Cross-chain liquidity flows in via LayerZero.
+
+**Capabilities**
+
+- Concentrated-liquidity AMM with v3 position NFTs
+- Standard `SwapRouter02`, `Quoter V2`, and `Universal Router` integration paths
+- `Permit2` support for gasless approvals
+- v2-style constant-product pools also deployed for legacy routing
+
+### Mainnet contract addresses
+
+Source: [RFC: Stable Application for Canonical Uniswap v3 Deployment](https://gov.uniswap.org/t/rfc-stable-application-for-canonical-uniswap-v3-deployment/26080) and the [Official Uniswap v3 Deployments List](https://gov.uniswap.org/t/official-uniswap-v3-deployments-list/24323/13#p-58106-stable-4).
+
+| **Contract** | **Address** |
+| :--- | :--- |
+| **v3 Core Factory** | [0x88F0a512eF09175D456bc9547f914f48C013E4aA](https://stablescan.xyz/address/0x88F0a512eF09175D456bc9547f914f48C013E4aA) |
+| **Universal Router** | [0x5Be52b52f3d1dbC324d2959637471a4208626144](https://stablescan.xyz/address/0x5Be52b52f3d1dbC324d2959637471a4208626144) |
+| **Swap Router02** | [0x32eaf9B5d5F2CD7361c5012890C943D7de84C22a](https://stablescan.xyz/address/0x32eaf9B5d5F2CD7361c5012890C943D7de84C22a) |
+| **Quoter V2** | [0xb070179E7032CdA868b53e6C1742F80c9e940d1A](https://stablescan.xyz/address/0xb070179E7032CdA868b53e6C1742F80c9e940d1A) |
+| **Nonfungible Token Position Manager** | [0x3BdC3437405f7D801b6036532713fc1F179136a6](https://stablescan.xyz/address/0x3BdC3437405f7D801b6036532713fc1F179136a6) |
+| **Nonfungible Token Position Descriptor V1.3.0** | [0x7Cf5987951E48ADf235cc9194bCdc708Eb692D82](https://stablescan.xyz/address/0x7Cf5987951E48ADf235cc9194bCdc708Eb692D82) |
+| **NFT Descriptor Library V1.3.0** | [0xF7815833076D83161414A46c4E993dC8f22A7ADd](https://stablescan.xyz/address/0xF7815833076D83161414A46c4E993dC8f22A7ADd) |
+| **Descriptor Proxy** | [0xcd2cD0E139eC5581138E18C6DBB189c53efBAE95](https://stablescan.xyz/address/0xcd2cD0E139eC5581138E18C6DBB189c53efBAE95) |
+| **Proxy Admin** | [0x51D1E70B8cAbDF4F3aB056475802AB1687b3EA23](https://stablescan.xyz/address/0x51D1E70B8cAbDF4F3aB056475802AB1687b3EA23) |
+| **Tick Lens** | [0x8dF0D1614aae99352045c62d24d54E72b38111ec](https://stablescan.xyz/address/0x8dF0D1614aae99352045c62d24d54E72b38111ec) |
+| **v3 Migrator** | [0x2C5f4275F1a278BF328D56CB9db304e915DE3082](https://stablescan.xyz/address/0x2C5f4275F1a278BF328D56CB9db304e915DE3082) |
+| **v3 Staker** | [0xA32e3E127FF46db40ab3c4775be97ED760AD7178](https://stablescan.xyz/address/0xA32e3E127FF46db40ab3c4775be97ED760AD7178) |
+| **Permit2** | [0x000000000022D473030F116dDEE9F6B43aC78BA3](https://stablescan.xyz/address/0x000000000022D473030F116dDEE9F6B43aC78BA3) |
+| **Multicall 2** | [0x208099D6E8a107aD485CD1374A6EC5Abd98c7F11](https://stablescan.xyz/address/0x208099D6E8a107aD485CD1374A6EC5Abd98c7F11) |
+| **V2 Core Factory** | [0x25D2d657F539F2bB16eC82773cBE5ee49ddD3c69](https://stablescan.xyz/address/0x25D2d657F539F2bB16eC82773cBE5ee49ddD3c69) |
+| **Uniswap V2 Router02** | [0xa571dc7c4f2369F1cA24D3a7E8a35c07Ff52bfC0](https://stablescan.xyz/address/0xa571dc7c4f2369F1cA24D3a7E8a35c07Ff52bfC0) |
+
+:::note
+Stable is recognized on the Uniswap v3 Deployments List as of May 12, 2026, following completion of the UAC governance process in April 2026. The deployment is maintained by Protofire with bridge connectivity via LayerZero.
+:::
+
+### Quoting a swap
+
+`Quoter V2` returns the expected output for a given input without executing a trade. Use it from any EVM tooling pointed at Stable's RPC.
+
+```bash
+cast call 0xb070179E7032CdA868b53e6C1742F80c9e940d1A \
+  "quoteExactInputSingle((address,address,uint256,uint24,uint160))(uint256,uint160,uint32,uint256)" \
+  "(<TOKEN_IN>,<TOKEN_OUT>,<AMOUNT_IN>,<FEE>,0)" \
+  --rpc-url https://rpc.stable.xyz
+```
+
+```text
+(amountOut, sqrtPriceX96After, initializedTicksCrossed, gasEstimate)
+```
+
+Replace `<TOKEN_IN>`, `<TOKEN_OUT>`, `<AMOUNT_IN>`, and `<FEE>` (one of `100`, `500`, `3000`, `10000`) with the values for the pool you're quoting. For application integration, prefer the [Uniswap v3 SDK](https://docs.uniswap.org/sdk/v3/overview) or the [Universal Router](https://docs.uniswap.org/contracts/universal-router/overview) pointed at the addresses above.
+
+---
+
+## Have a DEX integrating Stable?
+
+Reach the team at [bizdev@stable.xyz](mailto:bizdev@stable.xyz) to be listed on this page.
+
+## Next recommended
+
+- [Connect to Stable](/en/reference/connect): chain IDs, RPC endpoints, and block explorers for mainnet and testnet.
+- [Bridges](/en/reference/bridges): move USDT0 and other assets into Stable to provide liquidity or route trades.
+- [Oracles](/en/reference/oracles): price feeds you can use alongside swap quotes for pricing and liquidations.

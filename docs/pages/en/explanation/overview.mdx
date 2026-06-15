@@ -1,0 +1,35 @@
+---
+title: "Overview"
+description: "Connect to Stable, confirm the chain ID, and see what changes from Ethereum before you build."
+diataxis: "explanation"
+---
+
+# Overview
+
+Stable is a Layer 1 where USDT0 is the native gas token, and standard EVM tooling (Solidity, Foundry, Hardhat, ethers, viem, and the `eth_*` JSON-RPC methods) works unchanged. 
+
+Point your RPC at Stable and confirm the chain ID:
+
+```text
+988
+```
+
+make sure you have [foundry](https://www.getfoundry.sh/) installed to test the following command:
+
+```bash
+cast chain-id --rpc-url https://rpc.stable.xyz
+```
+
+For the full list of endpoints (mainnet and testnet), see [Connect](/en/reference/connect).
+
+## What to read next
+
+If you haven't sent a transaction on Stable yet, start with [Quick start](/en/tutorial/quick-start) for a quick walkthrough on testnet. Then pick the path that matches what you're building:
+
+- Wallets, delegation, and agent accounts → [Accounts](/en/explanation/accounts-overview).
+- Moving USDT0 or building payment flows → [Payments](/en/explanation/payments-overview).
+- Deploying smart contracts → [Contracts](/en/explanation/contracts-overview).
+- Wiring AI editors or building agent-paid services → [Agent settlement](/en/explanation/agent-settlement).
+- Running a full or archive node, ecosystem providers, or covering gas → [Infrastructure](/en/explanation/integrate-overview).
+
+Before you ship, [Core concepts](/en/explanation/core-concepts) covers four behaviors that differ from Ethereum (USDT0 dual role, guaranteed blockspace, transfer aggregator, EVM finality). [Production readiness](/en/how-to/production-readiness) is the mainnet-readiness checklist.

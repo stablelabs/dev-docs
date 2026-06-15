@@ -1,0 +1,185 @@
+---
+title: "USDT0 behavior on Stable"
+description: "USDT0 operates as both the native asset and an ERC-20 token on Stable. Audit contracts for balance reconciliation, allowance safety, and opcode behavior."
+diataxis: "explanation"
+---
+
+# USDT0 behavior on Stable
+
+**If you're porting a contract from Ethereum, read this page before deploying.** USDT0 on Stable is both the native gas token and an ERC-20 token on the same balance. Four Ethereum-assumed behaviors break as a result: a contract's native balance can change without a call into the contract, `EXTCODEHASH` can oscillate between zero and empty hash, zero-address transfers revert, and a single logical transfer can emit multiple `Transfer` events from fractional-balance reconciliation.
+
+This page walks through each case and gives safe contract patterns. If you only read one section, read the [Migration checklist](#migration-checklist). It's the port-your-Ethereum-contract-here summary.
+
+## Dual-role overview
+
+USDT0 on Stable is both the native gas token and an ERC-20 token. This dual-role model affects balance behavior, contract design, and event handling. The sections below walk through every case where the dual role changes expected behavior.
+
+For background on why USDT0 operates this way, see [USDT as gas](/en/explanation/usdt-as-gas-token). To experience the behavior through real transfers, see [Send your first USDT0](/en/tutorial/send-usdt0).
+
+## Balance reconciliation
+
+USDT0 uses 18 decimals as the native asset and 6 decimals as an ERC-20 token. Native transfers and ERC-20 transfers operate on the same underlying balance, but the 12-digit precision gap means the system must reconcile fractional amounts when a transfer involves sub-integer precision.
+
+```
+before
+  0.000001 USDT0 (ERC-20) + 0.000000000000000000 USDT0 (internal)
+  // address(account).balance = 0.000001000000000000
+  // USDT0.balanceOf(account) = 0.000001
+
+if transfer 0.0000001 USDT0 to another account
+
+after
+  0.000000 USDT0 (ERC-20) + 0.000000900000000000 USDT0 (internal)
+  // address(account).balance = 0.000000900000000000
+  // USDT0.balanceOf(account) = 0.000000
+```
+
+This can cause `address(account).balance` and `USDT0.balanceOf(account)` to differ by up to 0.000001 USDT0.
+
+## Event handling
+
+Each reconciliation transfer emits an additional `Transfer` event. A single logical USDT0 transfer can produce up to two extra `Transfer` events depending on how the sender's and receiver's fractional balances are affected:
+
+- **Sender adjustment**: If the sender's fractional balance is insufficient, 0.000001 USDT0 is moved from the sender to the reserve address. This emits an extra `Transfer` event.
+- **Receiver adjustment**: If the receiver's fractional balance overflows, 0.000001 USDT0 is moved from the reserve address to the receiver. This emits an extra `Transfer` event.
+- **Both adjustments**: If both conditions occur in the same transfer, the reserve is bypassed. The sender transfers 0.000001 USDT0 directly to the receiver as part of the main transfer. No extra event is emitted.
+
+These auxiliary events involve the reserve address `0x6D11e1A6BdCC974ebE1cA73CC2c1Ea3fDE624370`. Indexers and off-chain services that track USDT0 balances by replaying `Transfer` events must filter or account for transfers to and from this address.
+
+## Contract design requirements
+
+### Native balance mutability
+
+On Ethereum, a contract's native balance typically changes only as a result of contract execution. On Stable, a contract's native USDT0 balance may also change due to ERC-20 allowance-based operations, including `transferFrom` and `permit`. These operations can reduce a contract's native balance without invoking any contract code.
+
+As a result, the following assumption is invalid on Stable:
+
+> A contract's native balance can only decrease if the contract is called.
+
+### Do not mirror native balance
+
+On Ethereum, it is common to track deposits with an internal variable. On Stable, this is unsafe because ERC-20 `transferFrom` can drain the native balance externally.
+
+```solidity
+// UNSAFE on Stable
+uint256 public deposited;
+
+function deposit() external payable {
+    deposited += msg.value;
+}
+```
+
+### Always check real balance before transfers
+
+All native value transfers must verify solvency using `address(this).balance` just before transfer, not internal accounting variables:
+
+```solidity
+// SAFE
+function withdraw() external {
+    uint256 amount = credit[msg.sender];
+    credit[msg.sender] = 0;
+    require(address(this).balance >= amount, "insufficient balance");
+    payable(msg.sender).call{value: amount}("");
+}
+```
+
+### State progression must be balance-independent
+
+Protocol logic that depends on progression, milestones, or completion conditions must track these explicitly using non-balance state variables, such as counters or epochs. Native balances should be used only for solvency verification at the moment of payout.
+
+### No zero-address transfers
+
+On Stable, both native and ERC-20 transfers to `address(0)` revert.
+
+```solidity
+// REVERT on Stable
+payable(address(0)).call{value: amount}("")
+USDT0.transfer(address(0), amount);
+```
+
+Any contract logic that sends native USDT0 should validate the recipient and explicitly reject `address(0)` before the transfer call:
+
+```solidity
+// SAFE
+require(recipient != address(0), "zero address recipient");
+payable(recipient).call{value: amount}("");
+```
+
+If a contract uses zero-address transfers as a burn mechanism, it must be redesigned. Use explicit sink contracts if irreversible loss semantics are required.
+
+### EXTCODEHASH behavior
+
+On Ethereum, the `EXTCODEHASH` opcode returns:
+
+- **Zero hash** (`0x0000...`): if an address has never been used (nonce=0, balance=0, no code).
+- **Empty hash** (`0xc5d2…a470`, the Keccak-256 hash of empty code): if an address exists but has no code.
+
+On Ethereum, once an address transitions from zero hash to empty hash, it cannot return to zero hash. On Stable, because USDT0 supports `permit()`-based approvals, an address can create approvals without sending a transaction. Combined with `transferFrom()`, this allows native balance changes without nonce increment, potentially allowing `EXTCODEHASH` to oscillate between zero hash and empty hash.
+
+```solidity
+// UNSAFE on Stable
+function isUnusedAddress(address addr) public view returns (bool) {
+    bytes32 codeHash;
+    assembly {
+        codeHash := extcodehash(addr)
+    }
+    return codeHash == bytes32(0);
+}
+```
+
+Use explicit tracking instead:
+
+```solidity
+// SAFE
+contract SafeAddressTracker {
+    mapping(address => bool) public hasBeenUsed;
+
+    function markAsUsed(address addr) internal {
+        hasBeenUsed[addr] = true;
+    }
+
+    function isUnused(address addr) public view returns (bool) {
+        return !hasBeenUsed[addr];
+    }
+}
+```
+
+## Testing requirements
+
+Test suites for Stable deployments should include:
+
+- Allowance-based drain scenarios (`approve` + `transferFrom`)
+- Solvency enforcement using real native balance
+- Address usage logic without reliance on `EXTCODEHASH`
+- Explicit failure cases for zero-address transfers
+
+## Migration checklist
+
+When porting contracts from Ethereum to Stable:
+
+- Remove internal native balance mirrors
+- Replace all solvency checks with `address(this).balance`
+- Remove all native or ERC-20 transfers to `address(0)`
+- Audit all USDT0 approvals
+- Add tests covering `permit` and allowance-based flows
+- Verify off-chain indexers handle auxiliary `Transfer` events from fractional balance reconciliation
+
+## Key takeaways
+
+Correct contract design on Stable requires:
+
+- Treating USDT0 as a dual-role asset
+- Enforcing solvency against real balances
+- Avoiding allowance-based drain paths
+- Eliminating reliance on Ethereum-specific balance and address assumptions
+
+Off-chain services and indexers should:
+
+- Account for auxiliary `Transfer` events from fractional balance reconciliation
+- Use direct balance queries instead of event-based balance reconstruction
+
+## Next recommended
+
+- [**USDT as gas**](/en/explanation/usdt-as-gas-token) — Understand why USDT0 operates as both the native asset and an ERC-20 token.
+- [**Send your first USDT0**](/en/tutorial/send-usdt0) — Submit a USDT0 transfer on testnet via native and ERC-20 paths.
+- [**Ethereum comparison**](/en/explanation/ethereum-comparison) — Review every behavior difference when porting from Ethereum.

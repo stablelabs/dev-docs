@@ -1,0 +1,63 @@
+---
+title: "Gas pricing reference"
+description: "Construct transactions, estimate gas, and configure tooling against Stable's single-component fee model."
+diataxis: "reference"
+---
+
+# Gas pricing reference
+
+Transaction construction, gas estimation, and tooling configuration for Stable.
+
+:::note
+**Concept:** For why Stable uses a single-component fee model and how it compares to Ethereum, see [Gas pricing](/en/explanation/gas-pricing).
+:::
+
+## Transaction construction
+
+When constructing transactions on Stable, set `maxPriorityFeePerGas` to `0`. Clients should fetch the latest base fee from the most recent block and include a safety margin when computing `maxFeePerGas`.
+
+```javascript
+// ethers.js v6
+const block = await provider.getBlock("latest");
+const baseFee = block.baseFeePerGas;
+
+const maxPriorityFeePerGas = 0n; // always 0 on Stable
+const maxFeePerGas = baseFee * 2n + maxPriorityFeePerGas; // double the base fee as safety margin
+
+const tx = await wallet.sendTransaction({
+  to: "0xRecipientAddress",
+  value: parseEther("0.01"),
+  maxFeePerGas,
+  maxPriorityFeePerGas,
+});
+```
+
+```text
+Native USDT0 transfer confirmed. Fee ≈ 0.0000021 USDT0 at baseFee = 1 gwei.
+```
+
+## Gas estimation
+
+Use `eth_estimateGas` and `eth_gasPrice` as you would on Ethereum. The key difference is that `eth_maxPriorityFeePerGas` will always return `0`.
+
+```javascript
+const gasPrice = await provider.send("eth_gasPrice", []);
+const gasEstimate = await provider.estimateGas({
+  to: contractAddress,
+  data: callData,
+});
+
+const estimatedFeeInUSDT0 = gasPrice * gasEstimate;
+```
+
+## Tooling configuration
+
+- **Hardhat / Foundry**: no special configuration needed; standard EVM settings work. If your config explicitly sets a priority fee, set it to `0`.
+- **Wallets**: hide or disable the priority tip input field. Displaying it may confuse users since the value has no effect.
+- **Monitoring**: fee analytics dashboards should not track priority fees. They will always be zero.
+
+## Next recommended
+
+- [**Gas pricing concept**](/en/explanation/gas-pricing) — Understand why Stable uses a single-component fee model.
+- [**Ethereum comparison**](/en/explanation/ethereum-comparison) — Review every behavior difference you'll hit porting from Ethereum.
+- [**JSON-RPC API**](/en/reference/json-rpc-api) — Reference the `eth_*` methods Stable exposes.

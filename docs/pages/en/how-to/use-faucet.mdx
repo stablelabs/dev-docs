@@ -1,0 +1,43 @@
+---
+title: "Get testnet USDT0"
+description: "How to get testnet USDT0 via the faucet or by bridging from Ethereum Sepolia."
+diataxis: "how-to"
+---
+
+# Get testnet USDT0
+
+Stable uses USDT0 as the gas token, so you need USDT0 in your wallet to submit transactions. There are two ways to fund a testnet wallet: the faucet for small amounts, or bridging from Ethereum Sepolia for larger amounts.
+
+## Faucet
+
+The faucet is the fastest way to get testnet USDT0 for basic development and testing.
+
+1. Visit [https://faucet.stable.xyz](https://faucet.stable.xyz).
+2. Connect your browser wallet or paste a wallet address.
+3. Select the button to receive testnet USDT0.
+
+The faucet sends 1 USDT0 per request, which is enough to deploy and interact with several contracts.
+
+### Verify your balance
+
+Confirm the funds arrived:
+
+```bash
+cast balance YOUR_ADDRESS --rpc-url https://rpc.testnet.stable.xyz
+```
+
+You should see a non-zero value. If the balance is still `0`, wait a few seconds and re-run. Stable produces a new block roughly every 0.7 seconds, so funds settle quickly.
+
+## Bridge from Sepolia (larger amounts)
+
+If you need more USDT0 than the faucet provides, you can bridge Test USDT from Ethereum Sepolia to the Stable Testnet.
+
+### 1. Mint Test USDT on Sepolia
+
+Call the `mint` function on the [Ethereum Sepolia Test USDT contract](https://sepolia.etherscan.io/token/0xc4DCC311c028e341fd8602D8eB89c5de94625927#writeContract) to get the desired amount.
+
+### 2. Bridge to Stable Testnet
+
+Send a cross-chain transfer to the LayerZero bridge contract on Ethereum Sepolia to bridge Test USDT to the Stable Testnet.
+
+For the full bridge script and contract addresses, see [Bridge USDT0 to Stable](/en/tutorial/bridge-usdt0).

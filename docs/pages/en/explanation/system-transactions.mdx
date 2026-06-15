@@ -1,0 +1,58 @@
+---
+title: "System transactions"
+description: "System transactions bridge Cosmos-SDK events to EVM logs. Protocol-level operations like unbonding completions surface as standard Transfer-style events dApps can subscribe to."
+diataxis: "explanation"
+---
+
+# System transactions
+
+EVM applications subscribe to on-chain activity through standard interfaces like `eth_getLogs`. But some of the most important operations on Stable (staking unbonding completions, for example) happen inside SDK modules that don't naturally emit EVM events. **System transactions** close this visibility gap: the protocol itself submits EVM transactions that emit events for SDK-layer operations, making them indexable through the same log stream dApps already use.
+
+## Why this matters
+
+Consider tracking when a user's tokens finish unbonding. Without system transactions, a dApp would need to either:
+
+- Run a separate indexer that watches for SDK events and stores them in its own database. Operational overhead plus a new failure point.
+- Poll a REST endpoint periodically. 5–10 second latency, higher RPC load, two client stacks (web3 + REST) to maintain.
+
+System transactions give dApps real-time event notifications through the same WebSocket connections they already use for EVM logs. No separate indexer. No REST polling.
+
+## How the flow works
+
+```
+1. Protocol event:    An SDK-layer operation completes (e.g. staking unbonding).
+2. Detection:         The x/stable EndBlocker detects the event and queues it in state.
+3. System TX:         In the next block's PrepareProposal, the protocol generates a
+                      system transaction calling the StableSystem precompile.
+4. EVM emission:      The precompile processes the queued entries and emits standard
+                      EVM events — dApps see them through eth_getLogs and subscriptions.
+```
+
+The system transaction is created by validators during block proposal, not by users. It lands at the front of the block, before any user transactions.
+
+## The StableSystem precompile
+
+Events flow through the `StableSystem` precompile at `0x0000000000000000000000000000000000009999`. Today it emits one event (`UnbondingCompleted`) for staking unbondings. The protocol is designed to extend this to other SDK operations (validator commission changes, governance execution) under the same pattern.
+
+## Security model
+
+Two properties keep the event stream trustworthy:
+
+- **Protocol-only sender.** System transactions use `0x8888888888888888888888888888888888888888` as their sender. The EVM state-transition rules only allow transactions to the `StableSystem` precompile from this address to skip signature verification. Users cannot forge events or call restricted precompile functions from their own transactions.
+- **Deterministic emission.** Every honest validator produces the same system transaction for the same protocol events. There's no additional trust assumption beyond standard consensus.
+
+## Batch processing
+
+To bound block size, each block processes at most 100 unbonding completions. At Stable's ~700 ms block time, that's roughly 9,000 completions per minute, well above typical staking activity. If a burst exceeds the per-block limit, completions queue in FIFO order and drain over subsequent blocks.
+
+There's a one-block (~700 ms) delay between the SDK event and the EVM emission, which is negligible relative to the 7-day unbonding period itself.
+
+## Where to find the ABI
+
+The `StableSystem` interface, event signatures, and sender-authorization rules are in the [System transactions reference](/en/reference/system-transactions-api).
+
+## Next recommended
+
+- [**System transactions reference**](/en/reference/system-transactions-api) — Review the `IStableSystem` interface, gas accounting, and authorization rules.
+- [**Staking module**](/en/explanation/staking-module) — See the SDK operations that surface as system-transaction events.
+- [**System modules overview**](/en/explanation/system-modules-overview) — Return to the precompile-exposed module list.

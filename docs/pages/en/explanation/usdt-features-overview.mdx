@@ -1,0 +1,41 @@
+---
+title: "Overview"
+description: "How Stable's five USDT-specific features work together to make stablecoin payment flows practical at scale."
+diataxis: "explanation"
+---
+
+# Overview
+
+Stable's USDT-specific features aren't a menu of independent options. They compose. Each one removes a specific friction that shows up when stablecoin payments move from demos to production. This page explains why the five features exist together.
+
+## The friction stack
+
+Most stablecoin payment architecture on general-purpose chains runs into the same stack of problems:
+
+1. **Users have to hold a second token** (ETH, SOL) to pay gas for a transaction that moves stablecoins. An onboarding step that bleeds conversion.
+2. **Even with a second token, the user has to cover gas.** This breaks the "send a dollar for a dollar" mental model that merchants and payment apps need.
+3. **Transaction costs fluctuate** with network activity. Payroll, treasury ops, and batch settlements can't plan cost or inclusion.
+4. **Per-transaction limits cap throughput.** High-volume USDT flows hit chain-wide contention and degrade alongside unrelated activity.
+5. **Every transaction is publicly observable.** Supplier payments, salary runs, and treasury moves leak commercially sensitive data.
+
+## How the features compose
+
+Stable addresses each friction with a dedicated mechanism:
+
+| Friction | Mechanism | Page |
+| :--- | :--- | :--- |
+| Separate gas token | USDT0 is the native gas token | [USDT as gas](/en/explanation/usdt-as-gas-token) |
+| User pays gas at all | Governance-authorized waivers cover gas | [Gas waiver](/en/explanation/gas-waiver) |
+| Cost and inclusion variance | Reserved block capacity for enrolled partners | [Guaranteed blockspace](/en/explanation/guaranteed-blockspace) |
+| Throughput ceiling | Parallelized USDT0 transfer batching | [USDT transfer aggregator](/en/explanation/usdt-transfer-aggregator) |
+| Public amount visibility | Selective privacy via ZK cryptography | [Confidential transfer](/en/explanation/confidential-transfer) |
+
+Any one of these helps. Taken together, they make Stable a chain where a payments team can model cost, latency, and privacy the same way they would on a traditional card network, with the settlement finality of a blockchain.
+
+For the full set of Stable's differences from a general-purpose EVM chain, see [Ethereum comparison](/en/explanation/ethereum-comparison). For a worked example of USDT moving end-to-end through these features, see [Flow of funds](/en/explanation/flow-of-funds).
+
+## Next recommended
+
+- [**USDT as gas**](/en/explanation/usdt-as-gas-token) — Understand the asset that replaces ETH for gas and payment at once.
+- [**Flow of funds**](/en/explanation/flow-of-funds) — Trace USDT from on-ramp through on-chain transfer to off-ramp settlement.
+- [**Bridging to Stable**](/en/explanation/usdt0-bridging) — See how USDT0 moves onto Stable from other chains.

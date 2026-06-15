@@ -1,0 +1,1212 @@
+{
+  "/en/": [
+    {
+      "text": "Learn",
+      "collapsed": true,
+      "items": [
+        {
+          "text": "Learn Overview",
+          "link": "/en/explanation/learn-overview"
+        },
+        {
+          "text": "Overview",
+          "link": "/en/explanation/overview"
+        },
+        {
+          "text": "Tech Overview",
+          "link": "/en/explanation/tech-overview"
+        },
+        {
+          "text": "Core concepts",
+          "collapsed": true,
+          "items": [
+            {
+              "text": "Core Concepts",
+              "link": "/en/explanation/core-concepts"
+            },
+            {
+              "text": "Key Features",
+              "link": "/en/explanation/key-features"
+            },
+            {
+              "text": "Ethereum Comparison",
+              "link": "/en/explanation/ethereum-comparison"
+            },
+            {
+              "text": "Ethereum Compatibility",
+              "link": "/en/explanation/ethereum-compatibility"
+            },
+            {
+              "text": "Finality",
+              "link": "/en/explanation/finality"
+            },
+            {
+              "text": "Gas Pricing",
+              "link": "/en/explanation/gas-pricing"
+            },
+            {
+              "text": "Gas Pricing Api",
+              "link": "/en/reference/gas-pricing-api"
+            },
+            {
+              "text": "Eip 7702",
+              "link": "/en/explanation/eip-7702"
+            }
+          ]
+        },
+        {
+          "text": "USDT0 features",
+          "collapsed": true,
+          "items": [
+            {
+              "text": "Usdt Features Overview",
+              "link": "/en/explanation/usdt-features-overview"
+            },
+            {
+              "text": "Flow Of Funds",
+              "link": "/en/explanation/flow-of-funds"
+            },
+            {
+              "text": "Usdt0 Bridging",
+              "link": "/en/explanation/usdt0-bridging"
+            },
+            {
+              "text": "Bridge Security",
+              "link": "/en/explanation/bridge-security"
+            },
+            {
+              "text": "Usdt As Gas Token",
+              "link": "/en/explanation/usdt-as-gas-token"
+            },
+            {
+              "text": "Usdt0 Behavior",
+              "link": "/en/explanation/usdt0-behavior"
+            },
+            {
+              "text": "Gas Waiver",
+              "link": "/en/explanation/gas-waiver"
+            },
+            {
+              "text": "Guaranteed Blockspace",
+              "link": "/en/explanation/guaranteed-blockspace"
+            },
+            {
+              "text": "Usdt Transfer Aggregator",
+              "link": "/en/explanation/usdt-transfer-aggregator"
+            },
+            {
+              "text": "Confidential Transfer",
+              "link": "/en/explanation/confidential-transfer"
+            }
+          ]
+        },
+        {
+          "text": "Architecture",
+          "collapsed": true,
+          "items": [
+            {
+              "text": "Core Optimization Overview",
+              "link": "/en/explanation/core-optimization-overview"
+            },
+            {
+              "text": "Consensus",
+              "link": "/en/explanation/consensus"
+            },
+            {
+              "text": "Execution",
+              "link": "/en/explanation/execution"
+            },
+            {
+              "text": "Stable Db",
+              "link": "/en/explanation/stable-db"
+            },
+            {
+              "text": "High Performance Rpc",
+              "link": "/en/explanation/high-performance-rpc"
+            },
+            {
+              "text": "Autobahn",
+              "link": "/en/explanation/autobahn"
+            }
+          ]
+        },
+        {
+          "text": "Use case narratives",
+          "collapsed": true,
+          "items": [
+            {
+              "text": "Use Case Payments",
+              "link": "/en/explanation/use-case-payments"
+            },
+            {
+              "text": "Use Case Payroll",
+              "link": "/en/explanation/use-case-payroll"
+            },
+            {
+              "text": "Use Case Sponsored",
+              "link": "/en/explanation/use-case-sponsored"
+            },
+            {
+              "text": "Use Case Private",
+              "link": "/en/explanation/use-case-private"
+            }
+          ]
+        },
+        {
+          "text": "Tokenomics",
+          "link": "/en/reference/tokenomics"
+        },
+        {
+          "text": "Technical Roadmap",
+          "link": "/en/explanation/technical-roadmap"
+        },
+        {
+          "text": "Faq",
+          "link": "/en/reference/faq"
+        }
+      ]
+    },
+    {
+      "text": "Build",
+      "collapsed": true,
+      "items": [
+        {
+          "text": "Build Overview",
+          "link": "/en/explanation/build-overview"
+        },
+        {
+          "text": "Quick Start",
+          "link": "/en/tutorial/quick-start"
+        },
+        {
+          "text": "Stable SDK",
+          "collapsed": true,
+          "items": [
+            {
+              "text": "Sdk Overview",
+              "link": "/en/explanation/sdk-overview"
+            },
+            {
+              "text": "Sdk Quickstart",
+              "link": "/en/tutorial/sdk-quickstart"
+            },
+            {
+              "text": "Sdk",
+              "link": "/en/reference/sdk"
+            },
+            {
+              "text": "Sdk With Viem",
+              "link": "/en/how-to/sdk-with-viem"
+            },
+            {
+              "text": "Sdk With Wagmi",
+              "link": "/en/how-to/sdk-with-wagmi"
+            }
+          ]
+        },
+        {
+          "text": "Onboard users",
+          "collapsed": true,
+          "items": [
+            {
+              "text": "Accounts Overview",
+              "link": "/en/explanation/accounts-overview"
+            },
+            {
+              "text": "Accounts Index",
+              "link": "/en/explanation/accounts-index"
+            },
+            {
+              "text": "Create Wallet",
+              "link": "/en/how-to/create-wallet"
+            },
+            {
+              "text": "Account Abstraction",
+              "link": "/en/how-to/account-abstraction"
+            },
+            {
+              "text": "Eip 7702 Api",
+              "link": "/en/reference/eip-7702-api"
+            }
+          ]
+        },
+        {
+          "text": "Accept payments",
+          "collapsed": true,
+          "items": [
+            {
+              "text": "Payments Overview",
+              "link": "/en/explanation/payments-overview"
+            },
+            {
+              "text": "Payments Index",
+              "link": "/en/explanation/payments-index"
+            },
+            {
+              "text": "Move USDT0",
+              "collapsed": true,
+              "items": [
+                {
+                  "text": "Send Usdt0",
+                  "link": "/en/tutorial/send-usdt0"
+                },
+                {
+                  "text": "Zero Gas Transactions",
+                  "link": "/en/how-to/zero-gas-transactions"
+                },
+                {
+                  "text": "Work With Usdt Gas",
+                  "link": "/en/how-to/work-with-usdt-gas"
+                },
+                {
+                  "text": "Bridge Usdt0",
+                  "link": "/en/tutorial/bridge-usdt0"
+                }
+              ]
+            },
+            {
+              "text": "Charge users",
+              "collapsed": true,
+              "items": [
+                {
+                  "text": "Build P2P Payments",
+                  "link": "/en/how-to/build-p2p-payments"
+                },
+                {
+                  "text": "Subscribe And Collect",
+                  "link": "/en/how-to/subscribe-and-collect"
+                },
+                {
+                  "text": "Pay With Invoice",
+                  "link": "/en/how-to/pay-with-invoice"
+                }
+              ]
+            },
+            {
+              "text": "Pick a payment standard",
+              "collapsed": true,
+              "items": [
+                {
+                  "text": "Erc 3009",
+                  "link": "/en/explanation/erc-3009"
+                },
+                {
+                  "text": "Payment Use Cases Overview",
+                  "link": "/en/explanation/payment-use-cases-overview"
+                },
+                {
+                  "text": "P2P Payments",
+                  "link": "/en/reference/p2p-payments"
+                },
+                {
+                  "text": "Subscriptions",
+                  "link": "/en/reference/subscriptions"
+                },
+                {
+                  "text": "Invoices",
+                  "link": "/en/reference/invoices"
+                },
+                {
+                  "text": "Pay Per Call",
+                  "link": "/en/reference/pay-per-call"
+                },
+                {
+                  "text": "Upcoming Use Cases",
+                  "link": "/en/explanation/upcoming-use-cases"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "text": "Ship contracts",
+          "collapsed": true,
+          "items": [
+            {
+              "text": "Contracts Overview",
+              "link": "/en/explanation/contracts-overview"
+            },
+            {
+              "text": "Contracts Index",
+              "link": "/en/explanation/contracts-index"
+            },
+            {
+              "text": "Deploy your first contract",
+              "collapsed": true,
+              "items": [
+                {
+                  "text": "Smart Contract",
+                  "link": "/en/tutorial/smart-contract"
+                },
+                {
+                  "text": "Verify Contract",
+                  "link": "/en/how-to/verify-contract"
+                },
+                {
+                  "text": "Index Contract",
+                  "link": "/en/how-to/index-contract"
+                }
+              ]
+            },
+            {
+              "text": "Tap into system modules",
+              "collapsed": true,
+              "items": [
+                {
+                  "text": "System Modules Overview",
+                  "link": "/en/explanation/system-modules-overview"
+                },
+                {
+                  "text": "Use System Modules",
+                  "link": "/en/how-to/use-system-modules"
+                },
+                {
+                  "text": "System Modules Api Overview",
+                  "link": "/en/reference/system-modules-api-overview"
+                },
+                {
+                  "text": "Bank Module",
+                  "link": "/en/explanation/bank-module"
+                },
+                {
+                  "text": "Bank Module Api",
+                  "link": "/en/reference/bank-module-api"
+                },
+                {
+                  "text": "Distribution Module",
+                  "link": "/en/explanation/distribution-module"
+                },
+                {
+                  "text": "Distribution Module Api",
+                  "link": "/en/reference/distribution-module-api"
+                },
+                {
+                  "text": "Staking Module",
+                  "link": "/en/explanation/staking-module"
+                },
+                {
+                  "text": "Staking Module Api",
+                  "link": "/en/reference/staking-module-api"
+                },
+                {
+                  "text": "System Transactions",
+                  "link": "/en/explanation/system-transactions"
+                },
+                {
+                  "text": "System Transactions Api",
+                  "link": "/en/reference/system-transactions-api"
+                },
+                {
+                  "text": "Track Unbonding",
+                  "link": "/en/how-to/track-unbonding"
+                },
+                {
+                  "text": "Index Validator Data",
+                  "link": "/en/how-to/index-validator-data"
+                }
+              ]
+            },
+            {
+              "text": "Json Rpc Api",
+              "link": "/en/reference/json-rpc-api"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "Integrate",
+      "collapsed": true,
+      "items": [
+        {
+          "text": "Integrate Overview",
+          "link": "/en/explanation/integrate-overview"
+        },
+        {
+          "text": "Connect",
+          "link": "/en/reference/connect"
+        },
+        {
+          "text": "Use Faucet",
+          "link": "/en/how-to/use-faucet"
+        },
+        {
+          "text": "Network information",
+          "collapsed": true,
+          "items": [
+            {
+              "text": "Mainnet",
+              "collapsed": true,
+              "items": [
+                {
+                  "text": "Mainnet Information",
+                  "link": "/en/reference/mainnet-information"
+                },
+                {
+                  "text": "Mainnet Version History",
+                  "link": "/en/reference/mainnet-version-history"
+                }
+              ]
+            },
+            {
+              "text": "Testnet",
+              "collapsed": true,
+              "items": [
+                {
+                  "text": "Testnet Information",
+                  "link": "/en/reference/testnet-information"
+                },
+                {
+                  "text": "Testnet Version History",
+                  "link": "/en/reference/testnet-version-history"
+                },
+                {
+                  "text": "Testnet Ecosystem",
+                  "link": "/en/reference/testnet-ecosystem"
+                }
+              ]
+            },
+            {
+              "text": "Network Upgrades",
+              "link": "/en/reference/network-upgrades"
+            }
+          ]
+        },
+        {
+          "text": "Gas waiver service",
+          "collapsed": true,
+          "items": [
+            {
+              "text": "Integrate Gas Waiver",
+              "link": "/en/how-to/integrate-gas-waiver"
+            },
+            {
+              "text": "Self Hosted Gas Waiver",
+              "link": "/en/how-to/self-hosted-gas-waiver"
+            },
+            {
+              "text": "Gas Waiver Api",
+              "link": "/en/reference/gas-waiver-api"
+            }
+          ]
+        },
+        {
+          "text": "Ecosystem",
+          "collapsed": true,
+          "items": [
+            {
+              "text": "Bridges",
+              "link": "/en/reference/bridges"
+            },
+            {
+              "text": "Dexes",
+              "link": "/en/reference/dexes"
+            },
+            {
+              "text": "Oracles",
+              "link": "/en/reference/oracles"
+            },
+            {
+              "text": "Rpc Providers",
+              "link": "/en/reference/rpc-providers"
+            },
+            {
+              "text": "Network Routing",
+              "link": "/en/reference/network-routing"
+            },
+            {
+              "text": "Ramps",
+              "link": "/en/reference/ramps"
+            },
+            {
+              "text": "Wallets",
+              "link": "/en/reference/wallets"
+            },
+            {
+              "text": "Custody",
+              "link": "/en/reference/custody"
+            },
+            {
+              "text": "Indexers",
+              "link": "/en/reference/indexers"
+            }
+          ]
+        },
+        {
+          "text": "Production Readiness",
+          "link": "/en/how-to/production-readiness"
+        },
+        {
+          "text": "Developer Assistance",
+          "link": "/en/reference/developer-assistance"
+        },
+        {
+          "text": "Resources",
+          "collapsed": true,
+          "items": [
+            {
+              "text": "Brand Kit",
+              "link": "/en/resources/brand-kit"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "Operate",
+      "collapsed": true,
+      "items": [
+        {
+          "text": "Node Operations Overview",
+          "link": "/en/reference/node-operations-overview"
+        },
+        {
+          "text": "Node System Requirements",
+          "link": "/en/reference/node-system-requirements"
+        },
+        {
+          "text": "Install Node",
+          "link": "/en/how-to/install-node"
+        },
+        {
+          "text": "Node Configuration",
+          "link": "/en/reference/node-configuration"
+        },
+        {
+          "text": "Use Node Snapshots",
+          "link": "/en/how-to/use-node-snapshots"
+        },
+        {
+          "text": "Run Validator",
+          "link": "/en/how-to/run-validator"
+        },
+        {
+          "text": "Upgrade Node",
+          "link": "/en/how-to/upgrade-node"
+        },
+        {
+          "text": "Monitor Node",
+          "link": "/en/how-to/monitor-node"
+        },
+        {
+          "text": "Troubleshoot Node",
+          "link": "/en/how-to/troubleshoot-node"
+        }
+      ]
+    },
+    {
+      "text": "[Agents]",
+      "collapsed": true,
+      "items": [
+        {
+          "text": "Agent Settlement",
+          "link": "/en/explanation/agent-settlement"
+        },
+        {
+          "text": "Ai Agents Index",
+          "link": "/en/explanation/ai-agents-index"
+        },
+        {
+          "text": "Pay over x402 and MPP",
+          "collapsed": true,
+          "items": [
+            {
+              "text": "X402",
+              "link": "/en/explanation/x402"
+            },
+            {
+              "text": "Mpp",
+              "link": "/en/explanation/mpp"
+            },
+            {
+              "text": "Mpp Sessions",
+              "link": "/en/explanation/mpp-sessions"
+            },
+            {
+              "text": "Build Pay Per Call",
+              "link": "/en/how-to/build-pay-per-call"
+            },
+            {
+              "text": "Build Mpp Endpoint",
+              "link": "/en/how-to/build-mpp-endpoint"
+            },
+            {
+              "text": "Pay With Mcp",
+              "link": "/en/how-to/pay-with-mcp"
+            }
+          ]
+        },
+        {
+          "text": "Agent infrastructure",
+          "collapsed": true,
+          "items": [
+            {
+              "text": "Develop With Ai",
+              "link": "/en/how-to/develop-with-ai"
+            },
+            {
+              "text": "Agentic Facilitators",
+              "link": "/en/reference/agentic-facilitators"
+            },
+            {
+              "text": "Agentic Wallets",
+              "link": "/en/reference/agentic-wallets"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "/ko/": [
+    {
+      "text": "환영합니다",
+      "collapsed": true,
+      "items": [
+        {
+          "text": "Index",
+          "link": "/ko/index"
+        }
+      ]
+    },
+    {
+      "text": "소개",
+      "collapsed": true,
+      "items": [
+        {
+          "text": "Why Stable",
+          "link": "/ko/introduction/why-stable"
+        },
+        {
+          "text": "Stable For Users",
+          "link": "/ko/introduction/stable-for-users"
+        },
+        {
+          "text": "Tokenomics",
+          "link": "/ko/introduction/tokenomics"
+        },
+        {
+          "text": "Technical Roadmap",
+          "link": "/ko/introduction/technical-roadmap"
+        },
+        {
+          "text": "Faq",
+          "link": "/ko/introduction/faq"
+        }
+      ]
+    },
+    {
+      "text": "개발자",
+      "collapsed": true,
+      "items": [
+        {
+          "text": "Quick Start",
+          "link": "/ko/developers/quick-start"
+        },
+        {
+          "text": "핵심 메커니즘",
+          "collapsed": true,
+          "items": [
+            {
+              "text": "Overview",
+              "link": "/ko/developers/core-mechanics/overview"
+            },
+            {
+              "text": "Eip 7702",
+              "link": "/ko/developers/core-mechanics/eip-7702"
+            },
+            {
+              "text": "Gas Pricing",
+              "link": "/ko/developers/core-mechanics/gas-pricing"
+            },
+            {
+              "text": "Json Rpc Api",
+              "link": "/ko/developers/core-mechanics/json-rpc-api"
+            },
+            {
+              "text": "시스템 모듈 & Precompiles",
+              "collapsed": true,
+              "items": [
+                {
+                  "text": "Overview",
+                  "link": "/ko/developers/core-mechanics/system-modules/overview"
+                },
+                {
+                  "text": "Bank",
+                  "link": "/ko/developers/core-mechanics/system-modules/bank"
+                },
+                {
+                  "text": "Distribution",
+                  "link": "/ko/developers/core-mechanics/system-modules/distribution"
+                },
+                {
+                  "text": "Staking",
+                  "link": "/ko/developers/core-mechanics/system-modules/staking"
+                },
+                {
+                  "text": "System Transactions",
+                  "link": "/ko/developers/core-mechanics/system-modules/system-transactions"
+                }
+              ]
+            },
+            {
+              "text": "Ethereum Compatibility",
+              "link": "/ko/developers/core-mechanics/ethereum-compatibility"
+            },
+            {
+              "text": "Finality",
+              "link": "/ko/developers/core-mechanics/finality"
+            },
+            {
+              "text": "Gas Waiver",
+              "link": "/ko/developers/core-mechanics/gas-waiver"
+            }
+          ]
+        },
+        {
+          "text": "노드 운영",
+          "collapsed": true,
+          "items": [
+            {
+              "text": "Overview",
+              "link": "/ko/developers/node-operations/overview"
+            },
+            {
+              "text": "System Requirements",
+              "link": "/ko/developers/node-operations/system-requirements"
+            },
+            {
+              "text": "Installation",
+              "link": "/ko/developers/node-operations/installation"
+            },
+            {
+              "text": "Configuration",
+              "link": "/ko/developers/node-operations/configuration"
+            },
+            {
+              "text": "Snapshots",
+              "link": "/ko/developers/node-operations/snapshots"
+            },
+            {
+              "text": "Upgrades",
+              "link": "/ko/developers/node-operations/upgrades"
+            },
+            {
+              "text": "Monitoring",
+              "link": "/ko/developers/node-operations/monitoring"
+            },
+            {
+              "text": "Troubleshooting",
+              "link": "/ko/developers/node-operations/troubleshooting"
+            }
+          ]
+        },
+        {
+          "text": "테스트넷",
+          "collapsed": true,
+          "items": [
+            {
+              "text": "Testnet Information",
+              "link": "/ko/developers/testnet/testnet-information"
+            },
+            {
+              "text": "Version History",
+              "link": "/ko/developers/testnet/version-history"
+            },
+            {
+              "text": "Ecosystem",
+              "link": "/ko/developers/testnet/ecosystem"
+            },
+            {
+              "text": "Funding Guide",
+              "link": "/ko/developers/testnet/funding-guide"
+            }
+          ]
+        },
+        {
+          "text": "메인넷",
+          "collapsed": true,
+          "items": [
+            {
+              "text": "Mainnet Information",
+              "link": "/ko/developers/mainnet/mainnet-information"
+            },
+            {
+              "text": "Version History",
+              "link": "/ko/developers/mainnet/version-history"
+            }
+          ]
+        },
+        {
+          "text": "Developer Assistance",
+          "link": "/ko/developers/developer-assistance"
+        }
+      ]
+    },
+    {
+      "text": "Stable 아키텍처",
+      "collapsed": true,
+      "items": [
+        {
+          "text": "Tech Overview",
+          "link": "/ko/architecture/tech-overview"
+        },
+        {
+          "text": "Key Features",
+          "link": "/ko/architecture/key-features"
+        },
+        {
+          "text": "코어 최적화",
+          "collapsed": true,
+          "items": [
+            {
+              "text": "Overview",
+              "link": "/ko/architecture/core-optimization/overview"
+            },
+            {
+              "text": "Consensus",
+              "link": "/ko/architecture/core-optimization/consensus"
+            },
+            {
+              "text": "Execution",
+              "link": "/ko/architecture/core-optimization/execution"
+            },
+            {
+              "text": "Stable Db",
+              "link": "/ko/architecture/core-optimization/stable-db"
+            },
+            {
+              "text": "High Performance Rpc",
+              "link": "/ko/architecture/core-optimization/high-performance-rpc"
+            },
+            {
+              "text": "부록",
+              "collapsed": true,
+              "items": [
+                {
+                  "text": "Autobahn",
+                  "link": "/ko/architecture/core-optimization/appendix/autobahn"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "text": "USDT 특화 기능",
+          "collapsed": true,
+          "items": [
+            {
+              "text": "Overview",
+              "link": "/ko/architecture/usdt-specific-features/overview"
+            },
+            {
+              "text": "Usdt As Gas Token",
+              "link": "/ko/architecture/usdt-specific-features/usdt-as-gas-token"
+            },
+            {
+              "text": "Guaranteed Blockspace",
+              "link": "/ko/architecture/usdt-specific-features/guaranteed-blockspace"
+            },
+            {
+              "text": "Usdt Transfer Aggregator",
+              "link": "/ko/architecture/usdt-specific-features/usdt-transfer-aggregator"
+            },
+            {
+              "text": "Confidential Transfer",
+              "link": "/ko/architecture/usdt-specific-features/confidential-transfer"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "리소스",
+      "collapsed": true,
+      "items": [
+        {
+          "text": "Official Links",
+          "link": "/ko/resources/official-links"
+        },
+        {
+          "text": "Brand Kit",
+          "link": "/ko/resources/brand-kit"
+        }
+      ]
+    }
+  ],
+  "/cn/": [
+    {
+      "text": "欢迎",
+      "collapsed": true,
+      "items": [
+        {
+          "text": "Index",
+          "link": "/cn/index"
+        }
+      ]
+    },
+    {
+      "text": "导言",
+      "collapsed": true,
+      "items": [
+        {
+          "text": "Why Stable",
+          "link": "/cn/introduction/why-stable"
+        },
+        {
+          "text": "Stable For Users",
+          "link": "/cn/introduction/stable-for-users"
+        },
+        {
+          "text": "Tokenomics",
+          "link": "/cn/introduction/tokenomics"
+        },
+        {
+          "text": "Technical Roadmap",
+          "link": "/cn/introduction/technical-roadmap"
+        },
+        {
+          "text": "Faq",
+          "link": "/cn/introduction/faq"
+        }
+      ]
+    },
+    {
+      "text": "开发者",
+      "collapsed": true,
+      "items": [
+        {
+          "text": "Quick Start",
+          "link": "/cn/developers/quick-start"
+        },
+        {
+          "text": "核心机制",
+          "collapsed": true,
+          "items": [
+            {
+              "text": "Overview",
+              "link": "/cn/developers/core-mechanics/overview"
+            },
+            {
+              "text": "Eip 7702",
+              "link": "/cn/developers/core-mechanics/eip-7702"
+            },
+            {
+              "text": "Gas Pricing",
+              "link": "/cn/developers/core-mechanics/gas-pricing"
+            },
+            {
+              "text": "Json Rpc Api",
+              "link": "/cn/developers/core-mechanics/json-rpc-api"
+            },
+            {
+              "text": "系统模块与预编译合约",
+              "collapsed": true,
+              "items": [
+                {
+                  "text": "Overview",
+                  "link": "/cn/developers/core-mechanics/system-modules/overview"
+                },
+                {
+                  "text": "Bank",
+                  "link": "/cn/developers/core-mechanics/system-modules/bank"
+                },
+                {
+                  "text": "Distribution",
+                  "link": "/cn/developers/core-mechanics/system-modules/distribution"
+                },
+                {
+                  "text": "Staking",
+                  "link": "/cn/developers/core-mechanics/system-modules/staking"
+                },
+                {
+                  "text": "System Transactions",
+                  "link": "/cn/developers/core-mechanics/system-modules/system-transactions"
+                }
+              ]
+            },
+            {
+              "text": "Ethereum Compatibility",
+              "link": "/cn/developers/core-mechanics/ethereum-compatibility"
+            },
+            {
+              "text": "Finality",
+              "link": "/cn/developers/core-mechanics/finality"
+            },
+            {
+              "text": "Gas Waiver",
+              "link": "/cn/developers/core-mechanics/gas-waiver"
+            }
+          ]
+        },
+        {
+          "text": "节点运维",
+          "collapsed": true,
+          "items": [
+            {
+              "text": "Overview",
+              "link": "/cn/developers/node-operations/overview"
+            },
+            {
+              "text": "System Requirements",
+              "link": "/cn/developers/node-operations/system-requirements"
+            },
+            {
+              "text": "Installation",
+              "link": "/cn/developers/node-operations/installation"
+            },
+            {
+              "text": "Configuration",
+              "link": "/cn/developers/node-operations/configuration"
+            },
+            {
+              "text": "Snapshots",
+              "link": "/cn/developers/node-operations/snapshots"
+            },
+            {
+              "text": "Upgrades",
+              "link": "/cn/developers/node-operations/upgrades"
+            },
+            {
+              "text": "Monitoring",
+              "link": "/cn/developers/node-operations/monitoring"
+            },
+            {
+              "text": "Troubleshooting",
+              "link": "/cn/developers/node-operations/troubleshooting"
+            }
+          ]
+        },
+        {
+          "text": "测试网",
+          "collapsed": true,
+          "items": [
+            {
+              "text": "Testnet Information",
+              "link": "/cn/developers/testnet/testnet-information"
+            },
+            {
+              "text": "Version History",
+              "link": "/cn/developers/testnet/version-history"
+            },
+            {
+              "text": "Ecosystem",
+              "link": "/cn/developers/testnet/ecosystem"
+            },
+            {
+              "text": "Funding Guide",
+              "link": "/cn/developers/testnet/funding-guide"
+            }
+          ]
+        },
+        {
+          "text": "主网",
+          "collapsed": true,
+          "items": [
+            {
+              "text": "Mainnet Information",
+              "link": "/cn/developers/mainnet/mainnet-information"
+            },
+            {
+              "text": "Version History",
+              "link": "/cn/developers/mainnet/version-history"
+            }
+          ]
+        },
+        {
+          "text": "Developer Assistance",
+          "link": "/cn/developers/developer-assistance"
+        }
+      ]
+    },
+    {
+      "text": "Stable 架构",
+      "collapsed": true,
+      "items": [
+        {
+          "text": "Tech Overview",
+          "link": "/cn/architecture/tech-overview"
+        },
+        {
+          "text": "Key Features",
+          "link": "/cn/architecture/key-features"
+        },
+        {
+          "text": "核心优化",
+          "collapsed": true,
+          "items": [
+            {
+              "text": "Overview",
+              "link": "/cn/architecture/core-optimization/overview"
+            },
+            {
+              "text": "Consensus",
+              "link": "/cn/architecture/core-optimization/consensus"
+            },
+            {
+              "text": "Execution",
+              "link": "/cn/architecture/core-optimization/execution"
+            },
+            {
+              "text": "Stable Db",
+              "link": "/cn/architecture/core-optimization/stable-db"
+            },
+            {
+              "text": "High Performance Rpc",
+              "link": "/cn/architecture/core-optimization/high-performance-rpc"
+            },
+            {
+              "text": "附录",
+              "collapsed": true,
+              "items": [
+                {
+                  "text": "Autobahn",
+                  "link": "/cn/architecture/core-optimization/appendix/autobahn"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "text": "USDT 专属功能",
+          "collapsed": true,
+          "items": [
+            {
+              "text": "Overview",
+              "link": "/cn/architecture/usdt-specific-features/overview"
+            },
+            {
+              "text": "Usdt As Gas Token",
+              "link": "/cn/architecture/usdt-specific-features/usdt-as-gas-token"
+            },
+            {
+              "text": "Guaranteed Blockspace",
+              "link": "/cn/architecture/usdt-specific-features/guaranteed-blockspace"
+            },
+            {
+              "text": "Usdt Transfer Aggregator",
+              "link": "/cn/architecture/usdt-specific-features/usdt-transfer-aggregator"
+            },
+            {
+              "text": "Confidential Transfer",
+              "link": "/cn/architecture/usdt-specific-features/confidential-transfer"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "资源",
+      "collapsed": true,
+      "items": [
+        {
+          "text": "Official Links",
+          "link": "/cn/resources/official-links"
+        },
+        {
+          "text": "Brand Kit",
+          "link": "/cn/resources/brand-kit"
+        }
+      ]
+    }
+  ]
+}

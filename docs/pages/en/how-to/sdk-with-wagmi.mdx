@@ -1,0 +1,131 @@
+---
+title: "Use the SDK with wagmi"
+description: "Wire @stablechain/sdk into a React app using wagmi's useWalletClient, useAccount, and useChainId hooks."
+diataxis: "how-to"
+---
+
+# Use the SDK with wagmi
+
+`createStable` accepts a viem `WalletClient`, which is exactly what wagmi's `useWalletClient` returns. You connect the wallet through wagmi as you normally would, then memoize a `StableClient` whenever the wallet client changes.
+
+This guide assumes wagmi v2 and `@tanstack/react-query`.
+
+## 1. Configure wagmi
+
+Add Stable to the wagmi config. viem ships chain definitions for both networks.
+
+```ts
+import { http, createConfig } from "wagmi";
+import { stable as stableMainnet, stableTestnet } from "viem/chains";
+import { injected } from "wagmi/connectors";
+
+export const wagmiConfig = createConfig({
+  chains: [stableMainnet, stableTestnet],
+  connectors: [injected()],
+  transports: {
+    [stableMainnet.id]: http(),
+    [stableTestnet.id]: http(),
+  },
+});
+```
+
+```text
+WagmiConfig { chains: [988, 2201], connectors: [injected] }
+```
+
+## 2. Build a hook that returns a `StableClient`
+
+Memoize a `StableClient` against the current `WalletClient`. Recreate it when the wallet client identity changes.
+
+```tsx
+import { useMemo } from "react";
+import { useWalletClient } from "wagmi";
+import { createStable, Network, type StableClient } from "@stablechain/sdk";
+
+export function useStable(network: Network = Network.Mainnet): StableClient | null {
+  const { data: walletClient } = useWalletClient();
+
+  return useMemo(() => {
+    if (!walletClient) return null;
+    return createStable({ network, walletClient });
+  }, [walletClient, network]);
+}
+```
+
+:::warning
+`useWalletClient()` returns `undefined` before the user connects. Always guard before calling SDK methods, or the destructured `walletClient` will be falsy and `createStable` will not have a signer.
+:::
+
+## 3. Use it in a component
+
+```tsx
+import { useAccount, useChainId } from "wagmi";
+import { Network } from "@stablechain/sdk";
+import { useStable } from "./useStable";
+
+export function PayButton() {
+  const { address } = useAccount();
+  const chainId = useChainId();
+  const stable = useStable(Network.Mainnet);
+
+  async function onClick() {
+    if (!stable || !address) return;
+    const { txHash } = await stable.transfer({
+      from: address,
+      to: "0xRecipient",
+      amount: 1,
+    });
+    console.log("Sent:", txHash);
+  }
+
+  return (
+    <button disabled={!stable} onClick={onClick}>
+      Pay 1 USDT0 (chain {chainId})
+    </button>
+  );
+}
+```
+
+```text
+Sent: 0x8f3a...2d41
+```
+
+## 4. Bridge and swap from React
+
+The same `stable` instance handles bridge and swap. Fetch the quote in an effect or a `useQuery`, then execute on click.
+
+```tsx
+const stable = useStable(Network.Mainnet);
+
+const onSwap = async () => {
+  if (!stable) return;
+  const quote = await stable.quoteSwap({
+    fromToken: "0x8a2B28364102Bea189D99A475C494330Ef2bDD0B",
+    toToken: "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
+    amount: 100,
+    fromDecimals: 6,
+  });
+  const { txHash, toAmount } = await stable.swap({
+    fromToken: quote.fromToken,
+    toToken: "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
+    amount: 100,
+    fromDecimals: 6,
+    quote,
+  });
+  console.log({ txHash, toAmount });
+};
+```
+
+```text
+{ txHash: "0xabcd...", toAmount: 99.81 }
+```
+
+:::note
+Caching quotes with `useQuery` works well: pass `quoteSwap` / `quoteBridge` as the query function and forward the cached `quote` into `swap` / `bridge`. The SDK skips its internal quote call when one is provided.
+:::
+
+## Next recommended
+
+- [**SDK reference**](/en/reference/sdk) — Every method, config field, and error class.
+- [**Use with viem**](/en/how-to/sdk-with-viem) — Compare the three signing modes side-by-side.
+- [**SDK quickstart**](/en/tutorial/sdk-quickstart) — Run your first transfer, bridge, and swap on testnet.

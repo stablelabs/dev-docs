@@ -1,0 +1,212 @@
+---
+title: "Develop with AI"
+description: "Set up MCP servers, agent skills, and plain-text docs so AI editors and coding agents can build on Stable directly."
+diataxis: "how-to"
+---
+
+Stable provides MCP servers, agent skills, and plain-text documentation files so AI editors and coding agents can work with Stable directly. This page covers how to wire each piece into your workflow, a copy-pasteable context block for non-MCP AI tools, and starter prompts for common tasks.
+
+## MCP servers
+
+Stable runs two MCP servers. **Docs MCP** searches this docs site for concepts, guides, code snippets, and contract references. **Runtime MCP** interacts with the Stable chain for balance queries, transaction simulation, and execution.
+
+Both servers can be added to any MCP-compatible client.
+
+### Cursor
+
+Open your MCP configuration file and add:
+
+```json
+{
+  "mcpServers": {
+    "stable-docs": {
+      "url": "https://docs.stable.xyz/mcp"
+    },
+    "stable-runtime": {
+      "url": "https://runtime.stable.xyz/mcp"
+    }
+  }
+}
+```
+
+Restart Cursor. Verify by asking: "How do I send USDT0 on Stable?"
+
+### Claude Code
+
+```bash
+claude mcp add stable-docs https://docs.stable.xyz/mcp
+claude mcp add stable-runtime https://runtime.stable.xyz/mcp
+```
+
+Verify by asking: "Search Stable docs for Gas Waiver integration steps."
+
+## Agent skills
+
+Agent skills are predefined workflows that combine Docs MCP and Runtime MCP. When you ask an AI to perform a task like "send 100 USDT0 to three addresses," the skill handles the full sequence: look up the relevant docs, resolve addresses and parameters, check balances, simulate the transaction, and execute after approval.
+
+Skills are available as a Claude Code plugin.
+
+### Install
+
+```bash
+claude plugin add stable-xyz/agent-skills
+```
+
+Or install from the Claude Code marketplace.
+
+For the full skill definitions and source, see the [agent-skills repository](https://github.com/stable-xyz/agent-skills).
+
+## Plain-text docs
+
+For AI tools that do not support MCP, Stable documentation is available as static text files.
+
+| **File** | **URL** | **Content** |
+| :--- | :--- | :--- |
+| `llms.txt` | [https://docs.stable.xyz/llms.txt](https://docs.stable.xyz/llms.txt) | Page index with titles and descriptions |
+| `llms-full.txt` | [https://docs.stable.xyz/llms-full.txt](https://docs.stable.xyz/llms-full.txt) | Full documentation in a single file |
+
+These files are static snapshots. For the most current content, use Docs MCP.
+
+### Cursor
+
+1. Go to **Settings > Features > Docs**.
+2. Select **Add** and enter `https://docs.stable.xyz/llms-full.txt`.
+3. Reference in chat with `@Stable`.
+
+### Other tools
+
+Download `llms-full.txt` and include it in your project context or system prompt.
+
+## Stable context block
+
+Paste this at the top of any AI chat or system prompt. It gives the model everything it needs to generate correct Stable code on the first attempt.
+
+````markdown
+# Stable chain context
+
+Stable is a Layer 1 where USDT0 is the native gas token. Fully EVM-compatible.
+All standard EVM tools (Hardhat, Foundry, ethers.js, viem) work unchanged once
+you adjust three gas fields (see Behavioral differences below).
+
+## Network
+
+| Field           | Mainnet                                  | Testnet                                    |
+| :-------------- | :--------------------------------------- | :----------------------------------------- |
+| Chain ID        | 988                                      | 2201                                       |
+| RPC             | https://rpc.stable.xyz                   | https://rpc.testnet.stable.xyz             |
+| Explorer        | https://stablescan.xyz                   | https://testnet.stablescan.xyz             |
+| Currency symbol | USDT0                                    | USDT0                                      |
+
+## USDT0 contract addresses
+
+- Mainnet: 0x779ded0c9e1022225f8e0630b35a9b54be713736
+- Testnet: 0x78cf24370174180738c5b8e352b6d14c83a6c9a9
+
+## Behavioral differences from Ethereum
+
+1. **Gas token is USDT0, not ETH.** The `value` field in native transfers
+   carries USDT0. Fees are denominated in USDT0.
+2. **`maxPriorityFeePerGas` is always 0.** No tip-based ordering. Set it
+   explicitly to `0n` or validators will reject or ignore tip components.
+3. **USDT0 has a dual role**: native asset (18 decimals) AND ERC-20 (6 decimals)
+   on the same balance. `address(x).balance` reports 18-decimal wei; 
+   `USDT0.balanceOf(x)` reports 6-decimal units. Values may differ by up to
+   0.000001 USDT0 due to fractional reconciliation. Never mirror native
+   balance in an internal variable; always query at payout time.
+4. **Transfer events are emitted for native transfers too.** A single Transfer
+   event listener on the USDT0 ERC-20 contract covers both transfer paths.
+5. **Single-slot finality (~700ms).** Once a block is committed, it cannot
+   be reorged. No need to wait multiple confirmations.
+6. **Gas Waiver** lets applications cover gas: user signs with `gasPrice = 0`,
+   a governance-registered waiver wraps and submits. Contracts must be on
+   the waiver's AllowedTarget policy.
+7. **EIP-7702** is supported for delegating an EOA to a contract (type-4 tx).
+8. **Precompile addresses**: Bank `0x...1003`, Distribution `0x...0801`,
+   Staking `0x...0800`, StableSystem `0x...9999`.
+
+## Common mistakes to avoid
+
+- Copying Ethereum priority-fee constants (2 gwei tips, etc.) — has no effect
+  on Stable and can be rejected by wallets.
+- Using `ethers.parseUnits(x, 18)` for ERC-20 USDT0 amounts. ERC-20 uses 6
+  decimals; native transfers use 18.
+- Mirroring native balance in a `uint256 deposited` variable — USDT0
+  allowance-based operations (transferFrom, permit) can reduce a contract's
+  native balance without invoking its code.
+- Sending native or ERC-20 USDT0 to `address(0)` — both revert on Stable.
+- Assuming `EXTCODEHASH == 0` means an address is unused. On Stable,
+  permit-based approvals can change state without incrementing nonce.
+- Writing `value: ethers.parseEther(amount, "ether")` and expecting ETH
+  semantics. That transfer sends USDT0.
+````
+
+## Starter prompts
+
+Copy any of these into your AI editor after loading the context block above.
+
+### Deploy a contract
+
+```text
+Use Foundry to scaffold a project called `stable-escrow`. Write a minimal
+Escrow contract in Solidity ^0.8.24 with deposit() and withdraw(amount)
+functions that transfer USDT0 natively. Use address(this).balance for
+solvency checks (never mirror the balance in a uint256). Reject
+address(0) recipients. Then produce a deployment command using
+`forge create` pointed at Stable testnet (RPC https://rpc.testnet.stable.xyz,
+chain ID 2201).
+```
+
+### Send USDT0
+
+```text
+Write a TypeScript script using ethers v6 that sends 0.001 USDT0 natively
+from the wallet loaded from PRIVATE_KEY. Use base-fee-only EIP-1559 gas
+(maxPriorityFeePerGas = 0n, maxFeePerGas = 2 * baseFeePerGas). Target
+Stable testnet. Log the tx hash and a Stablescan explorer URL.
+```
+
+### Set up EIP-7702 delegation
+
+```text
+Write a TypeScript script using ethers v6 that:
+1. Signs an EIP-7702 authorization delegating my EOA to Multicall3 at
+   0xcA11bde05977b3631167028862bE2a173976CA11 on Stable testnet
+   (chain ID 2201).
+2. Sends a type-4 transaction with authorizationList: [signedAuth],
+   to: wallet.address (self-call), and data that invokes aggregate3()
+   to batch three USDT0 transfers (100, 200, 150 USDT0 with 6 decimals).
+3. Use maxPriorityFeePerGas: 0n.
+```
+
+### Build a subscription contract
+
+```text
+Write a SubscriptionManager Solidity contract for EIP-7702 delegation on
+Stable. It runs on a subscriber's EOA. Expose:
+  - subscribe(bytes32 subId, address provider, uint256 amount, uint256 interval)
+    callable only when msg.sender == address(this) (subscriber on their own EOA).
+  - collect(bytes32 subId) callable only by the registered provider, only
+    when block.timestamp >= nextChargeAt; advances nextChargeAt by interval
+    and transfers USDT0 to the provider. Use IERC20 USDT0 at the testnet
+    address 0x78cf24370174180738c5b8e352b6d14c83a6c9a9.
+  - cancelSubscription(bytes32 subId) callable only by the subscriber.
+Emit events for SubscriptionCreated, SubscriptionCollected, SubscriptionCancelled.
+```
+
+### Build an x402 pay-per-call API
+
+```text
+Write an Express server in TypeScript that exposes GET /weather priced
+at $0.001 USDT0 (amount: "1000", 6 decimals) using @x402/express,
+@x402/evm/exact/server, and HTTPFacilitatorClient pointed at
+https://x402.semanticpay.io/. Use Stable mainnet (CAIP-2 eip155:988,
+USDT0 at 0x779Ded0c9e1022225f8E0630b35a9b54bE713736). The handler should
+return { weather: "sunny", temperature: 70 }. Read PAY_TO_ADDRESS from
+env. Print the configured routes on startup.
+```
+
+## Next recommended
+
+- [**Paying with MCP server**](/en/how-to/pay-with-mcp) — Wrap a paid API as an MCP tool so AI clients can call and pay for it.
+- [**Quick start**](/en/tutorial/quick-start) — Pair the AI context with a first-transaction run in five minutes.
+- [**Difference from Ethereum**](/en/explanation/ethereum-comparison) — Deep-dive on the gas and USDT0 semantics in the context block.

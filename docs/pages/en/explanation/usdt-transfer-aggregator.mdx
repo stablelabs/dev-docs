@@ -1,0 +1,82 @@
+---
+title: "USDT transfer aggregator"
+description: "USDT Transfer Aggregator batching high-volume USDT0 transfers into parallelized, fault-tolerant settlement."
+diataxis: "explanation"
+---
+
+# USDT transfer aggregator
+
+The **USDT Transfer Aggregator** bundles USDT0 transfers into parallelized, fault-tolerant batches instead of processing each transfer sequentially. It isolates USDT0 throughput from the rest of the execution pipeline so high-volume stablecoin activity doesn't crowd out other transactions.
+
+:::note
+**Planned.** The aggregator is a forward-looking roadmap item. The content below describes the target design. See [Roadmap](/en/explanation/technical-roadmap) for timing.
+:::
+
+## Why it exists
+
+Two constraints pull against each other:
+
+- Traditional ERC-20 transfers are processed sequentially. Under high load, that's a bottleneck.
+- Simply giving USDT0 priority would crowd out other transactions and degrade general chain performance.
+
+The aggregator resolves this by pulling USDT0 transfers into a dedicated parallel pipeline, leaving the main execution path untouched for everything else.
+
+## Parallel aggregation and verification
+
+At the heart of the transfer aggregation system is a parallelizable aggregation and verification pipeline, inspired by the `MapReduce` computational model. Instead of processing each transfer in order, the system performs bundle-level computation, aggregating inputs and outputs across accounts before executing balance updates.
+
+### Key steps
+
+1. **Aggregate Account Diffs**
+    - Each transfer is mapped to a sender and recipient.
+    - A diff journal is generated for each account representing the net token movement:
+        - Negative values for total debits (send).
+        - Positive values for total credits (receive).
+2. **Balance Verification**
+    - The system ensures global balance invariants: total input equals total output.
+    - Each account's net change is verified independently in parallel to confirm sufficient funds.
+    - Accounts without sufficient balance are flagged without halting the bundle.
+3. **MapReduce Model for Parallelism**
+    - **Map Phase**: Compute the net delta for each account based on all incoming/outgoing transfers.
+    - **Reduce Phase**: Aggregate these deltas to determine the final state update.
+
+## Technical highlights
+
+### Parallel computation model
+
+- Leverages parallelism in precompiled contracts to check balances and compute diffs concurrently.
+- Greatly reduces execution time compared to traditional, sequential ERC20 processing.
+
+### Dependency analysis
+
+- Identifies overlapping transfers (e.g., multiple sends from the same account).
+- Pre-flags high-risk transfers (e.g., likely insufficient funds) to minimize cascading failures.
+
+### Modular failure handling
+
+- Transfers are isolated at the account level, so only problematic accounts are affected.
+- Non-conflicting transfers execute and finalize normally.
+
+### Selective failure handling
+
+Traditional transfer handling is all-or-nothing within a block. Stable’s aggregation model introduces granular, per-account failure isolation:
+
+- If an account’s `current balance + net diff < 0`, the system marks only that account’s transfers as failed.
+- Transfers involving other accounts proceed as normal.
+- This selective rollback mechanism ensures that invalid or malicious transfers do not compromise the integrity of an entire bundle.
+
+## Proposer-driven or reputation-based sorting
+
+To further optimize execution and avoid state conflicts, Stable incorporates pre-processing ordering mechanisms for aggregated transfers:
+
+- **Reputation-Based Sorting**: Senders with strong histories or proven reliability are prioritized, reducing risk of failures and reordering.
+- **Proposer-Based Ordering**: Transactions may be sorted by a trusted proposer node that structures the bundle to minimize conflicts and maximize throughput.
+- **Bundled Transfer Prioritization**: Aggregated USDT transfers are prioritized before general transactions, reducing dependency collisions and unlocking cleaner execution windows.
+
+Stable's USDT Transfer Aggregator is a targeted optimization that maximizes throughput for USDT0 transfers without degrading general transaction processing. By combining parallel execution, modular failure handling, and smart ordering strategies, Stable offers a scalable foundation for stablecoin-driven economies. Fast, frequent, and frictionless token transfers are the norm.
+
+## Next recommended
+
+- [**Payments use cases**](/en/explanation/payment-use-cases-overview) — See the payment patterns that benefit most from aggregated throughput: P2P, subscriptions, pay-per-call.
+- [**Execution**](/en/explanation/execution) — See the parallel execution engine the aggregator builds on.
+- [**USDT as gas**](/en/explanation/usdt-as-gas-token) — Understand the asset model the aggregator moves.

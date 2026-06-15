@@ -1,0 +1,36 @@
+---
+title: "Wallets"
+description: "Wallet infrastructure that enables AI agents to hold funds and sign x402 payments on Stable."
+diataxis: "reference"
+---
+
+# Wallets
+
+Agent wallets give AI agents and autonomous systems self-custodial signing so they can participate in x402 payment flows without human-driven setup.
+
+## Overview table
+
+| **Provider** | **Category** | **Docs / Get Started** | **Notes** |
+| :--- | :--- | :--- | :--- |
+| [**Wallet Development Kit (WDK)**](https://docs.wallet.tether.io) | Agent wallet SDK | [https://docs.wallet.tether.io](https://docs.wallet.tether.io) | Tether's open-source SDK; `WalletAccountEvm` satisfies the x402 client signer interface natively |
+
+## Wallet Development Kit (WDK) by Tether
+
+An open-source SDK from Tether for building self-custodial AI agent wallets. WDK enables agents to generate and store private keys locally, without relying on cloud-based KMS or TEE infrastructure.
+
+The `WalletAccountEvm` instance from WDK natively satisfies the client signer interface required by the x402 SDK. An agent equipped with WDK and USDT0 on Stable can automatically intercept 402 HTTP responses, sign ERC-3009 authorizations, and resubmit requests.
+
+**Packages:** `@tetherto/wdk`, `@tetherto/wdk-wallet-evm`
+
+**Capabilities**
+
+- Self-custodial key generation and local storage
+- Native x402 client signer compatibility via `WalletAccountEvm`
+- Automatic 402 response interception and ERC-3009 signing
+- Multi-chain support including Stable
+
+**Docs:** [https://docs.wallet.tether.io](https://docs.wallet.tether.io)
+
+---
+
+Have an agent wallet integration with Stable? Reach out at [bizdev@stable.xyz](mailto:bizdev@stable.xyz).

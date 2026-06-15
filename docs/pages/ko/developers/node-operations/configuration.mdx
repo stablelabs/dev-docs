@@ -1,0 +1,431 @@
+---
+title: Node Configuration Guide
+description: "Stable 노드의 config.toml 및 app.toml 설정 옵션에 대한 구성 참조 문서."
+---
+
+This guide covers all configuration options for Stable nodes, including optimization for different use cases.
+
+## Configuration Files Overview
+
+Stable nodes use two main configuration files:
+
+- **`config.toml`**: Core StableBFT configuration
+- **`app.toml`**: Application-specific configuration
+
+Both files are located in `~/.stabled/config/`
+
+## Core Configuration (config.toml)
+
+### Basic Settings
+
+:::code-group
+```toml [Mainnet]
+# The ID of the chain to join
+chain_id = "stable_988-1"
+
+# A custom human-readable name for this node
+moniker = "your-node-name"
+
+# Database backend: goleveldb | cleveldb | boltdb | rocksdb | badgerdb
+db_backend = "goleveldb"
+```
+```toml [Testnet]
+# The ID of the chain to join
+chain_id = "stabletestnet_2201-1"
+
+# A custom human-readable name for this node
+moniker = "your-node-name"
+
+# Database backend: goleveldb | cleveldb | boltdb | rocksdb | badgerdb
+db_backend = "goleveldb"
+```
+:::
+
+### P2P Configuration
+
+:::code-group
+```toml [Mainnet]
+[p2p]
+# Address to listen for incoming connections
+laddr = "tcp://0.0.0.0:26656"
+
+# Address to advertise to peers for them to dial
+external_address = "YOUR_PUBLIC_IP:26656"
+
+# Comma separated list of seed nodes
+seeds = "17a539fda42863a99755547e1c9b3ec4c38a4439@seed1.stable.xyz:26656"
+
+# Comma separated list of persistent peers
+persistent_peers = "b896f6f8ca5a4d1cc40de09407df0c96e76df950@peer1.stable.xyz:26656"
+```
+```toml [Testnet]
+[p2p]
+# Address to listen for incoming connections
+laddr = "tcp://0.0.0.0:26656"
+
+# Address to advertise to peers for them to dial
+external_address = "YOUR_PUBLIC_IP:26656"
+
+# Comma separated list of seed nodes
+seeds = "39e061b167162f6621ddadcf1be21d6fa585a468@seed1.testnet.stable.xyz:26656"
+
+# Comma separated list of persistent peers
+persistent_peers = "5ed0f977a26ccf290e184e364fb04e268ef16430@peer1.testnet.stable.xyz:26656"
+```
+:::
+
+Additional P2P settings (same for both networks):
+
+```toml
+# Maximum number of inbound peers
+max_num_inbound_peers = 50
+
+# Maximum number of outbound peers
+max_num_outbound_peers = 30
+
+# Toggle to disable guard against peers connecting from the same ip
+allow_duplicate_ip = false
+
+# Peer connection configuration
+handshake_timeout = "20s"
+dial_timeout = "3s"
+
+# Time to wait before flushing messages out on the connection
+flush_throttle_timeout = "100ms"
+
+# Maximum size of a message packet payload
+max_packet_msg_payload_size = 1024
+
+# Rate limiting
+send_rate = 5120000  # 5 MB/s
+recv_rate = 5120000  # 5 MB/s
+
+# Seed mode (for seed nodes only)
+seed_mode = false
+
+# Enable peer exchange reactor
+pex = true
+```
+
+### RPC Server Configuration
+
+```toml
+[rpc]
+# TCP or UNIX socket address for the RPC server
+laddr = "tcp://127.0.0.1:26657"
+
+# A list of origins a cross-domain request can be executed from
+cors_allowed_origins = ["*"]
+
+# A list of methods the client is allowed to use with cross-domain requests
+cors_allowed_methods = ["HEAD", "GET", "POST"]
+
+# A list of non simple headers the client is allowed to use with cross-domain requests
+cors_allowed_headers = ["Origin", "Accept", "Content-Type", "X-Requested-With", "X-Server-Time"]
+
+# TCP or UNIX socket address for the gRPC server
+grpc_laddr = "tcp://127.0.0.1:9090"
+
+# Maximum number of simultaneous connections
+grpc_max_open_connections = 900
+
+# Activate unsafe RPC commands like /dial_seeds and /unsafe_flush_mempool
+unsafe = false
+
+# Maximum number of simultaneous connections (including WebSocket)
+max_open_connections = 900
+
+# Maximum number of unique clientIDs that can connect
+max_subscription_clients = 100
+
+# Maximum number of unique queries a given client can subscribe to
+max_subscriptions_per_client = 5
+
+# How long to wait for a tx to be committed
+timeout_broadcast_tx_commit = "10s"
+
+# Maximum size of request body
+max_body_bytes = 1000000
+
+# Maximum size of request header
+max_header_bytes = 1048576
+```
+
+### Mempool Configuration
+
+```toml
+[mempool]
+# Mempool version to use
+version = "v1"
+
+# Recheck enabled
+recheck = true
+
+# Broadcast enabled
+broadcast = true
+
+# Maximum number of transactions in the mempool
+size = 3000
+
+# Limit the total size of all txs in the mempool
+max_txs_bytes = 1073741824  # 1GB
+
+# Size of the cache
+cache_size = 10000
+
+# Do not remove invalid transactions from the cache
+keep-invalid-txs-in-cache = false
+
+# Maximum size of a single transaction
+max_tx_bytes = 1048576  # 1MB
+
+# Maximum size of a batch of transactions to send to a peer
+max_batch_bytes = 0
+```
+
+### Consensus Configuration
+
+```toml
+[consensus]
+# How long we wait for a proposal block before prevoting nil
+timeout_propose = "5s"
+
+# How much timeout_propose increases with each round
+timeout_propose_delta = "10ms"
+
+# How long we wait after receiving +2/3 prevotes
+timeout_prevote = "150ms"
+
+# How much the timeout_prevote increases with each round
+timeout_prevote_delta = "10ms"
+
+# How long we wait after receiving +2/3 precommits
+timeout_precommit = "150s"
+
+# How much the timeout_precommit increases with each round
+timeout_precommit_delta = "10ms"
+
+# Make progress as soon as we have all the precommits
+skip_timeout_commit = false
+
+# Enable/disable double sign check
+double_sign_check_height = 2
+
+# EmptyBlocks mode
+create_empty_blocks = true
+create_empty_blocks_interval = "0s"
+
+# Reactor sleep duration
+peer_gossip_sleep_duration = "100ms"
+peer_query_maj23_sleep_duration = "2s"
+```
+
+## Application Configuration (app.toml)
+
+### Basic Application Settings
+
+```toml
+# Pruning strategy
+pruning = "default"
+
+# HaltHeight contains a non-zero block height at which a node will halt
+halt-height = 0
+
+# HaltTime contains a non-zero time at which a node will halt
+halt-time = 0
+
+# MinRetainBlocks defines the number of blocks for which a node will retain
+min-retain-blocks = 0
+
+# InterBlockCache enables inter-block caching
+inter-block-cache = true
+
+# IndexEvents defines the set of events in the form {eventType}.{attributeKey}
+index-events = []
+
+# IavlCacheSize set the size of the iavl tree cache
+iavl-cache-size = 781250
+```
+
+### API Configuration
+
+```toml
+[api]
+# Enable defines if the API server should be enabled
+enable = true
+
+# Swagger defines if swagger documentation should automatically be registered
+swagger = true
+
+# Address defines the API server to listen on
+address = "tcp://0.0.0.0:1317"
+
+# MaxOpenConnections defines the number of maximum open connections
+max-open-connections = 1000
+
+# EnabledUnsafeCORS defines if CORS should be enabled
+enabled-unsafe-cors = true
+```
+
+### gRPC Configuration
+
+```toml
+[grpc]
+# Enable defines if the gRPC server should be enabled
+enable = true
+
+# Address defines the gRPC server address to bind to
+address = "0.0.0.0:9090"
+
+```
+
+### EVM JSON-RPC Configuration
+
+```toml
+[json-rpc]
+# Enable the JSON-RPC server
+enable = true
+
+# Address to bind the JSON-RPC server
+address = "0.0.0.0:8545"
+
+# Address to bind the WebSocket server
+ws-address = "0.0.0.0:8546"
+
+# APIs to enable
+api = "eth,net,web3,txpool,personal,debug"
+
+# Gas cap for eth_call/estimateGas
+gas-cap = 25000000
+
+# EVM timeout for eth_call/estimateGas
+evm-timeout = "5s"
+
+# Tx fee cap for transactions
+txfee-cap = 1
+
+# Filter cap for eth_getLogs
+filter-cap = 200
+
+# FeeHistory cap
+feehistory-cap = 100
+
+# Block range cap for eth_getLogs
+logs-cap = 10000
+
+# Block range cap
+block-range-cap = 10000
+
+# HTTP timeout
+http-timeout = "30s"
+
+# HTTP idle timeout
+http-idle-timeout = "120s"
+
+# Allow unprotected transactions
+allow-unprotected-txs = true
+
+# Maximum number of transactions in the pool
+max-tx-in-pool = 3000
+
+# Enable indexer
+enable-indexer = false
+
+# Enable metrics
+metrics = true
+```
+
+## Configuration Profiles
+
+### Full Node (Default)
+
+Balanced configuration for full nodes:
+
+```bash
+# config.toml adjustments
+sed -i 's/^indexer = ".*"/indexer = "kv"/' ~/.stabled/config/config.toml
+sed -i 's/^max_num_inbound_peers = .*/max_num_inbound_peers = 50/' ~/.stabled/config/config.toml
+sed -i 's/^max_num_outbound_peers = .*/max_num_outbound_peers = 30/' ~/.stabled/config/config.toml
+
+# app.toml adjustments
+sed -i 's/^pruning = ".*"/pruning = "default"/' ~/.stabled/config/app.toml
+sed -i 's/^snapshot-interval = .*/snapshot-interval = 1000/' ~/.stabled/config/app.toml
+```
+
+### Archive Node
+
+No pruning, full history:
+
+```bash
+# config.toml adjustments
+sed -i 's/^indexer = ".*"/indexer = "kv"/' ~/.stabled/config/config.toml
+
+# app.toml adjustments
+sed -i 's/^pruning = ".*"/pruning = "nothing"/' ~/.stabled/config/app.toml
+```
+
+### RPC Node
+
+Public RPC endpoint configuration:
+
+```bash
+# config.toml adjustments
+sed -i 's/^max_num_inbound_peers = .*/max_num_inbound_peers = 30/' ~/.stabled/config/config.toml
+sed -i 's/^max_open_connections = .*/max_open_connections = 30/' ~/.stabled/config/config.toml
+sed -i 's/^cors_allowed_origins = .*/cors_allowed_origins = ["*"]/' ~/.stabled/config/config.toml
+
+# app.toml adjustments
+sed -i 's/^enable = .*/enable = true/' ~/.stabled/config/app.toml
+sed -i 's/^swagger = .*/swagger = true/' ~/.stabled/config/app.toml
+sed -i 's/^enabled-unsafe-cors = .*/enabled-unsafe-cors = true/' ~/.stabled/config/app.toml
+
+```
+
+## Monitoring Configuration
+
+### Prometheus Metrics
+
+```toml
+# config.toml
+[instrumentation]
+# Enable Prometheus metrics
+prometheus = true
+
+# Metrics listen address
+prometheus_listen_addr = ":26660"
+
+# Namespace for metrics
+namespace = "stablebft"
+```
+
+### Logging
+
+```toml
+# config.toml
+[log]
+# Log level (trace|debug|info|warn|error|fatal|panic)
+level = "info"
+
+# Log format (plain|json)
+format = "plain"
+```
+
+## Applying Configuration Changes
+
+After making configuration changes:
+
+```bash
+# Restart the node
+sudo systemctl restart ${SERVICE_NAME}
+
+# Check logs for errors
+sudo journalctl -u ${SERVICE_NAME} -f
+
+# Verify configuration loaded
+curl localhost:26657/status | jq '.result.node_info'
+```
+
+## Next Steps
+
+- [Set up Monitoring](./monitoring) for your node
+- Review [Troubleshooting Guide](./troubleshooting) for common issues

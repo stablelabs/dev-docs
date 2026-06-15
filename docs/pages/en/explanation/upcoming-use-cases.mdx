@@ -1,0 +1,69 @@
+---
+title: "Upcoming use cases"
+description: "Payment patterns on the horizon for Stable: guaranteed settlement, confidential payments, and agent-to-agent commerce."
+diataxis: "explanation"
+---
+
+# Upcoming use cases
+
+Stable is building toward payment patterns that go beyond simple transfers and API billing. The cases below cover time-guaranteed settlement, privacy-preserving payments, and autonomous agent commerce. Some are functional today in early form; others depend on Stable features currently in development.
+
+## Guaranteed settlement
+
+Reliable payment settlement backed by reserved block capacity, ensuring transaction inclusion regardless of network conditions.
+
+### Concept
+
+Some payments are part of a timed settlement cycle, not a standalone transfer. In these flows, settlement must complete before the cycle closes so the next state transition can proceed as scheduled. If the required payments are delayed past that window, the cycle may fail, roll to the next window, or require manual recovery.
+
+Stable's [Guaranteed Blockspace](/en/explanation/guaranteed-blockspace) addresses this by reserving execution capacity for qualifying payment flows. The goal is not simply faster settlement, but operationally reliable completion within exact timing constraints.
+
+### Expected scenario
+
+A tokenized asset platform runs scheduled DvP (Delivery versus Payment) settlement every few minutes. Cash legs are submitted as a batch, and securities are released only if the full payment batch is included before the current settlement cycle closes. Under normal conditions, this clears immediately. During burst traffic, partial inclusion would create a failed or rolled settlement cycle. With Guaranteed Settlement, the platform reserves capacity for the payment batch so the cycle can close deterministically.
+
+### What enables it
+
+Guaranteed blockspace turns on-chain payment into a schedulable operation. Settlement cycles can be designed with hard timing assumptions, batch payments can be committed atomically within a single window, and upstream systems can treat block inclusion as a dependency rather than a hope.
+
+## Confidential payments
+
+Privacy-preserving USDT0 transfers where selected transaction details are shielded from public observers while remaining verifiable by the transacting parties and authorized auditors.
+
+### Concept
+
+Standard on-chain transfers are fully transparent; anyone can see the sender, recipient, and amount. For business payments, this transparency can expose commercially sensitive information to anyone monitoring the chain.
+
+Stable is developing [Confidential Transfer](/en/explanation/confidential-transfer), a privacy layer using zero-knowledge cryptography that enables selective confidentiality for on-chain transactions. The shielded values are accessible only to the involved parties and authorized regulatory auditors.
+
+### Expected scenario
+
+A large retailer settles inventory procurement with multiple suppliers on-chain. On a transparent chain, competitors can monitor these transactions to reverse-engineer supplier relationships, order volumes, and wholesale pricing. With confidential transfers, the commercially sensitive details are shielded while the on-chain record still serves as a verifiable settlement receipt for both parties and authorized auditors.
+
+## Agent-to-agent payment
+
+Payments initiated and settled between AI agents autonomously, without human approval or intervention in the transaction loop.
+
+### Concept
+
+As AI agents take on more operational tasks, they will need to procure services from other agents. In current workflows, this requires a human in the loop to approve each purchase, select a vendor, or verify that the counterparty is trustworthy. Agent-to-agent payment removes that bottleneck by letting agents find, evaluate, and pay for services autonomously within a single transaction loop.
+
+This pattern depends on several emerging protocols working together: agent discovery and trust ([ERC-8004](https://eips.ethereum.org/EIPS/eip-8004)), secure communication ([XMTP](https://xmtp.org)), and a payment rail that can settle in real time ([x402](/en/explanation/x402)).
+
+### Expected flow
+
+1. **Discover**: the buyer agent queries an ERC-8004 Identity Registry to find agents that offer the required capability (e.g., image generation). The registry returns matching agent identities with associated metadata.
+2. **Verify**: the buyer checks the ERC-8004 registries for each candidate. Identity, reputation scores, and validation proofs determine which providers are trustworthy enough to transact with.
+3. **Negotiate**: the buyer sends task parameters to the selected provider over XMTP. The two agents agree on price, deadline, and deliverable format through encrypted messaging.
+4. **Pay**: the buyer calls the provider's HTTP endpoint. The provider responds with 402. The buyer signs an ERC-3009 authorization and retries with the payment header. The facilitator settles the payment on Stable, and the provider returns the result.
+5. **Rate**: after delivery, the buyer posts feedback to the ERC-8004 Reputation Registry, updating the provider's score for future interactions.
+
+### What enables it
+
+Agent-to-agent payment turns service procurement into a fully programmable loop. Agents can compare providers, switch vendors, and settle payments in real time without human scheduling or approval queues. This makes it possible to build autonomous supply chains where agents continuously source, pay for, and deliver services at machine speed, scaling commerce beyond what manual coordination can support.
+
+## Next recommended
+
+- [**Guaranteed blockspace**](/en/explanation/guaranteed-blockspace) — Review the protocol-level mechanism behind guaranteed settlement.
+- [**Confidential transfer**](/en/explanation/confidential-transfer) — See the privacy model Stable is building.
+- [**x402**](/en/explanation/x402) — Understand the settlement protocol behind agent-to-agent flows.

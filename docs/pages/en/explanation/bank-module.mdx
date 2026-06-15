@@ -1,0 +1,42 @@
+---
+title: "Bank module"
+description: "The bank precompile exposes ERC-20-compatible token transfers plus mint, burn, and authorization methods backed by the SDK x/bank module."
+diataxis: "explanation"
+---
+
+# Bank module
+
+The `x/bank` module in Stable's SDK handles token balances, transfers, and supply. Its EVM surface (the **bank precompile**) wraps this module and adds ERC-20 semantics plus an authorization layer for privileged mint/burn operations. Contracts that need to move tokens on Stable call the precompile directly without deploying their own token implementation.
+
+## What it exposes
+
+The bank precompile provides standard ERC-20 methods:
+
+- `transfer`, `balanceOf`, `totalSupply`
+- `approve`, `transferFrom`, `allowance`, `revoke`
+
+These work from any caller. No registration required.
+
+It also provides privileged methods:
+
+- `mint`: mints new tokens and transfers them to an account.
+- `burn`: destroys tokens held by an account.
+- `multiTransfer`: moves tokens from one sender to many recipients in a single call.
+
+Mint and burn require the caller contract to be registered on the `x/precompile` allowlist via a governance proposal. Governance-token minting is blocked outright. This keeps supply inflation gated to authorized contracts only.
+
+## When to use it
+
+- A DeFi contract needs to move STABLE or USDT0 on behalf of users: call `transfer` or `transferFrom` directly on the precompile.
+- A protocol contract mints or burns tokens based on business logic: register through governance first, then call `mint` / `burn`.
+- A payments contract needs one-to-many disbursement: call `multiTransfer` in a single transaction instead of looping transfers.
+
+## Where to find the ABI
+
+The full method signatures, event payloads, and authorization flow are in the [Bank precompile reference](/en/reference/bank-module-api).
+
+## Next recommended
+
+- [**Bank precompile reference**](/en/reference/bank-module-api) — Call `transfer`, `approve`, `mint`, `burn`, and read events.
+- [**System modules overview**](/en/explanation/system-modules-overview) — Return to the full list of precompile-exposed modules.
+- [**USDT as gas**](/en/explanation/usdt-as-gas-token) — Understand the dual-role asset model the bank module manages.

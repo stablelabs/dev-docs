@@ -1,0 +1,138 @@
+---
+title: "SDK quickstart"
+description: "Install the Stable SDK, send your first USDT0 transfer on testnet, and preview a bridge and swap quote."
+diataxis: "tutorial"
+---
+
+# SDK quickstart
+
+You'll install `@stablechain/sdk`, create a client signed by a private key, send a USDT0 transfer on Stable Testnet, and fetch a bridge and swap quote. Total time: about five minutes.
+
+:::note
+Stable uses USDT0 as the gas token. You only need testnet USDT0 to transact — there's no separate native asset to fund.
+:::
+
+## Prerequisites
+
+- Node.js 20 or later
+- A test private key with testnet USDT0. See [Fund your testnet wallet](/en/how-to/use-faucet).
+
+## 1. Install
+
+```bash
+mkdir stable-sdk-quickstart && cd stable-sdk-quickstart
+npm init -y && npm install @stablechain/sdk viem
+```
+
+```text
+added 2 packages, audited 3 packages in 2s
+```
+
+Save your test key:
+
+```bash
+echo "PRIVATE_KEY=0xYOUR_TEST_KEY" > .env
+```
+
+## 2. Create a client
+
+Create `index.ts`:
+
+```ts
+import "dotenv/config";
+import { createStable, Network } from "@stablechain/sdk";
+import { privateKeyToAccount } from "viem/accounts";
+
+const account = privateKeyToAccount(process.env.PRIVATE_KEY as `0x${string}`);
+
+const stable = createStable({
+  network: Network.Testnet,
+  account,
+});
+
+console.log("Signer:", account.address);
+```
+
+```text
+Signer: 0xYourAddress
+```
+
+`createStable` accepts three signing modes: `account` (server-side, shown above), `transport` (browser wallet via `custom(window.ethereum)`), or `walletClient` (a pre-built viem `WalletClient`). See [Use the SDK with viem](/en/how-to/sdk-with-viem) for all three.
+
+## 3. Send a USDT0 transfer
+
+Append to `index.ts`:
+
+```ts
+const { txHash } = await stable.transfer({
+  from: account.address,
+  to: "0x000000000000000000000000000000000000dEaD",
+  amount: 0.001,
+});
+
+console.log("Transfer:", txHash);
+```
+
+Run it:
+
+```bash
+npx tsx index.ts
+```
+
+```text
+Signer: 0xYourAddress
+Transfer: 0x8f3a...2d41
+```
+
+Open the hash on the [testnet explorer](https://testnet.stablescan.xyz) to confirm.
+
+## 4. Quote a bridge
+
+Bridge USDT0 from Ethereum Sepolia to Stable Testnet. `quoteBridge` is a read-only call — no signature, no gas:
+
+```ts
+import { Chain } from "@stablechain/sdk";
+
+const bridgeQuote = await stable.quoteBridge({
+  fromChain: Chain.Sepolia,
+  toChain: Chain.StableTestnet,
+  fromToken: "0xc4DCC311c028e341fd8602D8eB89c5de94625927",
+  toToken: "0x78Cf24370174180738C5B8E352B6D14c83a6c9A9",
+  amount: 1,
+});
+
+console.log("Bridge quote:", bridgeQuote);
+```
+
+```text
+Bridge quote: { toAmount: 0.999812 }
+```
+
+Pass the quote into `stable.bridge({ ...params, quote })` to execute. The SDK picks LayerZero for USDT0 → USDT0 routes and LI.FI for everything else.
+
+## 5. Quote a swap
+
+Swaps run on Stable through LI.FI. The quote returns the expected output and a pre-built transaction:
+
+```ts
+const swapQuote = await stable.quoteSwap({
+  fromToken: "0x8a2B28364102Bea189D99A475C494330Ef2bDD0B",
+  toToken: "0x78Cf24370174180738C5B8E352B6D14c83a6c9A9",
+  amount: 1,
+  fromDecimals: 6,
+});
+
+console.log("You'll receive:", swapQuote.toAmount, "USDT0");
+```
+
+```text
+You'll receive: 0.998 USDT0
+```
+
+Call `stable.swap({ ...params, quote: swapQuote })` to execute. Approval for ERC-20 sources is handled internally.
+
+## Next recommended
+
+- [**SDK reference**](/en/reference/sdk) — Every parameter, return type, and error class.
+- [**Use with viem**](/en/how-to/sdk-with-viem) — Switch between private-key, browser-wallet, and pre-built `WalletClient` signing.
+- [**Use with wagmi**](/en/how-to/sdk-with-wagmi) — Wire the SDK into a React app using wagmi hooks.

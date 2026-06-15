@@ -1,0 +1,90 @@
+---
+title: "High performance RPC"
+description: "Stable's split-path RPC architecture separating reads from writes for high-throughput, low-latency access."
+diataxis: "explanation"
+---
+
+# High performance RPC
+
+In the pursuit of a high-performance blockchain, it's not enough to only optimize consensus or block production. The RPC layer is a critical component of the end-to-end user experience because it is the interface between the blockchain and its users. Stable proposes a new RPC-dedicated architecture to overcome the limitations of traditional RPC design.
+
+## Why high-performance RPC matters
+
+### The user's gateway to the blockchain
+
+The **Remote Procedure Call (RPC)** interface is the primary way users interact with the blockchain:
+
+- Wallets use RPC to broadcast transactions.
+- dApps query state via RPC to render UI with on-chain data, to prepare and simulate transactions, fetch logs and events, etc.
+- Explorers, indexers, and bots all rely on RPC for real-time data.
+
+Even if the blockchain can process transactions at lightning speed and produce blocks rapidly, none of it matters if users experience latency and delays due to a slow RPC. In practice, RPC is often the bottleneck in the overall user experience.
+
+Stable’s roadmap toward a high-performance chain explicitly includes **RPC optimization** as a first-class priority.
+
+## The problem with traditional RPC architecture
+
+### Monolithic design and resource contention
+
+<img
+  className="block"
+  src="/images/traditional-rpc.png"
+  alt="Traditional RPC Architecture"
+/>
+
+Traditionally, an RPC node is simply a repurposed full node with additional RPC endpoints exposed. This means:
+
+- Syncing the chain and serving RPC requests occur on the same instance.
+- To scale RPC, teams must spin up entire new full nodes, triggering resource-heavy operations like state sync and consensus setup.
+- Consensus, execution, and RPC all share the same CPU, memory, and disk. During periods of high transaction load, a busy component **starves the others**, degrading RPC performance.
+
+In addition, traditional RPC architecture treats read-heavy and write-heavy operations identically. Even though read queries (e.g., `eth_getBalance`) vastly outnumber write transactions, there is no differentiation in how they are handled. This design is inherently inefficient and non-scalable.
+
+## The Stable RPC architecture
+
+Stable introduces a split-path RPC architecture that separates reads from writes and optimizes each independently.
+
+<img
+  className="block"
+  src="/images/stable-rpc.png"
+  alt="Stable RPC Architecture"
+/>
+
+### Core principles
+
+- Separate the RPC into efficient lightweight RPC nodes based on functionality.
+- Use lightweight RPCs as edge nodes to enhance scalability.
+- Optimize the data path of function-specific RPCs to reduce latency, offering more direct access or management through more efficient data structures
+
+### Performance gains
+
+Internal benchmarks of the new read RPC path demonstrate:
+
+- Supports throughput of over 10,000 RPS, with end-to-end latency under 100ms in the same environment.
+- Linear scalability of edge nodes, with no need for full state sync or consensus overhead.
+
+Stable’s new RPC architecture results in a significantly smoother and faster user experience, even during high traffic events.
+
+## Future work
+
+### Optimizing EVM view calls
+
+One exciting area of ongoing research is dedicated support for EVM view operations (`eth_call`):
+
+- These do not require transaction commitment or state updates.
+- Execution can happen on lightweight stateless environments using only the current state snapshot.
+- A specialized RPC node could be designed specifically for these operations, delivering even faster response times and reducing load on primary full nodes.
+
+### Integration of indexer directly to the node
+
+By integrating an indexer directly into the node, it becomes possible to serve the fastest possible data to dApps.
+
+- Typical architectures: Node → RPC → Indexer (e.g., The Graph) → Storage → dApp
+- Proposed Architecture: Node with Indexer → DB → dApp
+- This architecture enables much faster data delivery as the indexer is natively integrated into the node, removing the network communication steps.
+
+## Next recommended
+
+- [**JSON-RPC API**](/en/reference/json-rpc-api) — Use the `eth_*` methods Stable exposes for contract reads, transaction submission, and log filtering.
+- [**Execution**](/en/explanation/execution) — See how execution feeds state to the RPC layer.
+- [**Storage (StableDB)**](/en/explanation/stable-db) — Review the storage layer the RPC reads query.

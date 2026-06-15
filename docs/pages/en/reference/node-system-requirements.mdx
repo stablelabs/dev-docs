@@ -1,0 +1,131 @@
+---
+title: System requirements
+description: "Hardware and software requirements for running full, archive, and validator nodes on Stable."
+diataxis: "reference"
+---
+
+This page outlines the hardware and software requirements for running different types of Stable nodes.
+
+## Hardware requirements
+
+### Full node (minimum)
+
+| Component | Requirement | Notes |
+|-----------|------------|--------|
+| **CPU** | 4 cores | AMD Ryzen 5 / Intel Core i5 or better |
+| **RAM** | 8 GB | 16 GB recommended for better performance |
+| **Storage** | 500 GB NVMe/SSD | Write throughput > 1000 MiBps required |
+| **Network** | 100 Mbps | Stable, low-latency connection |
+| **OS** | Ubuntu 22.04/24.04, Debian 12 | 64-bit Linux required |
+
+### Full node (recommended)
+
+| Component | Requirement | Notes |
+|-----------|------------|--------|
+| **CPU** | 8 cores | AMD Ryzen 7 / Intel Core i7 or better |
+| **RAM** | 16 GB | 32 GB for optimal performance |
+| **Storage** | 1 TB NVMe | Write throughput > 2000 MiBps |
+| **Network** | 1 Gbps | Dedicated connection preferred |
+| **OS** | Ubuntu 24.04 | Latest LTS recommended |
+
+### Archive node
+
+| Component | Requirement | Notes |
+|-----------|------------|--------|
+| **CPU** | 16 cores | AMD Ryzen 9 / Intel Core i9 or equivalent |
+| **RAM** | 32 GB | 64 GB recommended |
+| **Storage** | 4 TB NVMe | Fast growing, plan for expansion |
+| **Network** | 1 Gbps | Unmetered connection required |
+| **OS** | Ubuntu 24.04 | Latest LTS recommended |
+
+## Software requirements
+
+### Operating system
+
+#### Supported distributions
+- **Ubuntu 24.04 LTS** (recommended)
+- **Ubuntu 22.04 LTS**
+- **Debian 12 (Bookworm)**
+
+#### System dependencies
+```bash
+# Update system packages
+sudo apt update && sudo apt upgrade -y
+
+# Install essential tools
+sudo apt install -y \
+    build-essential \
+    git \
+    wget \
+    curl \
+    jq \
+    lz4 \
+    zstd \
+    htop \
+    net-tools \
+    ufw
+```
+
+## Network requirements
+
+### Bandwidth usage
+
+| Node Type | Download | Upload | Monthly Data |
+|-----------|----------|--------|--------------|
+| Full Node | ~50 Mbps avg | ~25 Mbps avg | ~15 TB |
+| Archive Node | ~100 Mbps avg | ~50 Mbps avg | ~30 TB |
+
+## Cloud provider recommendations
+
+### AWS
+- **Full node**: t3.xlarge or c5.xlarge
+- **Archive node**: m5.2xlarge or c5.2xlarge
+- **Storage**: gp3 with provisioned IOPS
+
+### Google Cloud
+- **Full node**: n2-standard-4
+- **Archive node**: n2-standard-8
+- **Storage**: pd-ssd or pd-extreme
+
+### Azure
+- **Full node**: Standard_D4s_v5
+- **Archive node**: Standard_D8s_v5
+- **Storage**: Premium SSD v2
+
+### DigitalOcean
+- **Full node**: General Purpose 8GB
+- **Archive node**: CPU-Optimized 16GB
+- **Storage**: Volume Block Storage
+
+## Monitoring requirements
+
+For production deployments, ensure you have:
+
+- **Prometheus**: For metrics collection
+- **Grafana**: For visualization
+- **AlertManager**: For alerting
+- **Node exporter**: For system metrics
+- **Log aggregation**: ELK or Loki recommended
+
+## Security considerations
+
+### System hardening
+- Keep OS and packages updated
+- Configure automatic security updates
+- Use SSH keys only (disable password auth)
+- Configure fail2ban
+- Enable firewall (UFW/iptables)
+- Regular security audits
+
+## Pre-installation checklist
+
+Before proceeding with installation, verify:
+
+- [ ] Hardware meets minimum requirements
+- [ ] Operating system is supported and updated
+- [ ] Storage has sufficient IOPS
+- [ ] Network bandwidth is adequate
+- [ ] Firewall rules are configured
+- [ ] System monitoring is set up
+- [ ] Backup strategy is defined
+- [ ] Security measures are in place

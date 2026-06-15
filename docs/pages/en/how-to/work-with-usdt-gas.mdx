@@ -1,0 +1,118 @@
+---
+title: "Work with USDT0 as gas"
+description: "Port Ethereum transaction construction to Stable: set priority fee to zero, read baseFee in USDT0, and denominate value in USDT0."
+diataxis: "how-to"
+---
+
+# Work with USDT0 as gas
+
+On Stable, USDT0 is both the chain's native asset and an ERC-20 token. The gas token is USDT0, not a separate native asset. Standard Ethereum gas estimation works once you adjust three things: `maxPriorityFeePerGas` is always `0`, `baseFee` is denominated in USDT0, and the `value` field in a native transfer carries USDT0 (not ETH).
+
+This guide shows how to construct transactions correctly on Stable and what to change when porting Ethereum code.
+
+## What changes vs. Ethereum
+
+| **Field** | **Ethereum** | **Stable** |
+| :--- | :--- | :--- |
+| Gas token | ETH | USDT0 |
+| `maxPriorityFeePerGas` | Used for ordering | Ignored (set to `0`) |
+| `baseFeePerGas` | Denominated in ETH | Denominated in USDT0 |
+| `value` (native transfer) | Transfers ETH | Transfers USDT0 |
+| EIP-1559 transaction format | Supported | Supported |
+| `eth_estimateGas`, `eth_gasPrice` | Supported | Supported |
+| `eth_maxPriorityFeePerGas` | Returns a tip | Returns `0` |
+
+Because the transaction format is unchanged, existing ethers.js, viem, Hardhat, and Foundry code runs on Stable without changes. The differences are in how you *compute* gas fields, not how you encode them.
+
+## Construct a transaction
+
+Fetch the base fee, set `maxPriorityFeePerGas` to `0`, and double the base fee as a safety margin.
+
+```typescript
+// sendNative.ts
+import { ethers } from "ethers";
+import "dotenv/config";
+
+const provider = new ethers.JsonRpcProvider("https://rpc.testnet.stable.xyz");
+const wallet = new ethers.Wallet(process.env.PRIVATE_KEY!, provider);
+
+const block = await provider.getBlock("latest");
+const baseFee = block!.baseFeePerGas!;
+
+const maxPriorityFeePerGas = 0n; // always 0 on Stable
+const maxFeePerGas = baseFee * 2n + maxPriorityFeePerGas; // 2x headroom
+
+const tx = await wallet.sendTransaction({
+  to: "0xRecipientAddress",
+  value: ethers.parseEther("0.001"), // 0.001 USDT0, 18 decimals
+  maxFeePerGas,
+  maxPriorityFeePerGas,
+});
+
+const receipt = await tx.wait(1);
+console.log("Tx:", receipt!.hash);
+console.log("Gas used:", receipt!.gasUsed.toString());
+console.log("Effective gas price:", receipt!.gasPrice.toString(), "(USDT0 wei-equivalent)");
+```
+
+```bash
+npx tsx sendNative.ts
+```
+
+```text
+Tx: 0x8f3a...2d41
+Gas used: 21000
+Effective gas price: 1000000000 (USDT0 wei-equivalent)
+```
+
+The effective gas price is a USDT0-denominated value. At `1 gwei`, a 21,000-gas native transfer costs approximately `0.000021` USDT0.
+
+## Estimate gas cost in USDT0
+
+`eth_estimateGas` and `eth_gasPrice` behave identically to Ethereum. The result is already in USDT0 because that is the gas token.
+
+```typescript
+// estimate.ts
+import { ethers } from "ethers";
+
+const provider = new ethers.JsonRpcProvider("https://rpc.testnet.stable.xyz");
+
+const gasPrice = await provider.send("eth_gasPrice", []);
+const gasEstimate = await provider.estimateGas({
+  to: "0xContractAddress",
+  data: "0x...",
+});
+
+const feeInUSDT0 = BigInt(gasPrice) * gasEstimate;
+console.log("Estimated fee:", ethers.formatEther(feeInUSDT0), "USDT0");
+```
+
+```bash
+npx tsx estimate.ts
+```
+
+```text
+Estimated fee: 0.000021 USDT0
+```
+
+:::warning
+`eth_maxPriorityFeePerGas` always returns `0` on Stable. If your wallet or SDK adds the RPC-returned priority fee on top of the base fee, it still works, but fee UIs that display a separate tip will show `0` and should be hidden.
+:::
+
+## Tooling configuration
+
+- **Hardhat / Foundry**: no special configuration needed. Standard EVM settings work. If your config explicitly sets a priority fee, set it to `0`.
+- **Wallets**: hide or disable the priority tip input field. Displaying it is misleading because the value has no effect on ordering or inclusion.
+- **Monitoring**: fee analytics dashboards should not chart priority fees. They are always zero on Stable.
+
+## Common mistakes when porting from Ethereum
+
+- **Applying an ETH-denominated tip**: copying a priority-fee constant from Ethereum doesn't produce faster inclusion. Stable orders transactions by base fee only.
+- **Treating `value` as ETH**: a native transfer's `value` is USDT0. Don't convert it through ETH/USD prices.
+- **Hard-coding a fee cap**: set `maxFeePerGas` from the live `baseFeePerGas` (e.g., `baseFee * 2`) rather than a fixed value, so transactions don't stall when the base fee rises.
+
+## Next recommended
+
+- [**Gas pricing reference**](/en/reference/gas-pricing-api) — Full base-fee model, EIP-1559 format, and `eth_*` method behavior.
+- [**Zero gas transactions**](/en/how-to/zero-gas-transactions) — Let an application cover gas via the Gas Waiver.
+- [**USDT0 behavior on Stable**](/en/explanation/usdt0-behavior) — Balance reconciliation and contract design with USDT0's dual role.

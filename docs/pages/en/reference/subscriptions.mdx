@@ -1,0 +1,47 @@
+---
+title: "Set up recurring billing"
+description: "Pull-based subscription billing on Stable using EIP-7702 account abstraction for automated recurring USDT0 collection."
+diataxis: "reference"
+---
+
+# Set up recurring billing
+
+Pull-based subscriptions let a service provider collect payments on a schedule without requiring the subscriber to initiate each payment.
+
+This pattern is enabled by [EIP-7702](/en/reference/eip-7702-api) account abstraction. The subscriber's EOA delegates execution authority to a subscription delegate contract, which the provider calls each billing cycle.
+
+The subscriber acts only twice: once to subscribe, once to cancel.
+
+## How it works
+
+The subscriber delegates their EOA to a contract that enforces billing terms. Through EIP-7702, the subscriber's account temporarily gains contract logic, allowing a service provider to collect payments at each billing cycle without the subscriber signing every time.
+
+### Subscription lifecycle
+
+1. **Delegate**: the subscriber delegates their EOA to a subscription delegate contract via EIP-7702.
+2. **Subscribe**: the subscriber registers billing terms: provider address, amount per interval, and billing interval.
+3. **Collect**: the service provider triggers collection each billing cycle. The delegate contract verifies the caller, interval, and amount before executing the USDT0 transfer.
+4. **Cancel**: the subscriber revokes the subscription or clears the delegation to stop future collections.
+
+### Important considerations
+
+- **Persistent delegation**: The EIP-7702 delegation persists until the subscriber explicitly changes or clears it. No re-delegation is needed each billing cycle.
+- **Single delegation per EOA**: EIP-7702 supports one active delegation per EOA. If the subscriber later delegates to a different contract, the subscription delegate logic is replaced and collection fails. Use a modular delegate contract that supports multiple functions (subscriptions, batch payments, spending limits) under a single delegation.
+- **Use audited delegates**: A delegate contract has full execution authority over the subscriber's EOA. Only delegate to contracts that have been audited.
+
+## What makes it different
+
+Traditional subscriptions store card data, retry failed charges, and manage complex billing state. With EIP-7702 subscriptions, the billing terms are enforced by the delegate logic on the subscriber's own EOA. The provider can only collect the agreed amount per interval, and the subscriber can cancel at any time by revoking the delegation.
+
+| **Aspect** | **Traditional (card-on-file)** | **Stable** |
+| :--- | :--- | :--- |
+| Setup | Card registration with payment processor | Single EIP-7702 delegation transaction |
+| Billing | Processor charges stored card | Provider calls delegate contract |
+| Stored payment data | Card number, CVV held by processor | No payment credentials stored off-chain |
+| Cancellation | Contact provider or card issuer | Subscriber revokes delegation on-chain |
+| Overcharge risk | Depends on provider-side billing controls | Billing terms enforced by contract |
+
+**See also:**
+
+- [EIP-7702](/en/reference/eip-7702-api)
+- [ERC-3009 (Transfer With Authorization)](/en/explanation/erc-3009)

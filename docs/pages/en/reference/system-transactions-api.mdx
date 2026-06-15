@@ -1,0 +1,358 @@
+---
+title: "System transactions reference"
+description: "StableSystem precompile reference: interface, sender authorization, batch limits, and gas accounting."
+diataxis: "reference"
+---
+
+# System transactions reference
+
+:::note
+**Concept:** For how system transactions bridge SDK events to the EVM and why this matters, see [System transactions](/en/explanation/system-transactions).
+:::
+
+## Abstract
+
+System transactions provide a way for the Stable protocol to emit EVM events for Stable SDK operations. When staking events like unbonding completions occur in the SDK layer, the protocol automatically generates EVM transactions that emit corresponding events. This makes these operations fully visible to EVM tooling and applications.
+
+## Motivation
+
+You and your applications on Stable expect to monitor blockchain events through standard EVM interfaces like `eth_getLogs`. But critical operations happen in Stable SDK modules that don't naturally emit EVM events. This creates a visibility gap: EVM dApps can't easily track when a user's tokens finish unbonding.
+
+System transactions bridge this gap. When the staking module completes an unbonding operation, Stable's x/stable module detects the event and generates a system transaction that calls the StableSystem precompile ( `0x0000000000000000000000000000000000009999`). And then, the precompile emits proper EVM events that any dApp can subscribe to. System transactions run with a special sender address (`0x8888888888888888888888888888888888888888`) that only the protocol can use. This prevents anyone from spoofing protocol events while keeping the event emission trustless and verifiable on-chain.
+
+## Specification
+
+System transactions work through three main components: the x/stable module's EndBlocker, the PrepareProposal handler, and the StableSystem precompile.
+
+### Architecture overview
+
+<img
+  className="block"
+  src="/images/system-transaction-architecture.png"
+  alt="system-transaction-architecture"
+/>
+
+### StableSystem precompile
+
+The StableSystem precompile lives at `0x0000000000000000000000000000000000009999` and handles protocol-level operations that need to emit EVM events. Currently it supports unbonding completion notifications.
+
+```solidity
+interface IStableSystem {
+    /// @notice Processes queued unbonding completions and emits EVM events
+    /// @param blockHeight The block height at which to process completions
+    /// @dev Only callable by system transactions (from = 0x8888888888888888888888888888888888888888)
+    /// @dev Processes up to 100 completions per call
+    /// @dev Automatically deletes processed completions from the queue
+    function notifyUnbondingCompletions(int64 blockHeight) external;
+
+    /// @notice Emitted when an unbonding operation completes
+    /// @param delegator The address that delegated the tokens
+    /// @param validator The validator address the tokens were delegated to
+    /// @param amount The amount of tokens that finished unbonding (in uusdc)
+    event UnbondingCompleted(
+        address indexed delegator,
+        address indexed validator,
+        uint256 amount
+    );
+
+    /// @notice The caller is not authorized (not system transaction sender)
+    error Unauthorized();
+}
+```
+
+### System transaction sender
+
+System transactions use `0x8888888888888888888888888888888888888888` as the sender address. This address:
+
+- Requires no signature verification
+- Can only be used by transactions created in PrepareProposal
+- Cannot be spoofed by users or contracts
+- Skips fee deduction via the SystemTxDecorator ante handler
+
+The EVM recognizes system transactions by checking `msg.sender == 0x8888888888888888888888888888888888888888`. Precompiles can use this to gate protocol-only operations.
+
+### Event-driven flow
+
+When a user's unbonding period completes, here's what happens:
+
+1. **Stable SDK Layer:** The staking module's EndBlocker completes the unbonding and emits EventTypeCompleteUnbonding with the delegator address, validator address, and amount.
+2. **Detection:** The x/stable module's EndBlocker runs after staking and scans for unbonding events in the block's event log. For each completion, it queues an entry in state with the delegator address, validator address, amount, and block height.
+3. **System TX Generation**: In the next block's PrepareProposal, the app queries all queued completions. If any exist, it creates a system transaction calling StableSystem.notifyUnbondingCompletions(blockHeight) with the current block height. This transaction goes at the front of the block, before any user transactions.
+4. **Execution:** During block execution, the system transaction runs first. The precompile queries state for queued completions at that block height, emits an UnbondingCompleted event for each one (up to 100), and deletes them from the queue.
+5. **EVM Visibility:** The events appear in transaction receipts and logs, visible to eth\_getLogs queries, block explorers, and any application monitoring the StableSystem precompile.
+
+### Batch processing
+
+To prevent blocks from becoming too large, the system processes at most 100 unbonding completions per block. If 150 completions queue up:
+
+- Block N: Creates system tx processing completions 0-99
+- Block N+1: Creates system tx processing completions 100-149
+
+The precompile queries state directly rather than receiving completion data in calldata. This keeps transaction size predictable and moves the data from expensive calldata to cheaper state reads.
+
+## Usage examples
+
+The most common use case is a staking dashboard that needs to notify users when their unbonding periods complete. Here's how to set up a listener for unbonding completions.
+
+```javascript
+import { ethers } from 'ethers';
+
+// StableSystem precompile address
+const STABLE_SYSTEM_ADDRESS = '0x0000000000000000000000000000000000009999';
+
+// ABI for the UnbondingCompleted event
+const STABLE_SYSTEM_ABI = [
+  'event UnbondingCompleted(address indexed delegator, address indexed validator, uint256 amount)'
+];
+
+// Connect to the Stable network
+const provider = new ethers.JsonRpcProvider('https://rpc.testnet.stable.xyz');
+const stableSystem = new ethers.Contract(
+  STABLE_SYSTEM_ADDRESS,
+  STABLE_SYSTEM_ABI,
+  provider
+);
+
+// Subscribe to all unbonding completions
+stableSystem.on('UnbondingCompleted', (delegator, validator, amount, event) => {
+  console.log('Unbonding completed!');
+  console.log('Delegator:', delegator);
+  console.log('Validator:', validator);
+  console.log('Amount:', ethers.formatEther(amount), 'tokens');
+  console.log('Block:', event.log.blockNumber);
+  console.log('Tx Hash:', event.log.transactionHash);
+});
+
+```
+
+This listener fires every time any user's unbonding completes. For a production dApp, filter events for specific users as shown below.
+
+### Filtering events for specific users
+
+To only receive events for a particular delegator address, use the indexed event parameters to create a filter:
+
+```javascript
+// Only watch unbondings for a specific user
+const userAddress = '0xabcd...';
+
+const filter = stableSystem.filters.UnbondingCompleted(userAddress);
+
+stableSystem.on(filter, (delegator, validator, amount, event) => {
+  // This only fires for the specified user's unbondings
+  showNotification(`Your unbonding of ${ethers.formatEther(amount)} tokens completed!`);
+  refreshUserBalance(userAddress);
+});
+```
+
+You can also filter by validator if you're building a validator-specific dashboard:
+
+```javascript
+// Watch all unbondings from a specific validator
+const validatorAddress = '0x1234...';
+
+const validatorFilter = stableSystem.filters.UnbondingCompleted(null, validatorAddress);
+
+stableSystem.on(validatorFilter, (delegator, validator, amount) => {
+  updateValidatorStats(validator, amount);
+});
+```
+
+### Querying historical events
+
+If your dApp needs to show a history of past unbonding completions, you can query historical events using event filters with block ranges:
+
+```javascript
+// Get all unbondings for a user in the last 1000 blocks
+const currentBlock = await provider.getBlockNumber();
+const filter = stableSystem.filters.UnbondingCompleted(userAddress);
+
+const events = await stableSystem.queryFilter(
+  filter,
+  currentBlock - 1000,
+  currentBlock
+);
+
+const unbondingHistory = events.map(event => ({
+  delegator: event.args.delegator,
+  validator: event.args.validator,
+  amount: ethers.formatEther(event.args.amount),
+  blockNumber: event.blockNumber,
+  txHash: event.transactionHash
+}));
+
+console.log('Recent unbondings:', unbondingHistory);
+
+```
+
+## Integration guide
+
+### Step 1: Add the Stable System contract interface
+
+First, add the StableSystem precompile interface to your project. If you're using Foundry or Hardhat, create a new interface file:
+
+```solidity
+interface IStableSystem {
+    event UnbondingCompleted(
+        address indexed delegator,
+        address indexed validator,
+        uint256 amount
+    );
+}
+```
+
+If you're building a pure frontend dApp without Solidity contracts, you just need the ABI fragment for the event:
+
+```javascript
+const STABLE_SYSTEM_ABI = [
+  'event UnbondingCompleted(address indexed delegator, address indexed validator, uint256 amount)'
+];
+```
+
+### Step 2: Set up event listeners
+
+Initialize your ethers.js provider and create a contract instance pointing to the StableSystem precompile address. The precompile is always deployed at `0x00000000000....0000009999` on both Stable Testnet and Stable Mainnet.
+
+*Note: The precompile is not deployed on Stable Mainnet yet, it will be provided after v1.2.0 upgrade.*
+
+```javascript
+const provider = new ethers.JsonRpcProvider(RPC_URL);
+const stableSystem = new ethers.Contract(
+  '0x0000000000000000000000000000000000009999',
+  STABLE_SYSTEM_ABI,
+  provider
+);
+```
+
+### Step 3: Handle events in your application logic
+
+Subscribe to events and update your application state accordingly. Common patterns include:
+
+- **Balance Updates**: When an unbonding completes, refresh the user's token balance
+- **Notification System**: Show toast notifications when the user's unbondings complete
+- **Dashboard Statistics**: Update staking metrics and charts in real-time
+- **Transaction History**: Add completed unbondings to the user's activity feed
+
+### Step 4: Handle connection issues
+
+Since event subscriptions rely on persistent websocket connections, implement reconnection logic for production dApps:
+
+```javascript
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 5;
+
+function setupEventListener() {
+  const provider = new ethers.WebSocketProvider('wss://rpc.testnet.stable.xyz');
+
+  provider.on('error', (error) => {
+    console.error('Provider error:', error);
+    if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+      reconnectAttempts++;
+      setTimeout(() => setupEventListener(), 5000);
+    }
+  });
+
+  const stableSystem = new ethers.Contract(
+    '0x0000000000000000000000000000000000009999',
+    STABLE_SYSTEM_ABI,
+    provider
+  );
+
+  stableSystem.on('UnbondingCompleted', handleUnbonding);
+}
+```
+
+## Why this approach?
+
+### Compared to custom indexers
+
+Previously, Stable SDK required you to run custom indexers that watch for SDK events and store them in a database. This adds operational overhead and introduces potential points of failure.
+
+With system transactions, there's no need for separate indexer infrastructure. Events are natively available through the EVM's log system, which every RPC node already indexes and serves. Any standard web3 library can subscribe to these events without additional tooling.
+
+### Compared to polling SDK endpoints
+
+Without system transactions, EVM dApps would need to periodically call Stable SDK REST endpoints to check if unbonding periods have completed. This creates several problems:
+
+- **Increased latency**: Polling intervals of 5-10 seconds mean users might wait that long before seeing updates
+- **Higher load**: Every dApp instance polling endpoints increases load on RPC infrastructure
+- **Complexity**: dApps need to handle both web3 providers (for EVM interactions) and Stable SDK REST clients (for SDK queries)
+- **No real-time updates**: Polling inherently can't provide instant notifications
+
+System transactions provide real-time event notifications through the same websocket connections dApps already use for EVM interactions. This simplifies the developer experience and reduces infrastructure costs.
+
+## Security guarantees
+
+### Trustless event emission
+
+System transactions are created during the `PrepareProposal` ABCI phase, which only validators can execute. User-submitted transactions cannot spoof the system sender address (`0x8888888888888888888888888888888888888888`). The EVM's state transition logic enforces that only transactions to the StableSystem precompile address can skip signature verification.
+
+This means:
+
+- Users cannot forge unbonding completion events
+- Users cannot call `notifyUnbondingCompletions` from their own transactions
+- The only way to emit an `UnbondingCompleted` event is for an actual unbonding to complete in the Stable SDK staking module
+
+### No additional trust assumptions
+
+System transactions don't introduce new security assumptions beyond what's already required for blockchain consensus. If you trust that validators are correctly executing blocks, you can trust that system transaction events accurately reflect Stable SDK state changes.
+
+The event emission process is deterministic: given the same SDK events in `EndBlock`, all honest validators will produce identical system transactions during `PrepareProposal`. The consensus mechanism ensures validators agree on which system transactions to include.
+
+### Block finality
+
+The Stable blockchain uses fast finality through StableBFT's consensus mechanism. Once a block is committed, it's immediately final and cannot be reorganized. This means that once you receive an `UnbondingCompleted` event, you can trust it's permanent.
+
+There's no need to wait for multiple confirmations like on probabilistic finality chains. dApps can update user balances and display notifications immediately upon receiving the event.
+
+## Performance & limitations
+
+### Batch size constraints
+
+Each block processes at most 100 unbonding completions through system transactions. This limit exists to prevent unbounded block sizes during periods of high unbonding activity.
+
+In practice, 100 completions per block provides throughput of \~9000 completions per minute assuming the average block time of 0.7 seconds. Normal staking activity rarely reaches this limit. During exceptional circumstances, completions might queue for several blocks before fully processing.
+
+### Gas consumption
+
+System transactions consume gas during execution, which is accounted for in the block's gas limit. The gas cost scales linearly with the number of completions being processed:
+
+- Base function call: \~21,000 gas
+- Per-event emission: \~3,000 gas
+- Reading state: \~2,000 gas per completion
+
+A full batch of 100 completions consumes approximately 521,000 gas. As Stable’s block gas limit is 100,000,000, this represents less than 0.6% of available block space.
+
+### Notification latency
+
+When an unbonding period completes during block N:
+
+1. The Stable module's `EndBlock` queues the completion in block N's state
+2. Block N+1's `PrepareProposal` creates a system transaction
+3. The system transaction executes during block N+1, emitting the event
+
+This means there's a one-block delay (approximately 0.7 seconds) between the unbonding completing and the EVM event being emitted. For most use cases, this latency is acceptable since the unbonding period itself is 7 days.
+
+### High load scenarios
+
+If unbonding completions arrive faster than 100 per block, they accumulate in the queue. The queue is processed in FIFO order, so the oldest completions are always notified first.
+
+During sustained high load, the queue could grow temporarily. However, once the spike subsides, subsequent blocks with fewer completions will gradually drain the queue. The system is designed to handle bursts without dropping events.
+
+## Future extensions
+
+The system transaction mechanism provides a general pattern for bridging any Stable SDK operation into the EVM event space. While currently used only for unbonding completions, the architecture can be extended to cover additional use cases:
+
+### Staking operations
+
+Beyond unbonding, other staking events could emit EVM notifications:
+
+- Commission rate changes by validators  
+- Validator jailing and unjailing
+
+### Governance execution
+
+When governance proposals pass and execute, system transactions could emit events with proposal IDs and execution results. This would allow dApps to react to parameter changes or upgrades without polling the governance module.
+
+### Generic event bridge
+
+The pattern could be generalized into a configurable event bridge where each module registers which SDK events should be mirrored to the EVM. This would provide comprehensive visibility into all Stable SDK operations without requiring per-module custom logic. The key architectural principle is that system transactions remain a protocol-level feature, created only by validators during block proposal.

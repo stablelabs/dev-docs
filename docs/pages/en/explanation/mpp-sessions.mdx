@@ -1,0 +1,47 @@
+---
+title: "MPP sessions"
+description: "Stream micropayments with off-chain vouchers and one net settlement, instead of one on-chain payment per request."
+diataxis: "explanation"
+---
+
+# MPP sessions
+
+A session is an MPP payment intent that batches many small payments into a single on-chain settlement. The client deposits funds into an escrow once, then signs cheap off-chain vouchers for each request. Only the net amount settles on-chain, which makes sub-cent per-request economics viable for streaming workloads.
+
+## How a session works
+
+1. **Deposit.** The client transfers a budget into a session-escrow contract on the settlement layer. The escrow holds the funds and exposes a settlement function that pays the seller and refunds the remainder.
+2. **Voucher per request.** For each paid request, the client signs an off-chain voucher carrying `(sessionId, cumulativeAmount, nonce, expiry)`. The server checks that the cumulative amount is monotonically increasing and within the deposited balance. No on-chain action is needed at this step.
+3. **Settle.** At the end of the session or on a configured cadence, a facilitator submits the latest voucher to the escrow. The escrow pays the seller the cumulative amount and returns the remaining balance to the client. Only this transaction touches the chain.
+
+A session is finalized when the latest voucher is settled or when the voucher expiry passes.
+
+## When to use sessions vs. charge
+
+| **Workload** | **Best intent** |
+| :--- | :--- |
+| Pay-per-token LLM inference, pay-per-frame video, real-time data streams. Many small payments to the same seller. | Session |
+| One-off paid API calls, single-purchase resources, agent-to-agent commerce where each transaction stands alone. | Charge |
+
+The break-even point depends on how expensive the per-request on-chain settlement is relative to the request price. As soon as you are paying more in gas than in payment, sessions are the right pattern.
+
+## Agent use cases
+
+- **Token-priced LLM inference.** A client streams completions and signs a voucher per token batch; the inference server settles at session end.
+- **Frame-priced video.** An agent consuming a generated video signs vouchers per N frames; the renderer settles when the stream closes.
+- **Real-time data feeds.** A subscriber pays per tick of an oracle or market-data stream, settling once per session window.
+
+## Status on Stable
+
+Sessions require two pieces that Stable does not currently provide:
+
+1. A session-aware escrow contract for USDT0 that holds the deposit and exposes a `settleVouchers` (or equivalent) function.
+2. A facilitator that issues vouchers on the seller side and verifies them on the buyer side, batching submissions to the escrow.
+
+Until both ship, MPP sessions are not usable on Stable. For high-frequency agent payments today, the lowest-overhead pattern is the **charge** intent submitted through Stable's [Gas Waiver](/en/how-to/integrate-gas-waiver), which removes per-transaction gas cost on the seller's side and keeps the buyer's USDT0 balance as the only asset to manage. See [Build an MPP endpoint on Stable](/en/how-to/build-mpp-endpoint) for the per-request charge pattern.
+
+## Next recommended
+
+- [**MPP concept**](/en/explanation/mpp) — Read the broader standard, including charge and subscription intents.
+- [**Agent settlement**](/en/explanation/agent-settlement) — See where MPP sessions would sit in the agent-payment rail on Stable.
+- [**Build an MPP endpoint on Stable**](/en/how-to/build-mpp-endpoint) — Use the charge intent today while sessions are forthcoming.

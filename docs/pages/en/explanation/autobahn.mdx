@@ -1,0 +1,81 @@
+---
+title: "Autobahn"
+description: "Autobahn DAG-based BFT consensus protocol balancing low latency and fault tolerance for StableBFT."
+diataxis: "explanation"
+---
+
+# Autobahn
+
+## Tradeoffs in BFT: latency vs. robustness
+
+Modern Byzantine Fault Tolerant (BFT) consensus protocols typically operate under the partial synchrony model. This model assumes that the network eventually stabilizes and message delays remain bounded. While practical for protocol design, real-world deployments rarely enjoy long periods of uninterrupted stability. Instead, systems frequently experience periods of synchrony followed by short disruptions such as latency spikes, node outages, or adversarial conditions. These transient disruptions are referred to as **“blips”**.
+
+Under such conditions, existing consensus protocols are forced to **choose between low latency in stable network conditions and robustness in the presence of faults.** 
+
+- **Traditional view-based BFT protocols**, such as PBFT and HotStuff, are optimized for responsiveness during good intervals when the network is stable. However, they suffer from degraded performance when a blip occurs. This degradation, known as a hangover, can persist even after the network has recovered, as backlogged requests accumulate and delay subsequent transactions.
+- **DAG-based BFT protocols**, such as [Narwhal & Tusk](https://arxiv.org/pdf/2105.11827)/[Bullshark](https://arxiv.org/pdf/2201.05677), decouple data dissemination (DAG) from consensus (BFT) and propagate transactions asynchronously across replicas. This design enables high throughput and allows the system to continue making progress during network disruptions. However, these protocols tend to incur high latency even during good intervals due to the complexity of their asynchronous ordering mechanisms.
+
+[**Autobahn**](https://arxiv.org/pdf/2401.10369) introduces a new approach that bridges these two design philosophies. It combines the high throughput and blip tolerance of DAG-based protocols with the low latency performance of traditional view-based consensus. At the core of Autobahn is a highly parallel data dissemination layer that continuously propagates proposals at network speed, regardless of consensus progress. On top of this layer, Autobahn runs a low-latency, partially synchronous consensus protocol that commits proposals by referencing lightweight snapshots of the data layer.
+
+A defining feature of Autobahn is its ability to recover from blips without performance degradation. This property, referred to as **seamlessness**, ensures that the system resumes full throughput and low latency immediately after the network stabilizes. No costly reprocessing of backlogged transactions is required. By cleanly separating data availability from ordering and avoiding protocol-induced synchronization delays, Autobahn offers a robust yet responsive foundation for blockchain consensus in real-world conditions.
+
+## Autobahn architecture overview
+
+Autobahn is architected around a clear separation of responsibilities between its two core layers: a **data dissemination layer** and a **consensus layer**. This decoupling is inspired by the design of DAG-based systems like Narwhal, but Autobahn enhances this structure to support seamlessness and lower latency.
+
+The data dissemination layer is responsible for broadcasting client transactions in a scalable, asynchronous manner. It allows each replica to maintain its own lane of transaction batches, which can be propagated and certified independently of the consensus state. These lanes grow continuously, even when the consensus process stalls, ensuring that the system remains responsive to clients at all times.
+
+On top of this, Autobahn runs a partially synchronous consensus layer based on a PBFT-style protocol. However, instead of reaching agreement on individual batches of transactions, consensus is reached on "tip cuts,” which are compact summaries of the latest state of all data lanes. This design allows Autobahn to commit arbitrarily large amounts of data in a single step, minimizing the impact of blips.
+
+HotStuff tightly couples data and consensus, causing stalls when a leader fails. Bullshark incurs high commit latencies due to DAG traversal and data synchronization. Autobahn provides a smoother and faster consensus experience, inheriting the parallelism of DAGs while avoiding their latency pitfalls.
+
+## Data dissemination layer: lanes and cars
+
+![Autobahn: Seamless high speed BFT](/images/autobahn-high-speed1.png)
+
+*Autobahn: Seamless high speed BFT*
+
+In Autobahn, each replica proposes transactions in its own independently advancing chain called a **lane**. Each data proposal in a lane is bundled with a set of acknowledgments from other replicas, forming what the authors call a "**car**" (short for Certification of Available Request). These cars act as proof of availability (PoA), ensuring that at least one correct replica holds the data and can retransmit it if needed.
+
+Cars are chained together by including a reference to the previous car in each new proposal. This structure guarantees that validating the tip of a lane implies the availability of the entire lane history. This transitive proof of availability is key to Autobahn's instant referencing. The consensus layer can refer to a tip cut (a vector of current lane heads) and know that all prior data is retrievable without performing DAG traversal or additional synchronization.
+
+Unlike typical DAG protocols, Autobahn avoids the costly reliable broadcast steps that enforce global availability and non-equivocation. Instead, it uses minimal coordination and trusts that at least one honest replica per PoA holds the data. This enables high throughput and low tail latency even under varying load or partial failures. The data layer continues progressing independently of consensus, ensuring responsiveness during blips.
+
+## Consensus layer: low-latency agreement
+
+![Autobahn: Seamless high speed BFT](/images/autobahn-high-speed2.png)
+
+*Autobahn: Seamless high speed BFT*
+
+The consensus layer in Autobahn builds upon classic PBFT principles but introduces key optimizations to reduce latency and support seamless recovery. Each consensus slot targets the commitment of a "**tip cut**" that captures the latest certified proposal from every replica's lane. The consensus leader proposes this cut using a two-phase commit process: Prepare and Confirm.
+
+During the Prepare phase, replicas vote on the proposed tip cut. If the leader receives enough votes quickly (a full quorum), it can enter the Fast Path and commit immediately with only 3 message delays. If not, it proceeds to the Confirm phase, collecting another quorum of acknowledgments before finalizing the commit in 6 message delays.
+
+A key innovation is the decoupling of data synchronization from consensus voting. Replicas are allowed to vote based on the certified tips alone, even if they haven’t received the full proposal data yet. This is safe because the PoA ensures retrievability. Synchronization happens in parallel and finishes before the execution stage, avoiding protocol stalls. In the event of leader failure or timeout, view changes are triggered using timeout certificates, and new leaders can resume progress efficiently.
+
+## Key properties of Autobahn
+
+Autobahn satisfies the standard **safety** and **liveness** guarantees expected from BFT protocols. Safety ensures that no two correct replicas commit different blocks for the same slot. Liveness guarantees progress after global stabilization time (GST) as long as a correct leader is eventually selected.
+
+More importantly, Autobahn achieves **seamlessness**. It avoids protocol-induced hangovers by allowing the consensus layer to commit arbitrarily large data backlogs in constant time. Even after a blip, as soon as synchrony returns, all data proposals that were successfully disseminated can be committed immediately. This enables Autobahn to operate smoothly in environments with intermittent faults, outperforming traditional BFT protocols in both recovery time and system responsiveness.
+
+In addition, the protocol **scales horizontally**. Each replica contributes to the system's throughput via its own lane, and consensus cuts grow naturally with the number of participants. This makes Autobahn suitable for large-scale deployments requiring both high performance and robustness.
+
+## Low latency meets high resilience
+
+Autobahn was evaluated against leading BFT protocols, particularly Bullshark and HotStuff, under both ideal and fault-injected conditions. The results demonstrate that Autobahn achieves the best of both worlds: it matches Bullshark’s throughput, processing over 230,000 transactions per second, while reducing its latency by more than 50%.
+
+Under good network conditions, Autobahn commits transactions with just 3 to 6 message delays, compared to Bullshark’s 12. This translates to commit latencies as low as 280ms in practice, versus over 590ms for Bullshark. Unlike HotStuff, which suffers from long hangovers after blips due to backlog processing delays, Autobahn commits its entire backlog in a single step as soon as the network stabilizes.
+
+In scenarios involving leader failures or partial network partitions, Autobahn demonstrates seamless recovery. It continues disseminating data during faults and quickly commits accumulated proposals once consensus resumes. These performance advantages make Autobahn a compelling choice for blockchain platforms seeking to combine low-latency responsiveness with high throughput and fault tolerance.
+
+## Further reading
+
+For more technical deep-dives and details, refer to:
+
+- [Autobahn: Seamless high speed BFT](https://arxiv.org/pdf/2401.10369)
+
+## Next recommended
+
+- [**Consensus**](/en/explanation/consensus) — Return to StableBFT, the consensus implementation that Autobahn evolves.
+- [**Finality**](/en/explanation/finality) — Use Stable's single-slot finality when building against the RPC.

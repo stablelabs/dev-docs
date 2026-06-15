@@ -1,0 +1,107 @@
+---
+title: "Monetize HTTP endpoints"
+description: "x402 is a payment protocol built on HTTP. A server asks for payment, a client signs it, and a facilitator settles it on-chain. No accounts, no API keys, no subscriptions."
+diataxis: "explanation"
+---
+
+# Monetize HTTP endpoints
+
+x402 is a payment protocol built on HTTP. A server responds with `402 Payment Required` and payment details, a client signs an [ERC-3009](/en/explanation/erc-3009) authorization, and a facilitator settles it on-chain. The entire exchange happens over standard HTTP headers. The client only needs a wallet: no sign-up, no API keys, no card registration.
+
+This applies to any scenario where a client pays a server for a resource or service: API access, digital content, merchant checkout, or agent-to-agent payments.
+
+## x402 and MPP
+
+x402 is the original HTTP-402 payment protocol. The [Machine Payments Protocol (MPP)](/en/explanation/mpp) is a broader, IETF-track successor that adds payment intents (sessions, subscriptions), multi-rail support (cards, Lightning), and production features (body-digest binding, idempotency). MPP clients are backward compatible: they can call x402 servers without changes.
+
+On Stable today, the most direct path is x402 via Semantic Pay or Heurist. To use MPP's wire format on the same USDT0 rail, see [Build an MPP endpoint on Stable](/en/how-to/build-mpp-endpoint).
+
+## What problem does it solve?
+
+Paying for a service on the internet today requires user intervention at every step: sign up for an account, sign in, register a payment method. This model does not scale to:
+
+- Services too small to justify the infrastructure cost
+- Transactions too cheap for card network fees
+- Autonomous agents (AI, bots, IoT devices) that cannot perform sign-up flows
+
+With x402, a client only needs a wallet to pay.
+
+| **Aspect** | **Traditional billing** | **With x402** |
+| :--- | :--- | :--- |
+| Account required | Yes | No |
+| API key required | Yes | No |
+| Minimum viable price | ~$0.30 (card processing floor) | ~$0.001 (on-chain) |
+| Settlement time | Days (card networks) | Sub-second (on Stable) |
+| PCI compliance needed | Yes | No |
+
+## How it works
+
+### The three roles
+
+**Client** is whoever needs the resource: a web app, a backend service, a CLI tool, or an AI agent. The client only needs a wallet (a private key that can sign ERC-3009 authorizations).
+
+**Server** is whoever provides the resource. The server defines what costs how much by attaching x402 middleware to its endpoints.
+
+**Facilitator** is the settlement service. It receives the signed payment from the server, verifies it, submits the on-chain transaction, and returns the result. The facilitator never holds the client's funds. The transfer moves directly from client to server within the token contract.
+
+On Stable, [Semantic Pay](https://x402.semanticpay.io) operates a public facilitator.
+
+### The payment flow
+
+1. **Client requests a resource.** The client sends a normal HTTP request (GET, POST, etc.) to the server.
+2. **Server responds with 402.** The server returns HTTP `402 Payment Required` along with a `PAYMENT-REQUIRED` header containing all the information the client needs: how much to pay, which token, which network, and where to send the funds.
+3. **Client signs and resubmits.** The client reads the payment requirements, signs an ERC-3009 authorization for the specified amount, and resubmits the original request with a `PAYMENT-SIGNATURE` header containing the signed authorization.
+4. **Facilitator verifies and settles.** The server forwards the signed payment to its facilitator. The facilitator validates the signature, submits the `transferWithAuthorization` call on-chain, and once confirmed, the server returns the requested resource along with a `PAYMENT-RESPONSE` header containing the settlement receipt.
+
+### The three headers
+
+All payment information travels through standard HTTP headers, encoded in Base64:
+
+| **Header** | **Direction** | **Contents** |
+| :--- | :--- | :--- |
+| `PAYMENT-REQUIRED` | Server to client | Payment scheme, token address, amount, recipient address, network identifier |
+| `PAYMENT-SIGNATURE` | Client to server | Signed ERC-3009 authorization proving the client has authorized the transfer |
+| `PAYMENT-RESPONSE` | Server to client | Settlement result including transaction hash and confirmation status |
+
+This design works with any HTTP client, any programming language, and any infrastructure that supports custom headers.
+
+## x402 on Stable
+
+The x402 protocol defines how payment works over HTTP. Stable provides the settlement environment that makes it practical for production use.
+
+### Sub-second finality
+
+Stable's consensus provides sub-second block finality (~700 milliseconds), allowing x402 facilitators to verify and settle transactions in real time. This is critical for high-frequency automated interactions where AI agents or IoT devices may execute many small payments in rapid succession.
+
+### Single-asset settlement
+
+On Stable, USDT0 is both the native gas token and the payment token. The entire x402 payment lifecycle runs on USDT0 alone. The client holds only USDT0, and the facilitator submits transactions using the same token it settles. For AI agents using x402, this means an agent wallet needs to manage only one asset.
+
+### Micro-pricing
+
+Prices are denominated in USDT0 atomic units (6 decimals): a cost parameter of `"1000"` translates to exactly $0.001. This precision allows x402 servers to set prices at fractions of a cent.
+
+### Gas waiver integration
+
+The [Gas Waiver](/en/how-to/integrate-gas-waiver) eliminates transaction costs entirely. The x402 facilitator can use the Gas Waiver infrastructure to submit `transferWithAuthorization` calls without charging gas to either the buyer or the seller. This means x402 micropayments on Stable carry no overhead beyond the payment amount itself.
+
+## Infrastructure
+
+### Semantic Pay
+
+[Semantic Pay](https://x402.semanticpay.io) provides a public x402 facilitator for Stable. It handles signature verification, on-chain submission, and confirmation tracking. Developers integrating x402 on Stable can point their middleware to this endpoint without running their own settlement infrastructure.
+
+**Facilitator endpoint:** `https://x402.semanticpay.io`
+
+### WDK (Wallet Development Kit)
+
+For AI agents to participate in x402 autonomously, they need wallets they can control programmatically. Tether's open-source WDK provides this:
+
+- **Self-custody**: WDK enables AI agents to generate and store private keys locally without relying on centralized API infrastructure.
+- **x402 compatibility**: The WDK's `WalletAccountEvm` instance natively satisfies the client signer interface required by the x402 SDK, allowing agents to automatically intercept 402 HTTP responses, sign ERC-3009 authorizations, and resubmit requests.
+
+**See also:**
+
+- [ERC-3009 (Transfer With Authorization)](/en/explanation/erc-3009): the on-chain settlement standard that x402 uses
+- [Payment use cases](/en/explanation/payment-use-cases-overview): P2P, subscriptions, invoices, and API billing patterns
+- [Gas Waiver](/en/how-to/integrate-gas-waiver): zero-cost transaction submission

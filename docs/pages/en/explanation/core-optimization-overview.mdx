@@ -1,0 +1,28 @@
+---
+title: "Overview"
+description: "Introduction to Stable's full-stack optimization covering consensus, execution, database, and RPC layers."
+diataxis: "explanation"
+---
+
+# Overview
+
+## Full stack core optimization
+
+<img
+  className="block"
+  src="/images/transaction-lifecycle.png"
+  alt="Blockchain Transaction Lifecycle"
+/>
+
+The lifecycle of a blockchain transaction, from submission to finalized result, passes through multiple tightly connected stages. A transaction is first submitted through the **RPC** interface, added to the **mempool**, packaged into a block, validated through **consensus**, executed by the **state machine**, and finally written to persistent storage in the **database**. Only after completing this full pipeline does the user receive a confirmed result.
+
+Improving just one stage in isolation is not enough. Any inefficiency in the pipeline can impact the overall performance of the system. This is why Stable focuses on optimizing the blockchain stack from top to bottom. 
+
+The following pages describe how Stable upgrades each layer of its architecture (Consensus, Execution, Database, and RPC) to ensure reliable and high-performance transaction processing.
+
+## Next recommended
+
+- [**Consensus**](/en/explanation/consensus) — Learn how StableBFT extends CometBFT for high throughput and low latency.
+- [**Execution**](/en/explanation/execution) — See how Stable EVM runs transactions in parallel with Block-STM and Optimistic Block Processing.
+- [**Storage (StableDB)**](/en/explanation/stable-db) — Understand how decoupled state commitment and memory-mapped storage remove the disk I/O bottleneck.
+- [**High performance RPC**](/en/explanation/high-performance-rpc) — Understand the split-path RPC architecture separating reads from writes.

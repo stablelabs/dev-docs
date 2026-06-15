@@ -1,0 +1,23 @@
+---
+title: "Sponsored and gasless experiences"
+description: "How Stable lets applications cover gas on behalf of users entirely, so onboarding doesn't require acquiring a gas token."
+diataxis: "explanation"
+---
+
+# Sponsored and gasless experiences
+
+Apps that want to remove gas from the user experience entirely, so a first-time user can sign in and transact without acquiring a second asset first.
+
+## The problem
+
+Requiring users to acquire a gas token before using an app creates an onboarding cliff that kills conversion for consumer-facing products. A new user who shows up with only USDT (or nothing at all) can't submit a transaction, and pushing them to a separate exchange to buy gas is where most of them drop off.
+
+## How Stable addresses it
+
+- **Gas waiver: governance-approved waiver addresses submit wrapper transactions that execute at zero gas price on the user's behalf**, so the app covers gas end-to-end and the user sees a free action. See [Gas waiver](/en/explanation/gas-waiver).
+- **EIP-7702 session keys let a dApp hold scoped, time-limited permissions**, so it can submit transactions on the user's behalf without the user signing each one. See [EIP-7702](/en/explanation/eip-7702).
+
+## Next recommended
+
+- [**Gas waiver**](/en/explanation/gas-waiver) — See how governance-approved waivers submit wrapper transactions at zero gas price.
+- [**EIP-7702**](/en/explanation/eip-7702) — Understand how EOAs can delegate scoped, time-limited permissions to a dApp.

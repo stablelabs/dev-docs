@@ -1,0 +1,24 @@
+---
+title: "System modules reference"
+description: "Bank, distribution, and staking precompile references: method signatures, ABIs, events, and authorization."
+diataxis: "reference"
+---
+
+# System modules reference
+
+Stable exposes core settlement behavior through **System Modules**, implemented as **precompiled contracts** for gas efficiency and predictable control.
+
+:::note
+**Concept:** For what system modules do and why they're exposed as precompiles, see [System modules](/en/explanation/system-modules-overview).
+:::
+
+**Key modules:**
+
+- [Bank Module](/en/reference/bank-module-api)
+  - Handles USDT transfers, balance accounting, and escrow flows
+- [Distribution Module](/en/reference/distribution-module-api)
+  - Fee distribution and reward logic for network participants
+- [Staking Module](/en/reference/staking-module-api)
+  - Controls validator participation and staking (coming with mainnet)
+
+**dApps can leverage built-in modules instead of re-implementing token or settlement logic.**

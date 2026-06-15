@@ -1,0 +1,54 @@
+---
+title: Testnet information
+description: "Chain ID, RPC endpoints, faucet, and block explorer links for the Stable Testnet network."
+diataxis: "reference"
+---
+
+# Testnet information
+
+Everything you need to know to access the Stable Testnet.
+
+## Network overview
+
+| Configuration         | Value                                                                              |
+|-----------------------|------------------------------------------------------------------------------------|
+| **Network Name**      | Stable Testnet                                                                     |
+| **Chain ID**          | `2201`                                                                             |
+| **Gas Token**         | USDT0                                                                              |
+| **Gov Token**         | STABLE                                                                             |
+| **Block Time**        | ~0.7 seconds                                                                       |
+
+## Block explorers
+
+| Explorer       | URL                                                              |
+|----------------|------------------------------------------------------------------|
+| **Stablescan** | [https://testnet.stablescan.xyz](https://testnet.stablescan.xyz) |
+
+## RPC endpoints
+
+### Primary endpoints
+
+| Type | Endpoint | Purpose |
+|------|----------|---------|
+| **EVM JSON-RPC** | https://rpc.testnet.stable.xyz | EVM transactions |
+| **WebSocket** | wss://rpc.testnet.stable.xyz | Real-time updates |
+
+:::note
+The public RPC endpoint is rate-limited to **1,000 requests per 10 seconds per IP**. Requests over the limit return `HTTP 429`. For higher throughput, use a [third-party RPC provider](/en/reference/rpc-providers).
+:::
+
+## Chain information
+
+| Parameter | EVM |
+|-----------|-----|
+| **Chain ID** | `2201` |
+| **Address Format** | `0x...` |
+| **Gas Token** | `USDT0` |
+| **Decimals** | 18 |
+
+## Faucet & tools
+
+| Tool | URL | Description |
+|------|-----|-------------|
+| **Faucet** | [https://faucet.stable.xyz](https://faucet.stable.xyz) | Get test tokens |
+| **Snapshots** | See [Node Operators Guide](/en/how-to/use-node-snapshots) | Chain snapshots |

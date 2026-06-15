@@ -1,0 +1,246 @@
+---
+title: 升级指南
+description: "Stable 网络版本变更的节点升级流程、升级类型与回滚策略。"
+---
+
+本指南涵盖 Stable 节点的升级流程，包括升级程序和回滚策略。
+
+> 有关完整的版本历史和升级详情，请参阅[版本历史](/cn/developers/testnet/version-history)。
+
+## 升级类型
+
+### 软升级（非破坏性）
+- 可随时执行
+- 向后兼容
+
+### 硬升级（破坏性）
+- 需要在特定高度升级
+- 不向后兼容
+
+### 紧急升级
+- 关键安全修复
+- 需要立即行动
+- 可能需要链停止
+
+## 标准升级程序
+
+### 步骤 1：准备工作
+
+```bash
+# 检查当前版本
+stabled version --long
+# 备份关键数据
+cp -r ~/.stabled/config ~/stable-backup-$(date +%Y%m%d)/
+
+# 仅限验证者：备份验证者状态
+cp ~/.stabled/data/priv_validator_state.json ~/stable-backup-$(date +%Y%m%d)/
+
+# 检查磁盘空间（需要当前数据大小的 2 倍）
+df -h ~/.stabled
+```
+
+### 步骤 2：下载新二进制文件
+
+```bash
+# 对于 v1.2.0-rc1 升级（2026年1月22日）
+# 选择您的架构：
+
+# Linux AMD64
+BINARY_URL="https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/binary/stabled-1.2.0-rc1-linux-amd64-testnet.tar.gz"
+
+# 或 Linux ARM64
+BINARY_URL="https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/binary/stabled-1.2.0-rc1-linux-arm64-testnet.tar.gz"
+
+# 下载新二进制文件
+wget $BINARY_URL
+
+# 解压到临时位置
+tar -xvzf stabled-1.2.0-rc1-linux-*.tar.gz -C /tmp/
+
+# 验证新版本
+/tmp/stabled version --long
+```
+
+### 步骤 3：执行升级
+
+#### 对于软升级
+
+```bash
+# 停止节点
+sudo systemctl stop ${SERVICE_NAME}
+
+# 备份当前二进制文件
+sudo mv /usr/bin/stabled /usr/bin/stabled.backup
+
+# 安装新二进制文件
+sudo mv /tmp/stabled /usr/bin/stabled
+sudo chmod +x /usr/bin/stabled
+
+# 验证安装
+stabled version --long
+
+# 启动节点
+sudo systemctl start ${SERVICE_NAME}
+
+# 监控日志
+sudo journalctl -u ${SERVICE_NAME} -f
+```
+
+#### 对于硬升级
+
+```bash
+# 监控升级高度
+while true; do
+    HEIGHT=$(curl -s localhost:26657/status | jq -r '.result.sync_info.latest_block_height')
+    echo "当前高度：$HEIGHT"
+    if [ $HEIGHT -ge $UPGRADE_HEIGHT ]; then
+        break
+    fi
+    sleep 10
+done
+
+# 节点将在升级高度自动停止
+# 等待日志中的停止消息
+sudo journalctl -u ${SERVICE_NAME} -f | grep "UPGRADE"
+
+# 一旦停止，执行升级
+sudo systemctl stop ${SERVICE_NAME}
+sudo mv /usr/bin/stabled /usr/bin/stabled.backup
+sudo mv /tmp/stabled /usr/bin/stabled
+
+# 使用新二进制文件启动
+sudo systemctl start ${SERVICE_NAME}
+```
+
+### 步骤 4：升级后验证
+
+```bash
+# 检查节点状态
+curl -s localhost:26657/status | jq '.result'
+
+# 验证版本
+curl -s localhost:26657/status | jq '.result.node_info.version'
+
+# 检查对等节点
+curl -s localhost:26657/net_info | jq '.result.n_peers'
+
+# 监控同步状态
+watch -n 2 'curl -s localhost:26657/status | jq ".result.sync_info"'
+
+# 检查错误
+sudo journalctl -u ${SERVICE_NAME} --since "10 minutes ago" | grep -i error
+```
+
+## Cosmovisor 设置（自动升级）
+
+Cosmovisor 自动化协调升级的升级流程。
+
+### 安装
+
+```bash
+# 安装 cosmovisor
+go install cosmossdk.io/tools/cosmovisor/cmd/cosmovisor@latest
+
+# 或下载二进制文件
+wget https://github.com/cosmos/cosmos-sdk/releases/download/cosmovisor%2Fv1.7.0/cosmovisor-v1.7.0-linux-amd64.tar.gz
+tar -xzf cosmovisor-v1.7.0-linux-amd64.tar.gz
+sudo mv cosmovisor /usr/bin/
+```
+
+### 配置
+
+```bash
+# 设置环境变量
+cat >> ~/.bashrc <<EOF
+export DAEMON_NAME=stabled
+export DAEMON_HOME=$HOME/.stabled
+export DAEMON_RESTART_AFTER_UPGRADE=true
+export DAEMON_ALLOW_DOWNLOAD_BINARIES=true
+export UNSAFE_SKIP_BACKUP=false
+EOF
+
+source ~/.bashrc
+
+# 创建目录结构
+mkdir -p $DAEMON_HOME/cosmovisor/genesis/bin
+mkdir -p $DAEMON_HOME/cosmovisor/upgrades
+
+# 将当前二进制文件复制到 genesis
+cp /usr/bin/stabled $DAEMON_HOME/cosmovisor/genesis/bin/
+
+# 创建 systemd 服务
+sudo tee /etc/systemd/system/cosmovisor.service > /dev/null <<EOF
+[Unit]
+Description=Cosmovisor daemon
+After=network-online.target
+
+[Service]
+Environment="DAEMON_NAME=stabled"
+Environment="DAEMON_HOME=$HOME/.stabled"
+Environment="DAEMON_RESTART_AFTER_UPGRADE=true"
+Environment="DAEMON_ALLOW_DOWNLOAD_BINARIES=true"
+User=$USER
+ExecStart=/usr/bin/cosmovisor run start --chain-id stabletestnet_2201-1
+Restart=always
+RestartSec=3
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# 启用并启动
+sudo systemctl daemon-reload
+sudo systemctl enable cosmovisor
+sudo systemctl start cosmovisor
+```
+
+### Cosmovisor 升级
+
+```bash
+# 为每个升级创建目录（使用提案中的升级名称）
+mkdir -p $DAEMON_HOME/cosmovisor/upgrades/v1.2.0-rc1/bin
+
+# 放置新二进制文件
+cp /path/to/new/stabled $DAEMON_HOME/cosmovisor/upgrades/v1.2.0-rc1/bin/
+
+# Cosmovisor 将在升级高度自动切换
+```
+
+## 回滚
+
+```bash
+# 停止节点
+sudo systemctl stop ${SERVICE_NAME}
+
+# 备份当前状态（以防需要）
+cp -r ~/.stabled/data ~/.stabled/data.failed
+
+# 从升级前快照恢复
+cd ~/.stabled
+rm -rf data/
+tar -I lz4 -xf ~/snapshots/pre-upgrade-snapshot.tar.lz4
+
+# 恢复先前的二进制文件
+sudo mv /usr/bin/stabled.backup /usr/bin/stabled
+
+# 启动节点
+sudo systemctl start ${SERVICE_NAME}
+```
+
+## 紧急情况
+
+```bash
+# 如果链意外停止
+# 1. 查看 Discord 获取说明
+# 2. 在最后已知良好高度导出状态
+stabled export --height <last_good_height> > export.json
+
+# 3. 等待协调重启说明
+```
+
+## 下一步
+
+- [版本历史](/cn/developers/testnet/version-history) - 完整升级历史和发布说明
+- 升级后[监控您的节点](./monitoring)
+- 查看[故障排除](./troubleshooting)了解常见问题

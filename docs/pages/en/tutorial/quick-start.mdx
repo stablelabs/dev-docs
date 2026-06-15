@@ -1,0 +1,120 @@
+---
+title: "Quick start"
+description: "Connect to Stable testnet, fund a wallet from the faucet, and send your first USDT0 transaction"
+diataxis: "tutorial"
+---
+
+# Quick start
+
+The only tools you need are Node.js, some USDT0 from the faucet and a private key. Stable uses USDT0 as its gas token, so you only need USDT0 to transact. There is no separate gas asset to fund.
+
+:::note
+Prefer a typed client? The [Stable SDK](/en/explanation/sdk-overview) wraps viem with `transfer`, `bridge`, and `swap` methods so you skip the manual ABI and decimals work.
+:::
+
+## Prerequisites
+
+- Node.js 20 or later
+- A private key you control (a fresh test key is fine)
+
+## 1. Install and configure
+
+Create a project, install `ethers`, and save the testnet config.
+
+```bash
+mkdir stable-quickstart && cd stable-quickstart
+npm init -y && npm install ethers
+```
+
+```text
+added 1 package, audited 2 packages in 1s
+```
+
+Save your private key to `.env`:
+
+```bash
+echo "PRIVATE_KEY=0xYOUR_PRIVATE_KEY_HERE" > .env
+```
+
+Create `config.ts`:
+
+```typescript
+// config.ts
+import { ethers } from "ethers";
+import "dotenv/config";
+
+export const STABLE_TESTNET_RPC = "https://rpc.testnet.stable.xyz";
+export const CHAIN_ID = 2201;
+
+export const provider = new ethers.JsonRpcProvider(STABLE_TESTNET_RPC);
+export const wallet = new ethers.Wallet(process.env.PRIVATE_KEY!, provider);
+```
+
+## 2. Fund the wallet
+
+Print your address, then request testnet USDT0 from the faucet.
+
+```typescript
+// address.ts
+import { wallet } from "./config";
+
+console.log("Wallet address:", wallet.address);
+```
+
+```bash
+npx tsx address.ts
+```
+
+```text
+Wallet address: 0x1234...abcd
+```
+
+Go to [https://faucet.stable.xyz](https://faucet.stable.xyz), paste the address, and select the button to receive testnet USDT0. The faucet sends 1 USDT0, enough for thousands of native transfers.
+
+## 3. Send your first transaction
+
+Send 0.001 USDT0 natively. On Stable, USDT0 is the native asset, so a simple value transfer is the cheapest path (21,000 gas).
+
+```typescript
+// send.ts
+import { ethers } from "ethers";
+import { provider, wallet } from "./config";
+
+const recipient = "0xRecipientAddress"; // replace with any address
+const amount = ethers.parseEther("0.001"); // 0.001 USDT0 (18 decimals, native)
+
+const block = await provider.getBlock("latest");
+const baseFee = block!.baseFeePerGas!;
+
+const tx = await wallet.sendTransaction({
+  to: recipient,
+  value: amount,
+  maxFeePerGas: baseFee * 2n,
+  maxPriorityFeePerGas: 0n, // always 0 on Stable
+});
+
+const receipt = await tx.wait(1);
+console.log("Tx:", receipt!.hash);
+console.log("Explorer:", `https://testnet.stablescan.xyz/tx/${receipt!.hash}`);
+```
+
+```bash
+npx tsx send.ts
+```
+
+```text
+Tx: 0x8f3a...2d41
+Explorer: https://testnet.stablescan.xyz/tx/0x8f3a...2d41
+```
+
+Open the explorer link to confirm the transaction. Block time is roughly 0.7 seconds, so it should already be final.
+
+:::warning
+`maxPriorityFeePerGas` is ignored by Stable and must be set to `0`. See [Gas pricing](/en/reference/gas-pricing-api) for how the base-fee-only model changes transaction construction.
+:::
+
+## Where to go next
+
+- [**Deploy a smart contract**](/en/tutorial/smart-contract) — Scaffold a Foundry project and deploy to Stable testnet.
+- [**Build a payment app**](/en/how-to/build-p2p-payments) — Create wallet, send, receive, and query payment history.
+- [**Develop with AI**](/en/how-to/develop-with-ai) — Wire MCP servers and agent skills into your AI editor.

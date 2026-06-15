@@ -1,0 +1,112 @@
+---
+title: "Use the SDK with viem"
+description: "Sign with @stablechain/sdk three ways: a private-key Account, a browser Transport, or a pre-built viem WalletClient."
+diataxis: "how-to"
+---
+
+# Use the SDK with viem
+
+`@stablechain/sdk` is built on viem. `createStable` accepts three signing modes, and you pick one based on where the code runs: server-side with a private key, browser-side with the user's wallet, or with a `WalletClient` you've already constructed (for example, in a wagmi app).
+
+This guide shows each mode end-to-end.
+
+## Server-side: private-key `Account`
+
+Use `privateKeyToAccount` from viem to sign with a private key held by your backend.
+
+```ts
+import "dotenv/config";
+import { createStable, Network } from "@stablechain/sdk";
+import { privateKeyToAccount } from "viem/accounts";
+
+const account = privateKeyToAccount(process.env.PRIVATE_KEY as `0x${string}`);
+
+const stable = createStable({
+  network: Network.Mainnet,
+  account,
+});
+
+const { txHash } = await stable.transfer({
+  from: account.address,
+  to: "0xRecipient",
+  amount: 5,
+});
+
+console.log(txHash);
+```
+
+```text
+0x8f3a...2d41
+```
+
+## Browser-side: `Transport` from a wallet
+
+Pass `custom(window.ethereum)` (or any EIP-1193 provider) as `transport`. The SDK builds the `WalletClient` and reads the signer address from the provider.
+
+```ts
+import { createStable, Network } from "@stablechain/sdk";
+import { custom } from "viem";
+
+const stable = createStable({
+  network: Network.Mainnet,
+  transport: custom(window.ethereum),
+});
+
+const [from] = await window.ethereum.request({ method: "eth_requestAccounts" });
+
+const { txHash } = await stable.transfer({
+  from,
+  to: "0xRecipient",
+  amount: 5,
+});
+```
+
+```text
+0x8f3a...2d41
+```
+
+:::warning
+`transfer`, `bridge`, and `swap` call `switchChain` to put the wallet on the right network. If the user rejects, the SDK throws `StableTransactionError` with `phase: "switch_chain"`. Catch it and surface a retry to the user.
+:::
+
+## Bring your own `WalletClient`
+
+When you already have a `WalletClient` (for example, from wagmi or a custom signer), pass it directly. It takes precedence over `account` and `transport`.
+
+```ts
+import { createStable, Network } from "@stablechain/sdk";
+import { createWalletClient, custom } from "viem";
+import { stable as stableChain } from "viem/chains";
+
+const walletClient = createWalletClient({
+  chain: stableChain,
+  transport: custom(window.ethereum),
+});
+
+const [from] = await walletClient.requestAddresses();
+
+const stable = createStable({
+  network: Network.Mainnet,
+  walletClient,
+});
+
+const { txHash } = await stable.transfer({ from, to: "0xRecipient", amount: 5 });
+```
+
+```text
+0x8f3a...2d41
+```
+
+## Pick a mode
+
+| **Mode** | **Use when** |
+| :--- | :--- |
+| `account` | Backend services, scripts, agents — anywhere you hold the key. |
+| `transport` | Browser apps where the user signs with MetaMask or a wagmi-less custom flow. |
+| `walletClient` | You already have a configured `WalletClient` (wagmi, RainbowKit, ConnectKit). |
+
+## Next recommended
+
+- [**Use with wagmi**](/en/how-to/sdk-with-wagmi) — Wire the SDK into a React app through wagmi hooks.
+- [**SDK reference**](/en/reference/sdk) — Every config field, method, enum, and error class.
+- [**SDK quickstart**](/en/tutorial/sdk-quickstart) — Run your first transfer, bridge, and swap on testnet.

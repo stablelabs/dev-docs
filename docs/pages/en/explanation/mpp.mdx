@@ -1,0 +1,61 @@
+---
+title: "Machine Payments Protocol (MPP)"
+description: "Understand MPP, the IETF-track payment standard that extends x402, and how to use it for USDT0 payments on Stable."
+diataxis: "explanation"
+---
+
+# Machine Payments Protocol (MPP)
+
+MPP (Machine Payments Protocol) is an open standard for paying for HTTP resources in the same request that asks for them. It extends [x402](/en/explanation/x402) with new payment intents (charge, subscription, session), multi-rail support (stablecoins, cards, Lightning), production features (idempotency, body-digest binding, expiration), and additional transports (MCP, WebSocket). The protocol is on the IETF standards track.
+
+## MPP and x402
+
+MPP clients are backward compatible: an MPP client can call an existing x402 server without changes. Where the two protocols differ:
+
+| **Aspect** | **x402** | **MPP** |
+| :--- | :--- | :--- |
+| Payment intents | Per-request charge | Charge, subscription, session |
+| Rails | Blockchain only | Stablecoins, cards, Lightning, custom |
+| Production features | Limited | Idempotency, body-digest binding, expiration |
+| Transports | HTTP | HTTP, MCP/JSON-RPC, WebSocket |
+| Headers (client ↔ server) | `PAYMENT-REQUIRED` / `PAYMENT-SIGNATURE` / `PAYMENT-RESPONSE` | `WWW-Authenticate` / `Authorization` / `Payment-Receipt` |
+| Governance | Community protocol | IETF standards track |
+| Method authorship | Foundation-controlled | Permissionless |
+
+## Challenge, credential, receipt
+
+MPP wraps every paid request in a three-step exchange between the client and the resource server:
+
+1. **Challenge.** The server responds with `402 Payment Required` and a `WWW-Authenticate` header that names the supported methods, the amount, and an expiration.
+2. **Credential.** The client picks a method, signs a proof of payment, and resubmits the request with an `Authorization` header carrying the serialized credential.
+3. **Receipt.** The server verifies the credential, settles the payment, and returns the response with a `Payment-Receipt` header containing the settlement reference.
+
+A challenge can be cryptographically bound to the request body via a body digest, so a credential signed for one request cannot be reused on a different one.
+
+## Payment intents
+
+**Charge.** A one-time payment for a single resource. The credential authorizes one transfer of an exact amount.
+
+**Subscription.** Recurring payments under a single scoped credential. The credential authorizes repeated charges across a billing period, with the rail enforcing renewal cadence.
+
+**Session.** Pay-as-you-go with off-chain vouchers. The client deposits funds into an escrow once, then signs cheap off-chain vouchers for each request. Only the net amount settles on-chain. See [MPP sessions](/en/explanation/mpp-sessions) for details.
+
+## Transports
+
+MPP defines the same challenge / credential / receipt exchange over multiple transports:
+
+- **HTTP.** The default. Headers as listed above.
+- **MCP / JSON-RPC.** Lets an MCP server monetize individual tool calls. An AI client signs a credential before invoking the tool.
+- **WebSocket.** Persistent connections with in-band voucher top-ups, designed for streaming sessions.
+
+## MPP on Stable
+
+MPP does not ship a Stable payment method. The `mppx` SDK ([wevm/mppx](https://github.com/wevm/mppx)) includes methods for Tempo and Stripe, and `mpp.dev` lists Tempo, Stripe, Lightning, Solana, Stellar, Monad, and RedotPay. Stable is not on either list today.
+
+The standard is permissionless, so you can author your own method. For USDT0 on Stable, the `verify()` hook is signature validation against ERC-3009, and settlement is delegated to an existing settlement service: an x402 facilitator like [Semantic Pay](https://docs.semanticpay.io) or [Heurist](https://docs.heurist.ai/x402-products/facilitator), or Stable's own [Gas Waiver](/en/how-to/integrate-gas-waiver). See [Build an MPP endpoint on Stable](/en/how-to/build-mpp-endpoint) for the full walkthrough.
+
+## Next recommended
+
+- [**Build an MPP endpoint on Stable**](/en/how-to/build-mpp-endpoint) — Write the three MPP custom-method hooks for USDT0 and settle a real payment.
+- [**MPP sessions**](/en/explanation/mpp-sessions) — Stream micropayments with off-chain vouchers and one net settlement.
+- [**x402**](/en/explanation/x402) — Read the original HTTP-402 protocol that MPP generalizes.

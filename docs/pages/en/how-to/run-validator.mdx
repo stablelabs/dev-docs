@@ -1,0 +1,152 @@
+---
+title: "Create a validator"
+description: "Promote a synced Stable node to an active validator: prepare keys, register with the staking precompile, verify, and self-delegate."
+diataxis: "how-to"
+---
+
+A validator is a synced full node that has registered on-chain and bonded stake. You install and sync the node first, then register it by calling `createValidator` on the staking precompile (`0x0000000000000000000000000000000000000800`). This page covers the registration step. For the node itself, see [Install a node](/en/how-to/install-node) and [Node configuration](/en/reference/node-configuration).
+
+:::warning
+Register only after your node is fully synced. A validator that signs before it has caught up can double-sign and be permanently removed from the set (tombstoned). Set `double_sign_check_height = 2` or higher in `config.toml` before you start (see [Node configuration](/en/reference/node-configuration#consensus-configuration)). Setting it to `1` performs no check.
+:::
+
+## Prerequisites
+
+- A fully synced full node on Mainnet (Chain ID `988`). See [Install a node](/en/how-to/install-node).
+- `double_sign_check_height` set to `2` or higher in `~/.stabled/config/config.toml`.
+- [Foundry](https://book.getfoundry.sh/) installed for `cast`, used to call the precompile.
+- The staking amount funded on your validator's EVM address, in USDT0.
+
+Confirm the node has caught up before going further. `catching_up` must be `false`.
+
+```bash
+curl -s localhost:26657/status | jq '.result.sync_info.catching_up'
+```
+
+```text
+false
+```
+
+## Step 1: prepare validator keys
+
+Create the operator account, then read the two values `createValidator` needs: the consensus public key (base64) and the validator's EVM address.
+
+```bash
+# Create the validator operator account
+stabled keys add validator
+
+# Consensus public key (base64) — save this
+stabled comet show-validator | jq .key
+
+# Derive the validator's EVM address (0x form)
+stabled keys parse $(stabled keys show validator -a)
+```
+
+```text
+"AbCd...base64PubKey...=="
+# ...
+# then, evm address is 0xCAEA59C7476C87D0FF6BE6F04DA207601D5BE7D0
+```
+
+:::warning
+Back up `~/.stabled/config/priv_validator_key.json` offline and never run two nodes with the same key. Two instances signing with one key is double-signing and results in a permanent slash.
+:::
+
+## Step 2: set up environment
+
+```bash
+# Staking precompile contract address
+export STAKING_ADDRESS="0x0000000000000000000000000000000000000800"
+
+# Mainnet EVM RPC
+export RPC_URL="https://rpc.stable.xyz"
+
+# Your operator private key and validator EVM address
+export PRIVATE_KEY="your_private_key_here"
+export VALIDATOR_ADDRESS="0xYourValidatorAddress"
+
+# Consensus pubkey from Step 1
+export PUBKEY="AbCd...base64PubKey...=="
+
+# Self-delegation amount in wei (18 decimals). 1000000000000000000 = 1 token
+export AMOUNT="1000000000000000000"
+```
+
+## Step 3: create the validator
+
+Call `createValidator` on the staking precompile. The function takes a `description` tuple, a `commissionRates` tuple, the minimum self-delegation, the validator address, the consensus pubkey, and the bonded amount. Encode and send it with `cast`.
+
+```bash
+# createValidator(
+#   (moniker, identity, website, securityContact, details),
+#   (rate, maxRate, maxChangeRate),
+#   minSelfDelegation, validatorAddress, pubkey, value
+# )
+cast send "$STAKING_ADDRESS" \
+  "createValidator((string,string,string,string,string),(uint256,uint256,uint256),uint256,address,string,uint256)" \
+  "(\"My Validator\",\"keybase-id\",\"https://example.com\",\"security@example.com\",\"My validator description\")" \
+  "(100000000000000000,200000000000000000,10000000000000000)" \
+  "1000000000000000000" \
+  "$VALIDATOR_ADDRESS" \
+  "$PUBKEY" \
+  "$AMOUNT" \
+  --rpc-url "$RPC_URL" \
+  --private-key "$PRIVATE_KEY"
+```
+
+```text
+transactionHash   0x4f...c2
+status            1 (success)
+```
+
+The commission tuple is `(rate, maxRate, maxChangeRate)`, each scaled to 18 decimals. The example sets a 10% rate (`100000000000000000`), a 20% ceiling, and a 1% maximum daily change. `maxRate` and `maxChangeRate` are fixed at creation and cannot be edited later. A successful call emits a `CreateValidator` event. See the [staking precompile reference](/en/reference/staking-module-api#createvalidator) for every field.
+
+## Step 4: verify
+
+Confirm the validator is registered and bonded by reading it back from the staking precompile, then check it is signing blocks.
+
+```bash
+# Read your validator's on-chain record
+cast call "$STAKING_ADDRESS" \
+  "validator(address)" "$VALIDATOR_ADDRESS" \
+  --rpc-url "$RPC_URL"
+
+# Confirm the node reports validator info
+curl -s localhost:26657/status | jq '.result.validator_info'
+```
+
+```text
+# validator() returns the moniker, tokens, commission, and a bonded status (3)
+# validator_info shows your consensus address with non-zero voting power
+```
+
+## Add self-delegation
+
+To bond more stake to your own validator after creation, call `delegate` on the same precompile.
+
+```bash
+cast send "$STAKING_ADDRESS" \
+  "delegate(address,address,uint256)" \
+  "$VALIDATOR_ADDRESS" "$VALIDATOR_ADDRESS" "$AMOUNT" \
+  --rpc-url "$RPC_URL" \
+  --private-key "$PRIVATE_KEY"
+```
+
+```text
+status            1 (success)
+```
+
+## After registration
+
+Keep the validator healthy and ready for network upgrades:
+
+- **Monitor signing and missed blocks** with the Prometheus and Grafana stack in [Monitor a node](/en/how-to/monitor-node).
+- **Automate upgrades** so you don't miss an upgrade height. See the Cosmovisor setup in [Install a node](/en/how-to/install-node#cosmovisor-setup-recommended-for-automatic-upgrades) and [Upgrade a node](/en/how-to/upgrade-node).
+- **Diagnose problems** (not syncing, not signing) with [Troubleshoot a node](/en/how-to/troubleshoot-node).
+
+## Next recommended
+
+- [**Staking precompile reference**](/en/reference/staking-module-api) — Look up the full createValidator, delegate, and editValidator signatures and structs.
+- [**Node configuration**](/en/reference/node-configuration) — Set double_sign_check_height and other validator-critical config before you register.
+- [**Monitor a node**](/en/how-to/monitor-node) — Track signing, missed blocks, and resource usage so you catch problems before a slash.
+- [**Index validator data**](/en/how-to/index-validator-data) — Read your validator's stake, uptime, and voting history on-chain once it is live.

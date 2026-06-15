@@ -1,0 +1,52 @@
+---
+title: Mainnet information
+description: "Chain ID, RPC endpoints, block explorer, and network parameters for the Stable Mainnet."
+diataxis: "reference"
+---
+
+# Mainnet information
+
+Everything you need to know to access Stable Mainnet.
+
+## Network overview
+
+| Configuration         | Value                                                                              |
+|-----------------------|------------------------------------------------------------------------------------|
+| **Network Name**      | Stable Mainnet                                                                     |
+| **Chain ID**          | `988`                                                                              |
+| **Gas Token**         | USDT0                                                                              |
+| **Gov Token**         | STABLE                                                                             |
+| **Block Time**        | ~0.7 seconds                                                                       |
+
+## Block explorers
+
+| Explorer       | URL                                                      |
+|----------------|----------------------------------------------------------|
+| **Stablescan** | [https://stablescan.xyz](https://stablescan.xyz)         |
+
+## RPC endpoints
+
+### Primary endpoints
+
+| Type | Endpoint | Purpose |
+|------|----------|---------|
+| **EVM JSON-RPC** | https://rpc.stable.xyz | EVM transactions |
+| **WebSocket** | wss://rpc.stable.xyz | Real-time updates |
+
+:::note
+The public RPC endpoint is rate-limited to **1,000 requests per 10 seconds per IP**. Requests over the limit return `HTTP 429`. For higher throughput, use a [third-party RPC provider](/en/reference/rpc-providers).
+:::
+
+## Chain information
+
+| Parameter | EVM |
+|-----------|-----|
+| **Chain ID** | `988` |
+| **Gas Token** | `USDT0` |
+| **Decimals** | 18 |
+
+## Tools
+
+| Tool | URL | Description |
+|------|-----|-------------|
+| **Snapshots** | See [Node Operators Guide](/en/how-to/use-node-snapshots) | Chain snapshots |

@@ -1,0 +1,65 @@
+---
+title: "Flow of Funds"
+description: "End-to-end lifecycle of USDT on Stable, from on-ramp through on-chain transfer to off-ramp settlement."
+diataxis: "explanation"
+---
+
+# Flow of Funds
+
+Stable is the first blockchain purpose-built for stablecoin payments. The network is optimized for high-throughput, low-latency stablecoin transactions, delivering P2P payments and merchant acceptance with immediate settlement in USDT. Application-layer gas sponsorship and waivers allow providers to offer a zero-fee experience for end users, providing the feel of a mainstream payments network while abstracting away the complexity of blockchain systems.
+
+This page describes the complete lifecycle of funds on Stable: how USDT enters the network, moves between participants, and exits back to fiat rails.
+
+## 1. Customer deposit (on-ramp)
+
+A user brings money into the network through one of three primary channels:
+
+- **Crypto transfer**: Any major cryptocurrency is bridged or converted to USDT0 on Stable. USDT0 is the omnichain standard for USDT and the primary form factor on the network.
+- **Fiat on-ramp**: Card, ACH, or local payment method converts fiat to USDT0, delivered directly into the user's wallet.
+- **CEX withdrawal**: The user withdraws USDT from a supporting centralized exchange, selecting Stable as the destination network. The exchange settles directly into the user's wallet.
+
+In all cases the end state is the same: the user's wallet holds USDT (as USDT0) directly on Stable.
+
+## 2. P2P / merchant transfer (on-chain pay-in)
+
+Once funds are on Stable, the customer sends USDT directly to another user or merchant. Key properties of on-chain transfers:
+
+- **Instant settlement**: transfers settle on-chain immediately.
+- **Non-custodial**: in the case of a non-custodial wallet, no PSP or intermediary ever touches user balances between source and destination.
+- **Single asset**: because USDT is both the gas and settlement asset, there are no extra tokens in the flow and no hidden spreads.
+- **Zero-gas option**: gas waivers allow end users to move funds without needing to manage blockchain fees. See [Gas Waiver](/en/reference/gas-waiver-api) for details.
+
+## 3. User / merchant balance
+
+Merchants receive USDT in their Stable wallet under their own direct control. Funds are held on-chain under the user or merchant's custody. These wallets can be created and managed by a payments provider on behalf of the user.
+
+## 4. Merchant withdrawal (off-ramp / payout)
+
+When a merchant or user requests off-chain fiat settlement:
+
+1. The provider initiates a conversion (USDT → fiat) via banking or payout rails.
+2. Funds are credited to the merchant's chosen account.
+
+The provider re-enters the flow only to cash merchants out, not during intra-ecosystem transfers. Day-to-day P2P flows require no intermediation; providers participate only at deposit (USDT transfer to a merchant's account) or withdrawal (USDT → fiat).
+
+## Cross-asset trades
+
+Stable also supports scenarios where the payer holds a non-USDT cryptocurrency.
+
+### User trades into another cryptocurrency
+
+A user may hold or trade into another cryptocurrency (e.g., BTC or ETH) through an integrated exchange, broker, or on-chain DEX. At the point of payment the system automatically converts the selected cryptocurrency into USDT, which is then transmitted to the merchant's Stable wallet. All on-chain settlement continues to occur in USDT regardless of the user's preferred asset.
+
+### Merchant acceptance of cryptocurrency payments
+
+Merchants do not need to accept or manage multiple cryptocurrencies directly. They are always credited with USDT in their Stable wallet, preserving a single settlement currency across the network. This design minimizes FX exposure for merchants and simplifies reconciliation and reporting.
+
+### Provider's role in conversion
+
+The conversion logic (e.g., BTC → USDT) may be handled by an exchange partner, liquidity provider, or the payments provider's own treasury. The merchant remains insulated from volatility or liquidity risks; they only ever receive USDT.
+
+## Next recommended
+
+- [**USDT as gas**](/en/explanation/usdt-as-gas-token) — Understand how USDT0 serves as both native gas and ERC-20 balance on Stable.
+- [**Bridging to Stable**](/en/explanation/usdt0-bridging) — See how USDT0 moves onto Stable from other chains via OFT Mesh or Legacy Mesh.
+- [**Send your first USDT0**](/en/tutorial/send-usdt0) — Submit a USDT0 transfer on testnet using standard EVM tooling.

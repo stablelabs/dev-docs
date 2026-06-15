@@ -1,0 +1,25 @@
+---
+title: "Payments & transfers"
+description: "How Stable supports P2P payments and merchant settlement with a single-asset model, zero-fee UX, and immediate finality."
+diataxis: "explanation"
+---
+
+# Payments & transfers
+
+P2P payments and merchant settlement built around one asset that moves the money and pays for the transaction.
+
+## The problem
+
+On general-purpose chains, users must hold a separate gas token (ETH, SOL) just to move stablecoins. That breaks the "send a dollar, receive a dollar" mental model and bleeds conversion at onboarding, where a payer who only has USDT can't even submit the transfer.
+
+## How Stable addresses it
+
+- **USDT0 is both the gas token and the payment asset.** A user only ever needs one asset to send or receive. See [USDT as gas](/en/explanation/usdt-as-gas-token).
+- **Gas waiver lets applications cover gas on behalf of users**, enabling a zero-fee UX without the user touching a second token. See [Gas waiver](/en/explanation/gas-waiver).
+- **Single-slot finality means settlement is immediate.** Once a transfer is in a block, it's final. See [Ethereum comparison](/en/explanation/ethereum-comparison).
+
+## Next recommended
+
+- [**USDT as gas**](/en/explanation/usdt-as-gas-token) — Understand the asset that replaces ETH for gas and payment at once.
+- [**Gas waiver**](/en/explanation/gas-waiver) — See how applications cover user gas through governance-approved waiver addresses.
+- [**Ethereum comparison**](/en/explanation/ethereum-comparison) — Review what changes (finality, gas token, priority tips) when moving from Ethereum.

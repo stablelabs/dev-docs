@@ -1,0 +1,242 @@
+---
+title: "Wallets"
+description: "Wallet providers and SDKs for holding, sending, and receiving USDT on Stable."
+diataxis: "reference"
+---
+
+# Wallets
+
+## Wallets overview table
+
+| **Provider**                                                                                                                                                                                                                                                | **Category**                              | **Security Method**                                                                                                        | **Docs / Get Started**                                                                                                                                                                            | **Notes**                                                                                  |
+| :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------- | :------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :----------------------------------------------------------------------------------------- |
+| Stable Pay                                                                                                                                                                                                                                                   | User Wallet                               | TSS-MPC-based self-custody                                                                                                 | [https://blog.stable.xyz/introducing-stable-pay-the-stablecoin-payment-wallet-on-stablechain](https://blog.stable.xyz/introducing-stable-pay-the-stablecoin-payment-wallet-on-stablechain) | USDT-native payment wallet built on Stable; optimized for instant transfers           |
+| [Wallet Development Kit by Tether (WDK)](https://wallet.tether.io)                                                                                                                                                                                          | Wallet SDK                               | Self-custody                | [https://docs.wallet.tether.io](https://docs.wallet.tether.io)                                                       | Tether's open-source SDK for building self-custodial wallets across multi-chain                                               |
+| [Binance Wallet](https://www.binance.com/en/web3wallet)                                                                                                                                                                                              | User Wallet                               | MPC-based self-custody / semi-custody wallet           | [https://developers.binance.com/docs/binance-spot-api-docs/README](https://developers.binance.com/docs/binance-spot-api-docs/README)                                                       | Multi-chain wallet, supports Stable USDT                                              |
+| [Reown](https://reown.com/) (formerly WalletConnect / WalletKit)                                                                                                                                                                                     | Connectivity / Wallet Infra               | Protocol-level signing & secure relay | [https://docs.reown.com/appkit/overview](https://docs.reown.com/appkit/overview)                                                                                                           | Supports 600+ wallets, multi-chain, SDK-based integration, ideal for embedded wallet flows |
+| [Bitget Wallet](https://web3.bitget.com/en)                                                                                                                                                                                                          | User Wallet                               | Non-custodial wallet (private keys managed by user)             | [https://web3.bitget.com/en/docs/](https://web3.bitget.com/en/docs/)                                                                                                                       | Built-in dApp browser; multi-asset & multi-chain support                                   |
+| [Gate Wallet](https://www.gate.com/) (Gate Onchain)                                                                                                                                                   | User Wallet                               | Exchange-linked wallet                                                                                                     | [https://www.gate.com/](https://www.gate.com/)                                                                                                                                             | Exchange-linked wallet; suitable for CEX ↔ wallet flows                                    |
+| [OKX Wallet](https://web3.okx.com/) (OKX Onchain) | User Wallet                               | Non-custodial / MPC for recovery                                                                                           | [https://www.okx.com/earn/onchain-earn](https://www.okx.com/earn/onchain-earn)                                                                                                             | Multi-chain wallet with exchange integration                                               |
+| [Anchorage](https://www.anchorage.com/)                                                                                                                                                                                                              | Custodial / Institutional Wallet          | Bank-grade regulated custody (federally chartered bank)                                                                    | [https://www.anchorage.com/who-we-serve](https://www.anchorage.com/who-we-serve)                                                                                                           | Institutional-grade custody for stable assets                                              |
+| [Dynamic](https://www.dynamic.xyz/)                                                                                                                                                                                                                  | Embedded / In-App Wallet Infra            | Managed-key / custody-infra via SDK or backend                                                                             | [https://www.dynamic.xyz/docs/introduction/welcome](https://www.dynamic.xyz/docs/introduction/welcome)                                                                                     | Enables apps to embed wallet flows without external wallets                                |
+| [Alchemy](https://www.alchemy.com/)                                                                                                                                                                                                                  | Smart Wallets & Account Abstraction Infra | Bundler + Paymaster infrastructure (ERC-4337)                                                                              | [https://docs.alchemy.com](https://docs.alchemy.com)                                                                                                                                       | Powers AA wallets; supports sponsored gas, smart accounts                                  |
+| [Atomic Wallet](https://atomicwallet.io/)                                                                                                                                                                                                            | User Wallet                               | Non-custodial (keys stored on user device)                                                                                 | [https://atomicwallet.io/assets-status](https://atomicwallet.io/assets-status)                                                                                                             | Multi-asset mobile, desktop, and browser-extension wallet; buy USDT on Stable via the built-in [Simplex](/en/reference/ramps#simplex-by-nuvei) on-ramp |
+
+## Category guide
+
+- **User Wallets:** These are traditional consumer-facing wallets such as mobile apps, browser extensions, or exchange-linked wallets. They allow users to hold USDT, make transfers, connect to dApps, and interact directly with Stable.
+- **Wallet SDK:** A software development kit that provides developers with prebuilt tools, APIs, and infrastructure to integrate wallet creation, key management, transaction signing, and blockchain interactions directly into their applications.
+- **Custodial / Institutional Wallets:** Platforms providing regulated, enterprise-grade asset custody for institutions. These solutions focus on compliance, governance controls, secure key management, and treasury operations rather than end-user flows.
+- **Embedded / In-App Wallets:** Wallets generated inside applications through SDKs or backend systems. These enable seamless onboarding for mainstream users without requiring them to install or understand external crypto wallets.
+- **Smart Wallets / Account Abstraction:** Programmable wallets that support custom logic such as gasless transactions, bundled operations, or automated execution. These extend basic wallet functionality with developer-defined behaviors.
+- **MPC Wallet Providers:** Key-management systems using multi-party computation (MPC) to distribute private key control across multiple parties or devices. Ideal for apps or enterprises needing high-security custody without traditional seed phrases.
+- **Connectivity Providers:** Protocols such as WalletConnect (Reown) that connect wallets and dApps. They don't store assets or act as wallets themselves; instead, they provide secure communication channels for transaction signing and interaction.
+
+## 1. User wallets
+
+These are end-user wallets offered by major global exchanges. They allow users to hold USDT, transfer funds, and connect to applications on Stable.
+
+### Stable Pay
+
+A non-custodial payment wallet built on Stable, designed for fast, stablecoin-native transactions. Stable Pay delivers instant USDT payments, predictable fees, and a simple user experience optimized for everyday transfers and commerce.
+
+**Capabilities**
+
+- Non-custodial wallet for Stable
+- Instant USDT payments
+- Predictable and consistent transaction costs
+- Built directly on Stable’s USDT-native settlement layer
+- Consumer-friendly UI designed for payments and commerce
+
+### Binance Wallet
+
+A widely used multi-chain wallet integrated with the world’s largest exchange by volume.
+
+**Capabilities**
+
+- Supports Stable USDT
+- Direct integration with Binance ecosystem
+- Mobile and extension wallet options
+
+### Bitget Wallet
+
+A multi-asset wallet connected to the Bitget exchange ecosystem, supporting crypto, stocks, and ETFs.
+
+**Capabilities**
+
+- Supports Stable USDT
+- Built-in dApp browser
+- Seamless integration with Bitget trading accounts
+
+### Gate Wallet (Gate Onchain)
+
+A wallet product backed by one of the largest spot exchanges globally.
+
+**Capabilities**
+
+- Supports Stable USDT
+- Easy transfers between Gate exchange and wallet
+- dApp and web-app connectivity
+
+### OKX Wallet (OKX Onchain)
+
+A powerful, multi-chain wallet used globally.
+
+**Capabilities**
+
+- Supports Stable USDT
+- Deep OKX ecosystem integration
+- Web, mobile, and extension wallet options
+
+### Atomic Wallet
+
+A non-custodial multi-asset wallet available on desktop, mobile, and as a browser extension. Atomic Wallet integrates the [Simplex by Nuvei](/en/reference/ramps#simplex-by-nuvei) on-ramp, so users can buy USDT on Stable directly inside the app with cards, Apple Pay, Google Pay, or bank transfer.
+
+**Capabilities**
+
+- Holds, sends, and receives USDT on Stable
+- Private keys stored locally on the user device
+- In-app buy flow for USDT on Stable via Simplex
+- Available on Windows, macOS, Linux, iOS, Android, and Chrome
+
+**Get started**: Download Atomic Wallet from [atomicwallet.io](https://atomicwallet.io/downloads), add Stable as a network, and use the in-app Buy flow to purchase USDT on Stable through Simplex.
+
+## 2. Wallet SDK
+
+### Development Kit by Tether (WDK)
+
+An open-source SDK from Tether for building self-custodial wallets across any platform and blockchain.
+
+**Capabilities**
+
+- Multi-Chain Support: Bitcoin, Ethereum, TON, TRON, Solana, Spark, and more
+- Agentic Wallets: Native support for AI agent wallets and x402 payments on Stable
+- DeFi Integration: Plug-in support for swaps, bridges, and lending protocols
+- Extensible Design: Add custom modules for new blockchains or protocols
+
+**Get started**: Install [`@tetherto/wdk`](https://www.npmjs.com/package/@tetherto/wdk) and [`@tetherto/wdk-wallet-evm`](https://www.npmjs.com/package/@tetherto/wdk-wallet-evm), then follow the [WDK documentation](https://docs.wallet.tether.io) to configure Stable as your target chain.
+
+## 3. Custodial & institutional wallets
+
+### Anchorage
+
+A federally chartered national bank providing institutional-grade custody for digital assets.
+
+**Capabilities**
+
+- Secure custody for Stable USDT
+- Full compliance and regulatory oversight
+- Enterprise-grade key management and access controls
+
+## 4. Embedded / in-app wallets
+
+Wallets embedded directly into applications via SDKs, enabling seamless user onboarding and payment flows.
+
+### Dynamic
+
+Enterprise-grade wallet infrastructure serving thousands of applications and over 40M users.
+
+**Capabilities**
+
+- Wallet creation and authentication
+- Embedded wallet flows
+- User onboarding for apps and fintechs
+
+**Get started**: Follow the [Dynamic SDK setup docs](https://docs.dynamic.xyz/introduction/welcome) to install the SDK and configure Stable as a supported network in your app.
+
+### Reown (formerly WalletConnect)
+
+A widely adopted standard for connecting wallets to applications.
+
+**Capabilities**
+
+- Secure wallet-to-dApp connections
+- Supports mobile, desktop, and extension wallets
+- Broad ecosystem compatibility
+
+**Reown SDK for wallet onboarding**
+
+Stable supports integrations with the **Reown SDK** to help developers deliver seamless wallet and onboarding experiences for users.
+
+Reown provides an open-source, all-in-one SDK that serves as the official gateway to the WalletConnect Network. It enables smooth wallet connections, transactions, logins, embedded wallets (email and social login), on-chain payments, in-app swaps, and more within your application.
+
+**Get Started**
+
+- Visit Reown's documentation: [https://docs.reown.com/overview](https://docs.reown.com/overview)
+
+## 5. Smart wallets & account abstraction
+
+Infrastructure enabling programmable wallets, gasless transactions, spending rules, and advanced UX.
+
+### Overview table
+
+| **Provider**                                       | **Category**                          | **Security Method**                    | **Docs / Get Started**                                                                        | **Notes**                                  |
+| :------------------------------------------------- | :------------------------------------ | :------------------------------------- | :-------------------------------------------------------------------------------------------- | :----------------------------------------- |
+| [**Holdstation**](https://holdstation.com/) | Smart Wallet (AA)                     | Smart contract wallet + biometric auth | [https://docs.holdstation.com/holdstation/](https://docs.holdstation.com/holdstation/) | Gasless flows, DeFi-native wallet          |
+| [**Daimo**](https://pay.daimo.com/)         | AA Payments Wallet                    | Smart account, no seed phrase          | [https://paydocs.daimo.com/](https://paydocs.daimo.com/)                               | One-click payments, stablecoin-first       |
+| [**Alchemy**](https://alchemy.com)                                        | AA Infrastructure (Bundler/Paymaster) | Bundler + paymaster infra (ERC-4337)   | [https://docs.alchemy.com](https://docs.alchemy.com)                                   | Enables AA wallets to build on Stable |
+
+### Alchemy
+
+Alchemy provides the core AA infrastructure and APIs needed to deploy smart accounts, sponsor gas, and build consumer-grade wallets.
+
+**Capabilities**
+
+- Smart account SDK & APIs
+- Paymaster support for gasless actions
+- Gas abstraction tooling
+- Scalable infra for smart wallet developers
+
+**Get started**: Use the [Alchemy smart account SDK](https://docs.alchemy.com) to deploy ERC-4337 smart accounts and configure a paymaster for sponsored gas on Stable.
+
+**Docs**\
+[https://docs.alchemy.com](https://docs.alchemy.com)
+
+### Holdstation
+
+A smart contract wallet offering account abstraction and biometric-secured interactions.\
+**Capabilities**
+
+- Full AA-enabled smart wallet
+- Gasless transactions and sponsored fees
+- Biometric authorization and session keys
+- Integrated trading and DeFi execution layer
+
+**Get started**: Explore the [Holdstation developer docs](https://docs.holdstation.com/holdstation/) to integrate smart wallet flows and sponsored transactions into your application.
+
+### Daimo
+
+A consumer-grade, account-abstraction wallet designed for instant stablecoin spending and payments.\
+**Capabilities**
+
+- AA-based UX with smart wallet execution
+- One-click payments across any chain
+- No seed phrases; secure key recovery
+- Ideal for payments apps and stablecoin utilities
+
+**Get started**: Visit the [Daimo Pay documentation](https://paydocs.daimo.com/) to add one-click stablecoin payment flows to your application on Stable.
+
+## Stable network setup
+
+### Adding Stable to your wallet
+
+**Network parameters :**
+
+- **Network Name:** Stable
+- **Chain ID:** 988
+- **Currency:** USDT0
+- **RPC URL:** https://rpc.stable.xyz
+- **Block Explorer:** https://stablescan.xyz
+
+### Building wallet integrations
+
+You can add Stable support by:
+
+- Enabling signing and gas estimation via Stable RPC
+- Supporting USDT-native transfers
+- Integrating WalletConnect for dApps
+- Adding Stable to chain lists or metadata registries
+
+## Have a wallet integrating Stable?
+
+You can reach the team at [bizdev@stable.xyz](mailto:bizdev@stable.xyz) to be listed in this section.

@@ -1,0 +1,248 @@
+---
+title: "Paying with MCP server"
+description: "Connect x402-enabled APIs to AI clients through an MCP server. Users pay for API calls through prompts without managing wallets or payment flows directly."
+diataxis: "how-to"
+---
+
+# Paying with MCP server
+
+This guide shows how to bridge x402-enabled APIs to [MCP](https://modelcontextprotocol.io) tools so AI clients can call and pay for them through natural-language prompts. It builds on the server from [Build a pay-per-call API](/en/how-to/build-pay-per-call).
+
+## What you'll build
+
+An MCP server that wraps x402-paid endpoints as tools. The AI client types a natural-language prompt, each tool call triggers a paid x402 request, and settlement is visible on Stablescan. The user never sees a wallet prompt.
+
+### Demo
+
+```text
+step 1. User in Claude: "Pull financials for ACME Corp and assess credit risk."
+
+step 2. Client calls get_company_financials("ACME")
+        → MCP handler: fetchWithPayment("/financials?ticker=ACME")
+        → 402 Payment Required → sign ERC-3009 → retry
+        → Facilitator settles $0.01 USDT0 on-chain
+        → tx: 0x8f3a...aaaa
+        → 200 OK { revenue, debt_ratio, cash_flow }
+
+step 3. Client calls assess_credit_risk(financials)
+        → MCP handler: fetchWithPayment("/credit-risk", POST)
+        → Facilitator settles $0.05 USDT0 on-chain
+        → tx: 0x9bc4...bbbb
+        → 200 OK { score: 72, rating: "moderate" }
+
+step 4. Claude responds:
+        "ACME Corp has a credit risk score of 72 (moderate). Revenue is stable
+        but debt-to-equity ratio is elevated at 1.8x..."
+```
+
+Both `tx` values are visible on [https://stablescan.xyz](https://stablescan.xyz).
+
+:::note
+**Agent wallet funding**: The MCP server signs payments with a seed phrase you control. Fund that wallet with USDT0 on mainnet before starting the server. A balance of at least `$0.10` covers several paid calls; `$1.00` is plenty for extended testing. Top up as needed using a standard USDT0 transfer to the wallet's address.
+:::
+
+## Overview
+
+**MCP Server:**
+
+```typescript
+// --- MCP Server ---
+// Bridge x402-enabled APIs to MCP tools
+tools = {
+  "get_company_financials": {
+    handler: (ticker) =>
+      fetchWithPayment("https://api.example.com/financials?ticker=" + ticker),
+  },
+  "assess_credit_risk": {
+    handler: (financials) =>
+      fetchWithPayment("https://api.example.com/credit-risk", {
+        method: "POST",
+        body: JSON.stringify({ financials }),
+      }),
+  },
+}
+```
+
+**User (via AI client):**
+
+```
+─── AI Client ───────────────────────────────────────
+User: "Pull financials for ACME Corp and assess their credit risk."
+
+Client calls get_company_financials tool
+  → MCP server sends x402 paid request
+  → Facilitator settles USDT0 on-chain
+  → API returns financial data
+
+Client calls assess_credit_risk tool with the result
+  → MCP server sends x402 paid request
+  → Facilitator settles USDT0 on-chain
+  → API returns risk assessment
+  → Client responds with the combined result
+```
+
+## Prerequisites
+
+- A running x402 server (see [Build a pay-per-call API](/en/how-to/build-pay-per-call)).
+- An MCP-compatible AI client (Claude Desktop, Claude Code, etc.).
+
+## Step 1: Create the MCP server
+
+The MCP server acts as a bridge between AI clients and x402-enabled APIs. Each tool makes a paid request using the x402 client SDK and returns the result.
+
+```bash
+npm install @modelcontextprotocol/sdk @x402/fetch @x402/evm @tetherto/wdk-wallet-evm
+```
+
+```typescript
+// mcp-server.ts
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import WalletManagerEvm from "@tetherto/wdk-wallet-evm";
+import { x402Client, wrapFetchWithPayment } from "@x402/fetch";
+import { registerExactEvmScheme } from "@x402/evm/exact/client";
+import { z } from "zod";
+
+// --- Wallet and x402 client ---
+const account = await new WalletManagerEvm(process.env.SEED_PHRASE!, {
+  provider: "https://rpc.stable.xyz",
+}).getAccount(0);
+
+const client = new x402Client();
+registerExactEvmScheme(client, { signer: account });
+const fetchWithPayment = wrapFetchWithPayment(fetch, client);
+
+// --- x402 API base URL ---
+const API_BASE = process.env.API_BASE || "http://localhost:4021";
+
+// --- MCP server ---
+const server = new McpServer({
+  name: "x402-payments",
+  version: "1.0.0",
+});
+
+server.tool(
+  "get_company_financials",
+  "Get company financial data by ticker (paid endpoint, $0.01 per call)",
+  { ticker: z.string().describe("Company ticker symbol (e.g. ACME)") },
+  async ({ ticker }) => {
+    const response = await fetchWithPayment(`${API_BASE}/financials?ticker=${ticker}`);
+    const data = await response.json();
+    return { content: [{ type: "text", text: JSON.stringify(data) }] };
+  },
+);
+
+server.tool(
+  "assess_credit_risk",
+  "Assess credit risk from financial data (paid endpoint, $0.05 per call)",
+  { financials: z.string().describe("JSON string of company financial data") },
+  async ({ financials }) => {
+    const response = await fetchWithPayment(`${API_BASE}/credit-risk`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: financials,
+    });
+    const data = await response.json();
+    return { content: [{ type: "text", text: JSON.stringify(data) }] };
+  },
+);
+
+server.tool(
+  "check_balance",
+  "Check the USDT0 balance of the payment wallet",
+  {},
+  async () => {
+    const USDT0_STABLE = "0x779Ded0c9e1022225f8E0630b35a9b54bE713736";
+    const balance = await account.getTokenBalance(USDT0_STABLE);
+    const formatted = (Number(balance) / 1e6).toFixed(2);
+    return {
+      content: [{ type: "text", text: `Wallet balance: ${formatted} USDT0` }],
+    };
+  },
+);
+
+// --- Start ---
+const transport = new StdioServerTransport();
+await server.connect(transport);
+```
+
+Each tool handler calls `fetchWithPayment`, which handles the full x402 payment cycle automatically. The AI client only sees the tool name, description, and parameters.
+
+## Step 2: Configure your AI client
+
+Add the MCP server to your AI client's configuration.
+
+**Claude Desktop** (`claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "x402-payments": {
+      "command": "npx",
+      "args": ["tsx", "/path/to/mcp-server.ts"],
+      "env": {
+        "SEED_PHRASE": "your seed phrase here",
+        "API_BASE": "https://api.example.com"
+      }
+    }
+  }
+}
+```
+
+**Claude Code:**
+
+```bash
+claude mcp add x402-payments -- npx tsx /path/to/mcp-server.ts
+```
+
+After configuration, restart your AI client. The tools should appear in the available tool list.
+
+:::warning
+The seed phrase in the MCP configuration controls real funds. Store it securely using your OS keychain or a secrets manager rather than in plain-text config files.
+:::
+
+## Step 3: Type the prompt and use it
+
+Once configured, the AI client can call paid APIs through the user's prompt:
+
+**User:** "Pull financials for ACME Corp and assess their credit risk."
+
+1. Client calls `get_company_financials("ACME")`: $0.01 paid via x402. Returns revenue, debt ratio, cash flow, etc.
+2. Client calls `assess_credit_risk(financials)`: $0.05 paid via x402. Returns risk score, rating, key factors.
+3. Client responds: "ACME Corp has a credit risk score of 72 (moderate). Revenue is stable but debt-to-equity ratio is elevated at 1.8x..."
+
+Individual tools also work on their own:
+
+- "Pull financials for ACME Corp" calls `get_company_financials` ($0.01).
+- "Assess credit risk for this data" calls `assess_credit_risk` ($0.05).
+- "How much USDT0 do I have left?" calls `check_balance`.
+
+The user does not interact with wallets, signatures, or payment flows. The MCP server handles payment for each tool call transparently.
+
+## Spending controls
+
+To prevent unexpected spending, consider adding controls to the MCP server.
+
+```typescript
+const MAX_PER_CALL = 100_000;   // $0.10 in base units
+const MAX_PER_SESSION = 5_000_000; // $5.00 in base units
+let sessionSpent = 0n;
+
+function checkSpendingLimit(amount: bigint) {
+  if (amount > BigInt(MAX_PER_CALL)) {
+    throw new Error(`Amount exceeds per-call limit of $${MAX_PER_CALL / 1e6}`);
+  }
+  if (sessionSpent + amount > BigInt(MAX_PER_SESSION)) {
+    throw new Error(`Session spending limit of $${MAX_PER_SESSION / 1e6} reached`);
+  }
+  sessionSpent += amount;
+}
+```
+
+These limits run server-side. The AI client cannot modify or bypass them.
+
+## Next recommended
+
+- [**Build a pay-per-call API**](/en/how-to/build-pay-per-call) — Set up the x402 server this MCP server bridges.
+- [**x402 concept**](/en/explanation/x402) — Review the settlement protocol behind these payments.
+- [**Develop with AI**](/en/how-to/develop-with-ai) — Wire Stable's Docs and Runtime MCP servers into the same AI client.

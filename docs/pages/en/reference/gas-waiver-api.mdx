@@ -1,0 +1,277 @@
+---
+title: "Gas waiver protocol"
+description: "Protocol-level specification for Gas Waiver: transaction formats, marker routing, governance controls, and the Waiver Server API."
+diataxis: "reference"
+---
+
+# Gas waiver protocol
+
+This document specifies the Gas Waiver mechanism: transaction formats, marker routing, governance controls, and the Waiver Server API.
+
+:::note
+**Concept:** For what Gas Waiver is and why it exists, see [Gas waiver](/en/explanation/gas-waiver). For the how-to integration guide against the hosted Waiver Server, see [Enable gas-free transactions](/en/how-to/integrate-gas-waiver).
+:::
+
+## Abstract
+
+Gas Waiver enables gasless end-user transactions on Stable by allowing a small set of governance-approved addresses (“waivers”) to submit transactions with `gasPrice = 0`. Stable currently operates a waiver service (the “Waiver Server”) that you can integrate with to provide gasless UX without implementing protocol-specific wrapper logic.
+
+## Scope
+
+This specification covers:
+
+- Protocol-level rules for gas-waived transactions
+- The wrapper transaction mechanism and marker address
+- Governance-controlled authorization and allowed targets
+- The Waiver Server interface for submitting signed user transactions
+
+## Definitions
+
+- **Waiver**: An Ethereum address registered on-chain via validator governance that is authorized to submit gas-waived transactions.
+- **InnerTx**: The end user’s signed transaction with `gasPrice = 0`.
+- **WrapperTx**: A transaction signed by a waiver that transports the user’s `InnerTx` to the chain and authorizes execution.
+- **Marker address**: A sentinel address used to identify waiver wrapper transactions: `0x000000000000000000000000000000000000f333`.
+- **AllowedTarget**: A policy that limits a waiver to specific contract addresses and method selectors.
+
+## Overview
+
+Gas Waiver uses a wrapper transaction pattern:
+
+1. The user signs an `InnerTx` with `gasPrice = 0`.
+2. A waiver wraps the `InnerTx` into a `WrapperTx` and broadcasts it.
+3. Validators detect marker transactions, verify the waiver authorization and policy constraints, then execute the embedded `InnerTx`.
+
+Stable operates a waiver service (Waiver Server) that is registered on-chain as an authorized waiver. You integrate with the Waiver Server API to submit signed `InnerTx` payloads.
+
+## Protocol specification
+
+### Marker address routing
+
+A transaction is treated as a waiver wrapper transaction if and only if:
+
+- `to == 0x000000000000000000000000000000000000f333`.
+
+The protocol interprets the transaction `data` field as an encoded inner transaction payload and processes it using the waiver verification rules below.
+
+### Authorization and policy checks
+
+For each candidate wrapper transaction, validators must enforce:
+
+1. **Waiver authorization**
+   - `WrapperTx.from` must be a waiver address registered on-chain via governance.
+2. **Gas waiver**
+   - `WrapperTx.gasPrice` must equal `0`.
+   - `InnerTx.gasPrice` must equal `0`.
+3. **Target allowlist**
+   - `InnerTx.to` and the method selector extracted from `InnerTx.data` must be permitted by the waiver’s `AllowedTarget` policy.
+4. **Value restrictions**
+   - `WrapperTx.value` must equal `0`.
+
+If any check fails, validators reject the wrapper transaction and do not execute the inner transaction.
+
+### Execution semantics
+
+If all checks pass:
+
+1. The protocol executes `InnerTx` as the user, preserving the user’s `from`, `nonce`, and call semantics.
+2. Gas accounting is handled by the waiver mechanism: the user pays no gas, and the waiver transaction uses `gasPrice = 0` by definition of the feature.
+3. The wrapper transaction must supply sufficient `gasLimit` to cover the execution of `InnerTx` (including overhead for unwrap and verification).
+
+## Transaction formats
+
+### WrapperTx
+
+The wrapper transaction is signed by the waiver and sent to the marker address.
+
+```javascript
+WrapperTx {
+  from:     waiver_address,
+  to:       0x000000000000000000000000000000000000f333,
+  value:    0,                          // must be zero
+  data:     RLP(InnerTx),               // RLP-encoded inner transaction
+  gasPrice: 0,                          // must be zero
+  gasLimit: sufficient_for_inner,       // must cover inner execution + overhead
+  nonce:    waiver_nonce
+}
+```
+
+### InnerTx
+
+The inner transaction is signed by the end user.
+
+```javascript
+InnerTx {
+  from:     user_address,
+  to:       target_contract,
+  value:    value,
+  data:     call_data,
+  gasPrice: 0,                          // must be zero
+  gasLimit: execution_gas,
+  nonce:    user_nonce
+}
+```
+
+## Governance-controlled access
+
+Waiver authorization is governed on-chain by validator governance.
+
+Governance control provides:
+
+- Reviewable authorization of waiver addresses
+- On-chain transparency of waiver registration and updates
+- Revocation capability
+- Per-waiver scoping via `AllowedTarget`
+
+## Security model
+
+### End-user signature integrity
+
+The user signs the `InnerTx`. The waiver cannot modify the inner transaction payload without invalidating the signature. You must still ensure that the user signs only the intended transaction payload.
+
+### Trust boundary
+
+Gas Waiver introduces a service dependency if partners route submissions through the Waiver Server:
+
+- Availability of the service affects the ability to submit gasless transactions.
+- Authorization remains on-chain; only registered waiver addresses can produce valid wrapper submissions.
+
+## Integration
+
+You integrate by:
+
+1. Collect a signed `InnerTx` from the user (`gasPrice = 0`).
+2. Submit the signed inner transaction to the Waiver Server API.
+3. Handle streamed results and surfacing transaction hashes to end users.
+
+## Waiver server
+
+### Overview
+
+The Waiver Server wraps and broadcasts signed user `InnerTx` payloads as waiver-authorized wrapper transactions. You do not need to construct wrapper transactions or operate a waiver address.
+
+### Endpoints and base URLs
+
+Base URLs:
+
+- Mainnet: TBD
+- Testnet: `https://waiver.testnet.stable.xyz`
+
+### Authentication
+
+All endpoints except health require bearer token authentication:
+
+```
+Authorization: Bearer <your-api-key>
+```
+
+### API
+
+#### GET `/v1/health`
+
+Health check endpoint.
+
+Authentication: none.
+
+#### POST `/v1/submit`
+
+Submit a batch of signed inner transactions.
+
+Authentication: required (`Bearer`).
+
+Request body:
+
+```json
+{
+  "transactions": ["0x<signedInnerTx1>", "0x<signedInnerTx2>"]
+}
+```
+
+Response is streamed as NDJSON (newline-delimited JSON). Each line corresponds to a submitted transaction index.
+
+Example:
+
+```json
+{"index":0,"id":"abc123","success":true,"txHash":"0x..."}
+{"index":1,"id":"def456","success":false,"error":{"code":"VALIDATION_FAILED","message":"invalid signature"}}
+```
+
+#### GET `/v1/submit`
+
+WebSocket interface for streaming submissions.
+
+Authentication: required (`Bearer`).
+
+### Integration example
+
+```javascript
+const WAIVER_SERVER = "https://waiver.testnet.stable.xyz";
+
+async function submitGaslessTransaction(signedInnerTxHex, apiKey) {
+  const response = await fetch(`${WAIVER_SERVER}/v1/submit`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      transactions: [signedInnerTxHex],
+    }),
+  });
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    const lines = decoder.decode(value).trim().split("\n");
+    for (const line of lines) {
+      const result = JSON.parse(line);
+      console.log(result);
+    }
+  }
+}
+```
+
+### Creating a user InnerTx
+
+You are responsible for constructing an `InnerTx` with `gasPrice = 0`, then collecting the user signature.
+
+Example:
+
+```javascript
+import { ethers } from "ethers";
+
+async function createInnerTx(userWallet, contractAddress, callData, nonce) {
+  const innerTx = {
+    to: contractAddress,
+    data: callData,
+    value: value,
+    gasPrice: 0,              // must be 0 for waiver
+    gasLimit: 100000,
+    nonce: nonce,
+    chainId: 2201,            // 988 for mainnet, 2201 for testnet
+  };
+
+  return await userWallet.signTransaction(innerTx);
+}
+```
+
+### Error codes
+
+- `PARSE_ERROR`: Failed to parse transaction
+- `INVALID_REQUEST`: Malformed request body
+- `BATCH_SIZE_EXCEEDED`: Batch size exceeds allowed maximum
+- `VALIDATION_FAILED`: Transaction validation failed
+- `BROADCAST_FAILED`: Failed to broadcast to chain
+- `RATE_LIMITED`: Rate limit exceeded
+- `QUEUE_FULL`: Server queue at capacity
+- `TIMEOUT`: Request timed out
+
+## Next recommended
+
+- [**Zero gas transactions**](/en/how-to/zero-gas-transactions) — Demo-focused walkthrough with a receipt showing zero gas fee.
+- [**Enable gas-free transactions**](/en/how-to/integrate-gas-waiver) — Full hosted-API integration guide with batch submissions and error handling.
+- [**Self-hosted Gas Waiver**](/en/how-to/self-hosted-gas-waiver) — Run your own waiver infrastructure without the hosted API.
+

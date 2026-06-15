@@ -1,0 +1,34 @@
+---
+title: "Contracts on Stable"
+description: "Deploy, verify, and index smart contracts on Stable. Full EVM compatibility plus precompiles for Bank, Distribution, and Staking modules."
+diataxis: "explanation"
+---
+
+# Contracts on Stable
+
+Stable is fully EVM-compatible. Solidity, Vyper, Hardhat, Foundry, ethers.js, and viem work unchanged. Existing contracts deploy as-is once you point tooling at Stable's RPC. On top of the standard EVM, Stable exposes protocol-level modules (Bank, Distribution, Staking) as precompiled contracts at fixed addresses, so your Solidity can call into staking and reward distribution without re-implementing them.
+
+## What you can build
+
+- **Standard application contracts** (ERC-20, ERC-721, escrows, AMMs) with any EVM toolchain.
+- **Verified, indexed contracts** on Stablescan with live event streams through ethers.js.
+- **Protocol-integrated contracts** that call Bank / Distribution / Staking precompiles from Solidity.
+- **System-transaction listeners** that watch for protocol-emitted events (for example, unbonding completions) through standard `eth_getLogs`.
+
+## How Stable differs
+
+- **USDT0 is the gas token.** `maxPriorityFeePerGas` must be `0`. The `value` field in native transfers carries USDT0, not ETH. See [Work with USDT0 as gas](/en/how-to/work-with-usdt-gas).
+- **USDT0 has a dual role.** Contracts that hold native USDT0 can have their balance changed by ERC-20 `transferFrom` or `permit` — never mirror native balance in a `uint256`. See [USDT0 behavior on Stable](/en/explanation/usdt0-behavior).
+- **Precompile addresses are fixed across testnet and mainnet.** Burn them into your contract as constants.
+
+## Start here
+
+- [**Deploy**](/en/tutorial/smart-contract) — Scaffold Foundry, configure Stable, and deploy Counter.
+- [**Verify**](/en/how-to/verify-contract) — Upload source to Stablescan with forge verify-contract.
+- [**Index**](/en/how-to/index-contract) — Subscribe to events with ethers.js and backfill historical logs.
+
+## Next recommended
+
+- [**Contracts guide index**](/en/explanation/contracts-index) — Full list of contract guides, precompile references, and system module ABIs.
+- [**Use system modules**](/en/how-to/use-system-modules) — Call Bank / Distribution / Staking from Solidity and ethers.js.
+- [**JSON-RPC reference**](/en/reference/json-rpc-api) — Which `eth_*` and `debug_*` methods Stable supports.

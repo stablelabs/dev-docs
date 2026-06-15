@@ -1,0 +1,336 @@
+---
+title: "Bridge USDT0 to Stable"
+description: "A step-by-step tutorial to bridge USDT0 from Ethereum Sepolia to Stable Testnet using LayerZero's OFT protocol."
+type: "tutorial"
+diataxis: "tutorial"
+---
+
+# Bridge USDT0 to Stable
+
+In this tutorial, you will bridge USDT0 from Ethereum Sepolia to the Stable Testnet programmatically using TypeScript and ethers v6. You will build the script incrementally, adding one function per step.
+
+This tutorial uses the OFT Mesh path. The OFT Adapter on Sepolia locks your tokens, LayerZero's dual-DVN verification confirms the message, and USDT0 is minted on Stable. For a full explanation of how this works, see [Bridging to Stable](/en/explanation/usdt0-bridging).
+
+:::note
+Want fewer lines of code? The [Stable SDK](/en/explanation/sdk-overview) exposes `quoteBridge` and `bridge` and picks the route (LayerZero or LI.FI) for you.
+:::
+
+## Prerequisites
+
+- Node.js 18.0.0 or higher (`node --version` to verify)
+- A Sepolia wallet with a private key you control (never use a key holding real funds)
+- SepoliaETH for gas (get some from [sepoliafaucet.com](https://sepoliafaucet.com) or [faucets.chain.link/sepolia](https://faucets.chain.link/sepolia))
+- Basic familiarity with running scripts from the terminal
+
+---
+
+## 1. Set up the project
+
+```bash
+mkdir stable-bridge && cd stable-bridge
+npm init -y
+npm install ethers@6 @layerzerolabs/lz-v2-utilities
+npm install -D tsx
+```
+
+Your `package.json` should include:
+
+```json
+{
+  "name": "stable-bridge",
+  "version": "1.0.0",
+  "scripts": {
+    "bridge": "tsx --env-file=.env bridge.ts"
+  },
+  "dependencies": {
+    "@layerzerolabs/lz-v2-utilities": "^2.3.39",
+    "ethers": "^6.13.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0"
+  }
+}
+```
+
+## 2. Configure your environment
+
+Create a `.env` file with your credentials:
+
+```bash
+PRIVATE_KEY=0xYOUR_PRIVATE_KEY_HERE
+SEPOLIA_RPC_URL=https://rpc.sepolia.org
+```
+
+For `SEPOLIA_RPC_URL`, any of these work:
+- Public: `https://rpc.sepolia.org` or `https://ethereum-sepolia-rpc.publicnode.com`
+- Alchemy: `https://eth-sepolia.g.alchemy.com/v2/YOUR_KEY`
+- Infura: `https://sepolia.infura.io/v3/YOUR_KEY`
+
+## 3. Scaffold the script
+
+Create `bridge.ts` with the imports, configuration, and a `main` function. You will add functions to this file in the following steps, and call them from `main`.
+
+```ts
+import { ethers, Contract, Wallet, JsonRpcProvider } from "ethers";
+import { Options } from "@layerzerolabs/lz-v2-utilities";
+
+const PRIVATE_KEY = process.env.PRIVATE_KEY!;
+const SEPOLIA_RPC_URL = process.env.SEPOLIA_RPC_URL || "https://rpc.sepolia.org";
+
+// Contract addresses
+const SEPOLIA_USDT0 = "0xc4DCC311c028e341fd8602D8eB89c5de94625927";
+const SEPOLIA_OFT_ADAPTER = "0xc099cD946d5efCC35A99D64E808c1430cEf08126";
+const STABLE_USDT0 = "0x78Cf24370174180738C5B8E352B6D14c83a6c9A9";
+
+// Destination: Stable Testnet
+const STABLE_TESTNET_EID = 40374;
+
+// Minimal ABIs — only the functions we call
+const ERC20_ABI = [
+  "function balanceOf(address) view returns (uint256)",
+  "function approve(address, uint256) returns (bool)",
+  "function allowance(address, address) view returns (uint256)",
+  "function mint(address, uint256)",
+];
+
+const OFT_ADAPTER_ABI = [
+  "function quoteSend((uint32 dstEid, bytes32 to, uint256 amountLD, uint256 minAmountLD, bytes extraOptions, bytes composeMsg, bytes oftCmd), bool) view returns ((uint256 nativeFee, uint256 lzTokenFee))",
+  "function send((uint32 dstEid, bytes32 to, uint256 amountLD, uint256 minAmountLD, bytes extraOptions, bytes composeMsg, bytes oftCmd), (uint256 nativeFee, uint256 lzTokenFee), address) payable returns ((bytes32, uint64, (uint256, uint256)), (uint256, uint256))",
+];
+
+function addressToBytes32(addr: string): string {
+  return ethers.zeroPadValue(ethers.getBytes(ethers.getAddress(addr)), 32);
+}
+
+// You will add functions here.
+
+async function main() {
+  const provider = new JsonRpcProvider(SEPOLIA_RPC_URL);
+  const wallet = new Wallet(PRIVATE_KEY, provider);
+
+  const usdt0 = new Contract(SEPOLIA_USDT0, ERC20_ABI, wallet);
+  const oftAdapter = new Contract(SEPOLIA_OFT_ADAPTER, OFT_ADAPTER_ABI, wallet);
+
+  const amount = ethers.parseEther("1"); // 1 USDT0 (18 decimals)
+
+  // You will add function calls here.
+}
+
+main().catch((err) => {
+  console.error(err.message);
+  process.exit(1);
+});
+```
+
+## 4. Mint test USDT0 on Sepolia
+
+The test USDT0 contract on Sepolia exposes a public `mint` function. Add the following function to `bridge.ts` above `main`:
+
+```ts
+async function mint(usdt0: Contract, receiver: string, amount: bigint) {
+  console.log(`Minting ${ethers.formatEther(amount)} USDT0 on Sepolia...`);
+  const tx = await usdt0.mint(receiver, amount);
+  await tx.wait();
+  console.log(`Mint tx: ${tx.hash}  confirmed`);
+
+  const balance = await usdt0.balanceOf(receiver);
+  console.log(`USDT0 balance: ${ethers.formatEther(balance)}`);
+}
+```
+
+Then call it from `main`:
+
+```ts
+  await mint(usdt0, wallet.address, amount);
+```
+
+Run the script:
+
+```bash
+npx tsx --env-file=.env bridge.ts
+```
+
+---
+
+**Checkpoint:** You should see a non-zero USDT0 balance logged after the mint confirms.
+
+---
+
+## 5. Approve the OFT Adapter
+
+Before the OFT Adapter can move your tokens, it needs an ERC-20 allowance. Add this function above `main`:
+
+```ts
+async function approve(usdt0: Contract, spender: string, owner: string, amount: bigint) {
+  console.log("Approving OFT Adapter...");
+  const tx = await usdt0.approve(spender, amount);
+  await tx.wait();
+  console.log(`Approve tx: ${tx.hash}  confirmed`);
+
+  const allowance = await usdt0.allowance(owner, spender);
+  console.log(`Allowance: ${ethers.formatEther(allowance)}`);
+}
+```
+
+Add the call in `main` after `mint`:
+
+```ts
+  // await mint(usdt0, wallet.address, amount);
+  await approve(usdt0, SEPOLIA_OFT_ADAPTER, wallet.address, amount);
+```
+
+Run the script. You can comment out the `await mint(...)` call if you already have tokens from the previous run.
+
+---
+
+**Checkpoint:** The script should log a non-zero allowance after the approval confirms.
+
+---
+
+## 6. Quote the fee and send the bridge transaction
+
+The `quoteSend` call returns the LayerZero messaging fee in SepoliaETH, which you pass as `msg.value` to `send`. Add this function above `main`:
+
+```ts
+async function send(oftAdapter: Contract, receiver: string, amount: bigint) {
+  const options = Options.newOptions().addExecutorLzReceiveOption(0, 0).toBytes();
+
+  const sendParams = {
+    dstEid: STABLE_TESTNET_EID,
+    to: addressToBytes32(receiver),
+    amountLD: amount,
+    minAmountLD: amount,
+    extraOptions: options,
+    composeMsg: "0x",
+    oftCmd: "0x",
+  };
+
+  console.log("Quoting bridge fee...");
+  const feeResult = await oftAdapter.quoteSend(sendParams, false);
+  const fee = { nativeFee: feeResult.nativeFee, lzTokenFee: feeResult.lzTokenFee };
+  console.log(`Bridge fee: ${ethers.formatEther(fee.nativeFee)} ETH`);
+
+  console.log("Sending bridge transaction...");
+  const tx = await oftAdapter.send(sendParams, fee, receiver, {
+    value: fee.nativeFee,
+  });
+  await tx.wait();
+  console.log(`Bridge tx: ${tx.hash}  confirmed`);
+  console.log(`Sepolia Etherscan: https://sepolia.etherscan.io/tx/${tx.hash}`);
+  console.log(`LayerZero Scan: https://testnet.layerzeroscan.com/tx/${tx.hash}`);
+}
+```
+
+Add the call in `main` after `approve`:
+
+```ts
+  // await mint(usdt0, wallet.address, amount);
+  // await approve(usdt0, SEPOLIA_OFT_ADAPTER, wallet.address, amount);
+  await send(oftAdapter, wallet.address, amount);
+```
+
+## 7. Verify arrival on Stable Testnet
+
+After sending, the script can poll the Stable Testnet RPC until the tokens arrive. Add this function above `main`:
+
+```ts
+async function verify(receiver: string) {
+  console.log("Waiting for DVN verification (~2 minutes)...");
+  const stableProvider = new JsonRpcProvider("https://rpc.testnet.stable.xyz");
+  const stableUsdt0 = new Contract(STABLE_USDT0,
+    ["function balanceOf(address) view returns (uint256)"], stableProvider);
+
+  const before: bigint = await stableUsdt0.balanceOf(receiver);
+  for (let i = 0; i < 24; i++) {
+    await new Promise((r) => setTimeout(r, 5000));
+    const current: bigint = await stableUsdt0.balanceOf(receiver);
+    if (current > before) {
+      console.log(`\nUSDT0 on Stable: ${ethers.formatEther(current)}`);
+      console.log(`Explorer: https://testnet.stablescan.xyz/address/${receiver}`);
+      return;
+    }
+    process.stdout.write(".");
+  }
+  console.log("\nTokens have not arrived yet. Check manually:");
+  console.log(`Explorer: https://testnet.stablescan.xyz/address/${receiver}`);
+}
+```
+
+Add the call in `main` after `send`:
+
+```ts
+  // await mint(usdt0, wallet.address, amount);
+  // await approve(usdt0, SEPOLIA_OFT_ADAPTER, wallet.address, amount);
+  // await send(oftAdapter, wallet.address, amount);
+  await verify(wallet.address);
+```
+
+## 8. Run the complete bridge
+
+Your `main` function should now look like this:
+
+```ts
+async function main() {
+  const provider = new JsonRpcProvider(SEPOLIA_RPC_URL);
+  const wallet = new Wallet(PRIVATE_KEY, provider);
+
+  const usdt0 = new Contract(SEPOLIA_USDT0, ERC20_ABI, wallet);
+  const oftAdapter = new Contract(SEPOLIA_OFT_ADAPTER, OFT_ADAPTER_ABI, wallet);
+
+  const amount = ethers.parseEther("1"); // 1 USDT0 (18 decimals)
+
+  await mint(usdt0, wallet.address, amount);
+  await approve(usdt0, SEPOLIA_OFT_ADAPTER, wallet.address, amount);
+  await send(oftAdapter, wallet.address, amount);
+  await verify(wallet.address);
+}
+```
+
+Run it:
+
+```bash
+npx tsx --env-file=.env bridge.ts
+```
+
+---
+
+**Checkpoint:** You should see output like this:
+
+```
+Minting 1.0 USDT0 on Sepolia...
+Mint tx: 0x3a1f...c9d2  confirmed
+USDT0 balance: 1.0
+Approving OFT Adapter...
+Approve tx: 0x7b2e...f401  confirmed
+Allowance: 1.0
+Quoting bridge fee...
+Bridge fee: 0.000101 ETH
+Sending bridge transaction...
+Bridge tx: 0xa94f...8c11  confirmed
+Sepolia Etherscan: https://sepolia.etherscan.io/tx/0xa94f...8c11
+LayerZero Scan: https://testnet.layerzeroscan.com/tx/0xa94f...8c11
+Waiting for DVN verification (~2 minutes)...
+......
+USDT0 on Stable: 1.0
+```
+
+You can also search your wallet address on the [Stable Testnet explorer](https://testnet.stablescan.xyz) to confirm the mint event.
+
+---
+
+## What you have built
+
+You bridged USDT0 from Ethereum Sepolia to Stable Testnet. You now know how to:
+
+- Mint test USDT0 on Sepolia using the contract's public `mint` function
+- Approve an OFT Adapter to spend ERC-20 tokens on your behalf
+- Construct LayerZero `sendParams` with 32-byte address encoding and executor options
+- Quote the cross-chain messaging fee with `quoteSend` before committing funds
+- Execute a cross-chain token transfer with `send` and confirm delivery on the destination chain
+- Verify on-chain state using Stable's RPC (`https://rpc.testnet.stable.xyz`, chain ID `2201`) and Stablescan
+
+## Next recommended
+
+- [**Send your first USDT0**](/en/tutorial/send-usdt0) — Use the bridged USDT0 with native and ERC-20 transfers.
+- [**Bridging to Stable**](/en/explanation/usdt0-bridging) — Deep dive on OFT Mesh vs Legacy Mesh mechanics.
+- [**Testnet information**](/en/reference/testnet-information) — Full network parameters, RPC endpoints, and faucet details.

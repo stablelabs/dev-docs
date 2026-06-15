@@ -1,0 +1,73 @@
+---
+title: "Roadmap"
+description: "Stable's phased optimization roadmap: what's live today, what's shipping next, and what comes after."
+diataxis: "explanation"
+---
+
+# Roadmap
+
+Stable optimizes every layer of the transaction pipeline (consensus, execution, storage, RPC, and USDT-specific flows) across three phases. This page marks what's shipped, what's in progress, and what's still ahead.
+
+<img
+  className="block"
+  src="/images/roadmap.png"
+  alt="Technical Roadmap"
+/>
+
+## Phase 1: Foundational layer for USDT
+
+Status: **Live on mainnet.**
+
+### StableBFT: Live
+
+A customized PoS consensus protocol built on CometBFT. Delivers deterministic finality and Byzantine fault tolerance up to one-third of validators. See [Consensus](/en/explanation/consensus) for the current implementation.
+
+### USDT as native gas: Live
+
+USDT0 is the native asset for gas payment and value transfer, and simultaneously supports the ERC-20 surface (`approve`, `transfer`, `transferFrom`, `permit`). See [USDT as gas](/en/explanation/usdt-as-gas-token).
+
+### Stable Pay & Stable Name: In progress
+
+Stable Pay is a Web2.5 UX wallet experience designed to simplify onboarding for new users while remaining compatible with existing Web3 wallets. Stable Name is a user-friendly aliasing system that replaces raw EVM addresses with human-readable identifiers for sending and receiving tokens.
+
+## Phase 2: Experience layer for USDT
+
+Status: **In development.** State DB optimization ships in the v1.4.0 upgrade. The remaining items are still in development.
+
+### State DB optimization: Ships in v1.4.0
+
+Stable decouples state commitment from state storage. Validators commit the latest state in memory while historical state is deferred to disk. `MemDB` and `VersionDB` powered by `mmap` handle real-time commitment without blocking on disk I/O. See [Storage (StableDB)](/en/explanation/stable-db).
+
+### Optimistic parallel execution: Planned
+
+Real-world telemetry shows 60–80% of transactions interact with disjoint state and can safely execute in parallel. Stable will execute transactions optimistically under the no-conflict assumption, with rollback and sequential re-execution on detected conflicts. This preserves correctness while improving throughput.
+
+### USDT Transfer Aggregator: Planned
+
+Aggregating mechanism that groups USDT0 transfers and processes them collectively, reducing per-transaction overhead and improving overall throughput. See [USDT transfer aggregator](/en/explanation/usdt-transfer-aggregator).
+
+### Guaranteed blockspace: Planned
+
+Reserved block capacity for enterprise partners, enforced through validator-level reservations and dedicated RPC endpoints. Delivers predictable latency for mission-critical payment flows even under network congestion. See [Guaranteed blockspace](/en/explanation/guaranteed-blockspace).
+
+## Phase 3: Full-stack optimized layer for USDT
+
+Status: **Planned.**
+
+### StableBFT on Autobahn
+
+DAG-based BFT consensus that integrates naturally with Stable's CometBFT-based consensus layer. See [StableBFT](/en/explanation/consensus) for the current protocol and [Autobahn](/en/explanation/autobahn) for the target architecture. Internal proof-of-concept has demonstrated over 200,000 TPS (consensus only) in controlled environments.
+
+### StableVM++
+
+High-performance execution engine that replaces the Go-based EVM with a C++ implementation. Projected to deliver up to a 6x improvement in EVM execution speed.
+
+### High performance RPC
+
+A full RPC stack covering node-level enhancements (real-time chain state processing), node-integrated indexing (low-latency application APIs), scalable pub/sub over WebSocket, and a hybrid load balancer that routes by operation type. See [High performance RPC](/en/explanation/high-performance-rpc) for the current split-path architecture.
+
+## Next recommended
+
+- [**Architecture overview**](/en/explanation/core-optimization-overview) — Walk through the current state of the stack the roadmap evolves.
+- [**Tokenomics**](/en/reference/tokenomics) — Review the economic model that funds validator incentives across the roadmap.
+- [**Tech overview**](/en/explanation/tech-overview) — Return to the architecture summary.

@@ -1,0 +1,417 @@
+---
+title: "Staking precompile reference"
+description: "Staking precompile reference: delegation, undelegation, validator management, and query methods."
+diataxis: "reference"
+---
+
+# Staking precompile reference
+
+:::note
+**Concept:** For what the staking module does and when to use it, see [Staking module](/en/explanation/staking-module).
+:::
+
+## Abstract
+
+The `staking` precompiled contract acts as a bridge that enables EVM environments to use the Stable SDK's `x/staking` module functionality.
+
+## Contents
+
+1. **[Concepts](#concepts)**
+2. **[Configuration](#configuration)**
+3. **[Methods](#methods)**
+4. **[Events](#events)**
+
+## Concepts
+
+In `x/staking` module in Stable SDK, bond denom must be registered during chain initialization for staking.
+Validators and delegators can only use the bond denom staking token.
+The `staking` precompiled contract performs additional checks to ensure that the validator or delegator is the caller.
+
+## Configuration
+
+The contract address and gas cost are predefined.
+
+### Contract address
+
+- `0x0000000000000000000000000000000000000800`
+
+## Methods
+
+### `createValidator`
+
+Creates a validator.
+The validator must be created with an initial delegation from the operator.
+For potential delegators, the validator should offer information and a plan for the commission rate.
+Delegators can choose a validator to delegate their tokens to based on disclosed information, with natural regulation from market mechanisms.
+
+`CreateValidator` is emitted when the validator is successfully registered.
+
+#### Inputs
+
+|Name|Type|Description|
+|---|---|---|
+|description|Description|information of the validator|
+|commissionRates|CommissionRates|commission rate of the staking token rewarded by the validator|
+|minSelfDelegation|uint256|the minimum self-delegation amount of the validator|
+|validatorAddress|address|the address of the validator|
+|pubkey|string|the public key of the validator|
+|value|uint256|the amount of the staking token initially self-delegated to the validator|
+
+`Description` is a struct with the following fields:
+
+|Name|Type|Description|
+|---|---|---|
+|moniker|string|name of the validator|
+|identity|string|the identity of the validator|
+|website|string|the url of the validator's website|
+|securityContact|string|security contract information|
+|details|string|additional description of the validator|
+
+`CommissionRates` is a struct with the following fields:
+
+|Name|Type|Description|
+|---|---|---|
+|rate|uint256|current commission rate that the validator receives|
+|maxRate|uint256|the maximum commission rate (cannot be set higher than this)|
+|maxChangeRate|uint256|the maximum commission rate that a validator can change per day|
+
+`rate` should be set to an appropriate value acceptable to the market.
+
+- If validator's commission rate is higher, delegator's profit is lower.
+- If validator's commission rate is lower, validator's profit is lower and it makes operation difficult.
+
+Since a high `maxRate` can make delegators concerned about an unexpected high commission rate from the validator, `maxRate` should be set carefully. `maxChangeRate` is unchangeable when initialized.
+
+#### Outputs
+
+|Name|Type|Description|
+|---|---|---|
+|success|bool|true if the validator is successfully registered|
+
+### `editValidator`
+
+Validator updates its information. 
+Validator only can update information except unchangeable fields such as `maxRate` and `maxChangeRate` in `CommissionRates` struct.
+
+`EditValidator` is emitted when the validator is successfully updated.
+
+#### Inputs
+
+|Name|Type|Description|
+|---|---|---|
+|description|Description|information of the validator|
+|validatorAddress|address|the address of the validator|
+|commissionRate|int256|the commission rate of the staking token rewarded by the validator|
+|minSelfDelegation|int256|the minimum self-delegation amount of the validator|
+
+#### Outputs
+
+|Name|Type|Description|
+|---|---|---|
+|success|bool|true if the validator is successfully updated|
+
+### `delegate`
+
+Delegator sets the amount of token to be delegated to the validator.
+
+`Delegate` is emitted when the delegation is successfully done.
+
+#### Inputs
+
+|Name|Type|Description|
+|---|---|---|
+|delegatorAddress|address|the address of the delegator|
+|validatorAddress|address|the address of the validator|
+|amount|uint256|the amount of the staking token delegated to the validator|
+
+#### Outputs
+
+|Name|Type|Description|
+|---|---|---|
+|success|bool|true if the delegation is successfully done|
+
+#### Events
+
+`newShares` indicates the ownership ratio of the delegator.
+The shares calculated may vary depending on the time even though the same amount of tokens are delegated.
+
+### `undelegate`
+
+Delegator withdraws the amount of token delegated to the validator.
+
+`Unbond` is emitted when the undelegation is successfully done.
+
+#### Inputs
+
+|Name|Type|Description|
+|---|---|---|
+|delegatorAddress|address|the address of the delegator|
+|validatorAddress|address|the address of the validator|
+|amount|uint256|the amount of the staking token willing to undelegate from the validator|
+
+#### Outputs
+
+|Name|Type|Description|
+|---|---|---|
+|success|bool|true if the undelegation is successfully done|
+
+### `redelegate`
+
+Delegator redelegates the amount of token delegated to the validator to another validator.
+
+`Redelegate` is emitted when the redelegate is successfully done.
+
+#### Inputs
+
+|Name|Type|Description|
+|---|---|---|
+|delegatorAddress|address|the address of the delegator|
+|validatorSrc|string|the address of the source validator|
+|validatorDst|string|the address of the destination validator|
+|amount|uint256|the amount of the staking token for redelegation|
+
+#### Outputs
+
+|Name|Type|Description|
+|---|---|---|
+|success|bool|true if the redelegate is successfully done|
+
+### `delegation`
+
+Returns the delegation information between a delegator and a validator.
+If there is no delegation found, the `shares` and `balance` will be `0`.
+
+#### Inputs
+
+|Name|Type|Description|
+|---|---|---|
+|delegatorAddress|address|the address of the delegator|
+|validatorAddress|address|the address of the validator|
+
+#### Outputs
+
+|Name|Type|Description|
+|---|---|---|
+|shares|uint256|the delegated shares|
+|balance|Coin|the amount of delegated token and denom|
+
+`Coin` is a struct with the following fields:
+
+|Name|Type|Description|
+|---|---|---|
+|denom|string|the denom of the reward|
+|amount|uint256|the amount of the reward|
+
+### `unbondingDelegation`
+
+Returns the unbonding delegation information between a delegator and a validator.
+If there is no unbonding delegation found, empty `UnbondingDelegationOutput` will be returned.
+
+#### Inputs
+
+|Name|Type|Description|
+|---|---|---|
+|delegatorAddress|address|the address of the delegator|
+|validatorAddress|address|the address of the validator|
+
+#### Outputs
+
+|Name|Type|Description|
+|---|---|---|
+|unbondingDelegation|UnbondingDelegationOutput|the information of the unbonding delegation|
+
+`UnbondingDelegationOutput` is a struct with the following fields:
+
+|Name|Type|Description|
+|---|---|---|
+|validatorAddress|address|the address of the validator|
+|delegatorAddress|address|the address of the delegator|
+|entries|UnbondingDelegationEntry[]|the entries of the unbonding delegation|
+
+`UnbondingDelegationEntry` is a struct with the following fields:
+
+|Name|Type|Description|
+|---|---|---|
+|creationHeight|uint64|the creation height of the entry|
+|completionTime|uint64|the completion time of the entry|
+|initialBalance|Coin|the initial balance of the entry|
+|balance|Coin|the balance of the entry|
+
+### `validator`
+
+Returns the validator information.
+If there is no validator found, empty `ValidatorOutput` will be returned.
+
+#### Inputs
+
+|Name|Type|Description|
+|---|---|---|
+|validatorAddress|address|the address of the validator|
+
+#### Outputs
+
+|Name|Type|Description|
+|---|---|---|
+|validator|Validator|the information of the validator|
+
+`Validator` is a struct with the following fields:
+
+|Name|Type|Description|
+|---|---|---|
+|operatorAddress|address|the address of the validator|
+|consensusPubkey|string|the public key of the validator|
+|jailed|bool|whether the validator is jailed or not|
+|status|int32|the status of the validator|
+|tokens|uint256|the amount of the staking token delegated to the validator|
+|delegatorShares|uint256|the amount of the delegation shares|
+|description|string|the description of the validator|
+|unbondingHeight|int64|the height at which the validator is unbonding|
+|unbondingTime|int64|the time at which the validator is unbonding|
+|commission|uint256|the commission rate of the staking token rewarded by the validator|
+|minSelfDelegation|uint256|the minimum self-delegation amount of the validator|
+
+### `validators`
+
+Returns all validators matched with the status.
+If there is no validator found, empty `ValidatorsOutput` will be returned.
+
+Status, declared in `x/staking` module, can be one of the following:
+
+- 0 : "BOND_STATUS_UNSPECIFIED", unspecified status
+- 1 : "BOND_STATUS_UNBONDING", validator is unbonding
+- 2 : "BOND_STATUS_UNBONDED", validator is unbonded
+- 3 : "BOND_STATUS_BONDED", validator is bonded
+
+#### Inputs
+
+|Name|Type|Description|
+|---|---|---|
+|status|string|the status of the validator|
+|pageRequest|PageReq|request for pagination|
+
+`PageReq` is a struct with the following fields:
+
+|Name|Type|Description|
+|---|---|---|
+|key|bytes|the key of the page|
+|offset|int64|the offset of the page|
+|limit|int64|the limit of the page|
+|countTotal|bool|whether to count the total number of results or not|
+|reverse|bool|whether to reverse the results or not|
+
+#### Outputs
+
+|Name|Type|Description|
+|---|---|---|
+|validators|Validator[]|the arrays of the validators|
+|pageResponse|PageResp|response for pagination
+
+`PageResp` is a struct with the following fields:
+
+|Name|Type|Description|
+|---|---|---|
+|nextKey|bytes|the next key of the page|
+|total|uint64|the total number of the results|
+
+### `redelegation`
+
+Returns the redelegation information of delegator, source validator and destination validator.
+If there is no redelegation found, empty `RedelegationOutput` will be returned.
+
+#### Inputs
+
+|Name|Type|Description|
+|---|---|---|
+|delegatorAddress|address|the address of the delegator|
+|srcValidatorAddress|address|the address of the source validator|
+|dstValidatorAddress|address|the address of the destination validator|
+
+#### Outputs
+
+|Name|Type|Description|
+|---|---|---|
+|redelegation|RedelegationOutput|the information of the redelegation|
+
+`RedelegationOutput` is a struct with the following fields:
+
+|Name|Type|Description|
+|---|---|---|
+|delegatorAddress|address|the address of the delegator|
+|validatorSrcAddress|address|the address of the source validator|
+|validatorDstAddress|address|the address of the destination validator|
+|entries|RedelegationEntry[]|the entries of the redelegation|
+
+`RedelegationEntry` is a struct with the following fields:
+
+|Name|Type|Description|
+|---|---|---|
+|creationHeight|uint64|the creation height of the entry|
+|completionTime|uint64|the completion time of the entry|
+|initialBalance|Coin|the initial balance of the entry|
+|balance|Coin|the balance of the entry|
+
+### `redelegations`
+
+Returns all redelegations of delegator, source validator and destination validator.
+If there is no redelegation found, empty `RedelegationResponse` and `PageResp` will be returned.
+
+#### Inputs
+
+|Name|Type|Description|
+|---|---|---|
+|delegatorAddress|address|the address of the delegator|
+|srcValidatorAddress|address|the address of the source validator|
+|dstValidatorAddress|address|the address of the destination validator|
+|pageRequest|PageReq|request for pagination|
+
+#### Outputs
+
+|Name|Type|Description|
+|---|---|---|
+|response|RedelegationResponse[]|the information of the redelegations|
+|pageResponse|PageResp|response for pagination|
+
+## Events
+
+### CreateValidator
+
+|Name|Type|Indexed|Description|
+|---|---|---|---|
+|valiAddr|address|Y|the address of the validator|
+|value|uint256|N|the amount of the staking token initially self-delegated to the validator|
+
+### EditValidator
+
+|Name|Type|Indexed|Description|
+|---|---|---|---|
+|valiAddr|address|Y|the address of the validator|
+|commissionRate|int256|N|the updated commission rate of the staking token rewarded by the validator|
+|minSelfDelegation|int256|N|the updated minimum self-delegation amount of the validator|
+
+### Delegate
+
+|Name|Type|Indexed|Description|
+|---|---|---|---|
+|delegatorAddr|address|Y|the address of the delegator|
+|validatorAddr|string|Y|the address of the validator|
+|amount|uint256|N|the amount of the staking token delegated to the validator|
+|newShares|uint256|N|the amount of the delegation shares after the delegation|
+
+### Unbond
+
+|Name|Type|Indexed|Description|
+|---|---|---|---|
+|delegatorAddr|address|Y|the address of the delegator|
+|validatorAddr|string|Y|the address of the validator|
+|amount|uint256|N|the amount of the staking token undelegated from the validator|
+|completionTime|uint256|N|the completion time of the undelegation|
+
+### Redelegate
+
+|Name|Type|Indexed|Description|
+|---|---|---|---|
+|delegatorAddr|address|Y|the address of the delegator|
+|validatorSrcAddress|address|Y|the address of the source validator|
+|validatorDstAddress|address|Y|the address of the destination validator|
+|amount|uint256|N|the amount of the staking token for redelegation|
+|completionTime|uint256|N|the completion time of the redelegate|

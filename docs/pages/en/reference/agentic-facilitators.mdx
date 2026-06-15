@@ -1,0 +1,62 @@
+---
+title: "Facilitators"
+description: "Settlement services that verify and submit x402 agent payments on Stable so you do not run your own infrastructure."
+diataxis: "reference"
+---
+
+# Facilitators
+
+A facilitator verifies a signed x402 payment and submits the on-chain call that settles it in USDT0 on Stable. Using a hosted facilitator means you do not run settlement infrastructure or manage gas tokens. For the rail-level context, see [Agent settlement](/en/explanation/agent-settlement).
+
+## Overview table
+
+| **Provider** | **Category** | **Docs / Get Started** | **Notes** |
+| :--- | :--- | :--- | :--- |
+| [**Semantic Pay**](https://x402.semanticpay.io) | x402 facilitator | [https://docs.semanticpay.io/supported-chains#stable](https://docs.semanticpay.io/supported-chains#stable) | Public x402 facilitator for Stable; verifies and settles USDT0 payments via ERC-3009 |
+| [**Heurist**](https://facilitator.heurist.xyz) | x402 facilitator | [https://docs.heurist.ai/x402-products/facilitator#supported-networks](https://docs.heurist.ai/x402-products/facilitator#supported-networks) | Multi-chain x402 facilitator supporting Stable; high-throughput verification and settlement with OFAC screening |
+
+## Semantic Pay
+
+Payment infrastructure for AI agents: trustless, P2P, and permissionless. Semantic Pay operates as an x402-compatible payment facilitator on Stable, settling USDT0 payments via ERC-3009 (`transferWithAuthorization`). Agents do not need a separate gas token in their wallets.
+
+Developers integrating x402 on Stable point their middleware to `https://x402.semanticpay.io`. No custom settlement infrastructure is required.
+
+**Capabilities**
+
+- Payment payload verification (`/verify`) and on-chain settlement (`/settle`) via USDT0
+- Gasless transfers using ERC-3009 `transferWithAuthorization`
+- Spend limits, approval flows, and kill switches for agent oversight
+- End-to-end traceability with full audit logging from intent through settlement
+- Event callbacks for real-time payment lifecycle updates
+
+**Facilitator endpoint:** `https://x402.semanticpay.io`
+
+**Docs:** [https://docs.semanticpay.io/supported-chains#stable](https://docs.semanticpay.io/supported-chains#stable)
+
+## Heurist
+
+Heurist operates a multi-chain x402 facilitator that supports Stable alongside Base, Base Sepolia, and X Layer. It targets high-frequency agent workloads with throughput tuned for thousands of payment verifications and settlements per second.
+
+Point your middleware at `https://facilitator.heurist.xyz`. No API key is required to get started.
+
+**Capabilities**
+
+- Payment verification and on-chain settlement across multiple networks from one endpoint
+- Throughput sized for high-frequency agent traffic
+- Automatic OFAC screening of sender addresses
+- Real-time observability over verification and settlement activity
+
+**Facilitator endpoint:** `https://facilitator.heurist.xyz`
+
+**Docs:** [https://docs.heurist.ai/x402-products/facilitator#supported-networks](https://docs.heurist.ai/x402-products/facilitator#supported-networks)
+
+## How to choose
+
+- Use a hosted facilitator (Semantic Pay or Heurist) to start fast. No infrastructure to run, no gas tokens to manage.
+- Pick by what matters most for your workload: Semantic Pay if you want Stable-native tooling with lifecycle callbacks and agent oversight controls; Heurist if you need a single endpoint that spans Stable plus other EVM networks, or if OFAC screening is a hard requirement.
+- Self-host if you need full control over settlement policy, want to keep payment data in your own environment, or expect volume that justifies the operational overhead.
+- Both facilitators settle x402 on Stable today. The same `/settle` endpoint can also serve as the on-chain submission target for an MPP server, since MPP's wire format only differs from x402 on the client ↔ resource-server hop. See [Build an MPP endpoint on Stable](/en/how-to/build-mpp-endpoint).
+
+---
+
+Have an agentic payments integration with Stable? Reach out at [bizdev@stable.xyz](mailto:bizdev@stable.xyz).

@@ -1,0 +1,304 @@
+---
+title: "Bank precompile reference"
+description: "Bank precompile reference: ERC-20 methods, mint/burn authorization, and event signatures."
+diataxis: "reference"
+---
+
+# Bank precompile reference
+
+:::note
+**Concept:** For what the bank module does and when to use it, see [Bank module](/en/explanation/bank-module).
+:::
+
+## Abstract
+
+The `x/bank` module in Stable SDK only provides basic token management features.
+You can transfer any token to any account without restriction, but you cannot delegate another account to transfer your tokens.
+For these reasons, the `bank` precompiled contract offers additional authorization and delegation features on top of the existing `x/bank` module in Stable SDK.
+
+## Contents
+
+1. **[Concepts](#concepts)**
+2. **[Configuration](#configuration)**
+3. **[Methods](#methods)**
+4. **[Events](#events)**
+
+## Concepts
+
+This precompiled contract provides ERC-20 standard methods - such as `transfer` and `balanceOf` for transfer and `transferFrom`, `approve` and `allowance` for delegation. You can call these methods directly without registering the contract address.
+
+However, the `x/precompile` module must whitelist and register the contract address before you can use the `mint` and `burn` methods.
+
+```go
+func (p *Precompile) mint(
+  ctx sdk.Context,
+  contract *vm.Contract,
+  denom string,
+  method *abi.Method,
+  stateDB vm.StateDB,
+  args []interface{},
+) ([]byte, error) {
+  // ...
+
+  // mint method is only allowed for the registered caller contract
+  if _, err := precompilecommon.CheckPermissions(ctx, p.precompileKeeper, contract.CallerAddress, CallerPermissions); err != nil {
+    return nil, err
+  }
+```
+
+This additional verification process guarantees that the token contract calling this precompiled contract is authorized.
+
+To register a token contract address and its denom in the `x/precompile` module whitelist, you must submit a governance proposal.
+
+## Configuration
+
+The contract address and gas cost are predefined.
+
+### Contract address
+
+- `0x0000000000000000000000000000000000001003` for STABLE (governance token)
+
+## Methods
+
+### `mint`
+
+Mints requested amount of new tokens and transfer to the account.
+The amount of tokens to be minted must be greater than zero.
+
+`PrecompiledBankMint` is emitted when the tokens are successfully minted and transferred to the account.
+
+NOTE:
+
+- Governance token minting is prohibited.
+- Caller contracts calling the mint method must be registered in x/precompile module.
+
+#### Inputs
+
+|Name|Type|Description|
+|---|---|---|
+|to|address|the address to receive the minted tokens|
+|amount|uint256|the amount of tokens to be minted|
+
+#### Outputs
+
+|Name|Type|Description|
+|---|---|---|
+|success|bool|true if the tokens are successfully minted and transferred to the account|
+
+### `burn`
+
+Burns requested amount of tokens from the account.
+The amount of tokens to be burned must be greater than zero.
+
+`PrecompiledBankBurn` is emitted when the tokens are successfully burned.
+
+NOTE:
+
+- Burning governance token is prohibited.
+- Caller contracts calling the burn method must be registered in x/precompile module.
+
+#### Inputs
+
+|Name|Type|Description|
+|---|---|---|
+|from|address|the address to burn the tokens|
+|amount|uint256|the amount of tokens to be burned|
+
+#### Outputs
+
+|Name|Type|Description|
+|---|---|---|
+|success|bool|true if the tokens are successfully burned|
+
+### `transfer`
+
+Transfers requested amount of tokens from sender to the recipient.
+Token must be set sendable. The amount of tokens to be transferred must be greater than zero.
+
+`PrecompiledBankTransfer` is emitted when the tokens are successfully transferred.
+
+#### Inputs
+
+|Name|Type|Description|
+|---|---|---|
+|to|address|the address to receive the tokens|
+|amount|uint256|the amount of tokens to be transferred|
+
+#### Outputs
+
+|Name|Type|Description|
+|---|---|---|
+|success|bool|true if the tokens are successfully transferred|
+
+### `transferFrom`
+
+Transfers requested amount of tokens from owner to recipient by authorized spender within the limits of the allowance.
+Token must be set sendable.
+The amount of tokens to be transferred must be greater than zero and less than or equal to the current allowance.
+
+`PrecompiledBankTransfer` is emitted when the tokens are successfully transferred.
+
+#### Inputs
+
+|Name|Type|Description|
+|---|---|---|
+|from|address|the address to transfer the tokens|
+|to|address|the address to receive the tokens|
+|amount|uint256|the amount of tokens to be transferred|
+
+#### Outputs
+
+|Name|Type|Description|
+|---|---|---|
+|success|bool|true if the tokens are successfully transferred|
+
+### `multiTransfer`
+
+Transfers tokens from single account to multiple accounts.
+Token must be set sendable.
+The amount of tokens to be transferred to each recipient must be greater than zero.
+
+`PrecompiledBankTransfer` is emitted per each recipient when the tokens are successfully transferred.
+
+#### Inputs
+
+|Name|Type|Description|
+|---|---|---|
+|to|address[]|the addresses to receive the transferred tokens|
+|amount|uint256[]|the amount of tokens to be transferred to each recipient|
+
+#### Outputs
+
+|Name|Type|Description|
+|---|---|---|
+|success|bool|true if the tokens are successfully transferred to each recipient|
+
+### `approve`
+
+Authorizes a spender to transfer tokens from the owner’s account.
+The amount of tokens to be authorized must be greater than zero.
+
+`PrecompiledBankApproval` is emitted when the authorization is successfully set.
+
+#### Inputs
+
+|Name|Type|Description|
+|---|---|---|
+|spender|address|the address to authorize|
+|value|uint256|the amount of tokens to be authorized|
+
+#### Outputs
+
+|Name|Type|Description|
+|---|---|---|
+|success|bool|true if the authorization is successfully set|
+
+### `revoke`
+
+Revokes the authorization of spender for transferring tokens from owner.
+
+`PrecompiledBankRevoke` is emitted when the authorization is successfully revoked.
+
+#### Inputs
+
+|Name|Type|Description|
+|---|---|---|
+|spender|address|the address to revoke|
+
+#### Outputs
+
+|Name|Type|Description|
+|---|---|---|
+|success|bool|true if the authorization is successfully revoked|
+
+### `balanceOf`
+
+Returns balance of tokens from the account.
+
+#### Inputs
+
+|Name|Type|Description|
+|---|---|---|
+|account|address|the address to get the balance of tokens|
+
+#### Outputs
+
+|Name|Type|Description|
+|---|---|---|
+|balance|uint256|the amount of tokens in the account|
+
+### `totalSupply`
+
+Returns total supply of tokens.
+
+#### Inputs
+
+none
+
+#### Outputs
+
+|Name|Type|Description|
+|---|---|---|
+|totalSupply|uint256|the total amount of tokens|
+
+### `allowance`
+
+Returns the amount which spender is still allowed to withdraw from owner.
+
+#### Inputs
+
+|Name|Type|Description|
+|---|---|---|
+|owner|address|the address of the owner|
+|spender|address|the address of the spender|
+
+#### Outputs
+
+|Name|Type|Description|
+|---|---|---|
+|amount|uint256|the amount of tokens authorized|
+
+## Events
+
+All events emitted from this precompiled contract are prefixed with `PrecompiledBank`.
+To avoid ambiguity, token contract calling this precompiled contract should avoid using event names with the same prefix.
+
+### PrecompiledBankMint
+
+|Name|Type|Indexed|Description|
+|---|---|---|---|
+|from|address|Y|the address that minted the tokens|
+|to|address|Y|the address to receive the minted tokens|
+|amount|uint256|N|the amount of tokens minted|
+
+### PrecompiledBankBurn
+
+|Name|Type|Indexed|Description|
+|---|---|---|---|
+|from|address|Y|the address that burned the tokens|
+|to|address|Y|not used in this method|
+|amount|uint256|N|the amount of tokens burned|
+
+### PrecompiledBankTransfer
+
+|Name|Type|Indexed|Description|
+|---|---|---|---|
+|from|address|Y|the address that transferred the tokens|
+|to|address|Y|the address to receive the transferred tokens|
+|amount|uint256|N|the amount of tokens transferred|
+
+### PrecompiledBankApproval
+
+|Name|Type|Indexed|Description|
+|---|---|---|---|
+|owner|address|Y|the address that authorized the tokens|
+|spender|address|Y|the address to authorize|
+|value|uint256|N|the amount of tokens authorized|
+
+### PrecompiledBankRevoke
+
+|Name|Type|Indexed|Description|
+|---|---|---|---|
+|owner|address|Y|the address that revoked the tokens|
+|spender|address|Y|the address to revoke|
+|value|uint256|N|the amount of tokens authorized|

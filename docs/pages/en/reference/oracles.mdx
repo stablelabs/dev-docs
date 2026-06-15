@@ -1,0 +1,126 @@
+---
+title: "Oracles"
+description: "Oracle price feed providers on Stable, including contract addresses, supported pairs, and integration examples."
+diataxis: "reference"
+---
+
+# Oracles
+
+Oracles provide smart contracts with off-chain data such as asset prices. RedStone operates price feeds on Stable.
+
+## Overview table
+
+| **Provider** | **Category** | **Supported Pairs** | **Docs / Get Started** | **Notes** |
+| :--- | :--- | :--- | :--- | :--- |
+| [**RedStone**](https://www.redstone.finance/) | Oracle Price Feeds | BTC, ETH, USDT, USDC, PYUSD, XAUt, frxUSD, FXS, LBTC, sfrxETH/ETH, sfrxUSD, SolvBTC, sthUSD, thBILL, weETH | [https://docs.redstone.finance/docs/dapps/redstone-push/](https://docs.redstone.finance/docs/dapps/redstone-push/) | Live on mainnet |
+
+## RedStone
+
+RedStone provides oracle price feeds on Stable through its [Push model](https://docs.redstone.finance/docs/dapps/redstone-push/). Feed contracts expose the Chainlink-compatible `AggregatorV3Interface`.
+
+**Capabilities**
+
+- Push-based price feeds with configurable deviation thresholds and heartbeat intervals
+- Chainlink-compatible `AggregatorV3Interface` with `latestRoundData()`, `decimals()`, and `description()`
+- Coverage for blue-chip assets, stablecoins, LSTs, LRTs, and yield-bearing / fundamental-priced assets
+
+### Mainnet price feed addresses
+
+Source: [RedStone push feeds dashboard](https://app.redstone.finance/push-feeds?networks=stable&testnets=true)
+
+| **Price Feed** | **Contract Address** | **Deviation** | **Heartbeat** |
+| :--- | :--- | :--- | :--- |
+| **BTC / USD** | [0x687103bA8CC2f66C94696182Ef410400Da45fb24](https://stablescan.xyz/address/0x687103bA8CC2f66C94696182Ef410400Da45fb24) | 0.5% | 6h |
+| **ETH / USD** | [0x457BE3C697c644bF329C2C3ea79EbF1D254d603a](https://stablescan.xyz/address/0x457BE3C697c644bF329C2C3ea79EbF1D254d603a) | 0.5% | 6h |
+| **USDT / USD** | [0x58264801fadCd8598D3EE993572ADe9cA27F42c8](https://stablescan.xyz/address/0x58264801fadCd8598D3EE993572ADe9cA27F42c8) | 0.5% | 6h |
+| **USDC / USD** | [0x8ea3C667C264BbdaA1dA7638904b8671F451c7F9](https://stablescan.xyz/address/0x8ea3C667C264BbdaA1dA7638904b8671F451c7F9) | 0.5% | 6h |
+| **PYUSD / USD** | [0x1c30dA143E97c228102A5cAe3960dBBB41321604](https://stablescan.xyz/address/0x1c30dA143E97c228102A5cAe3960dBBB41321604) | 0.5% | 6h |
+| **XAUt / USD** | [0xd5E244accc514b56DCAD89897DD44499E7C35a05](https://stablescan.xyz/address/0xd5E244accc514b56DCAD89897DD44499E7C35a05) | 0.5% | 6h |
+| **frxUSD / USD** | [0xB5197ca89507FE045e8ce9996593D35071915EB7](https://stablescan.xyz/address/0xB5197ca89507FE045e8ce9996593D35071915EB7) | 0.5% | 6h |
+| **FXS / USD** | [0xC3b182aee94AECeCa39b072942f3Ce4B87465517](https://stablescan.xyz/address/0xC3b182aee94AECeCa39b072942f3Ce4B87465517) | 0.5% | 6h |
+| **LBTC / USD** | [0x80295Cf12E28f3F943304BFd6C2A2C044e731aaB](https://stablescan.xyz/address/0x80295Cf12E28f3F943304BFd6C2A2C044e731aaB) | 0.5% | 6h |
+| **sfrxETH / ETH** | [0x29533E113D803ab1967F6CB9495B95DC8C1EA594](https://stablescan.xyz/address/0x29533E113D803ab1967F6CB9495B95DC8C1EA594) | 0.5% | 6h |
+| **sfrxUSD / FUNDAMENTAL** | [0x71784611831b9566df7301A78bC1B3d29a8737bF](https://stablescan.xyz/address/0x71784611831b9566df7301A78bC1B3d29a8737bF) | 0.5% | 6h |
+| **SolvBTC / FUNDAMENTAL** | [0x58fa68A373956285dDfb340EDf755246f8DfCA16](https://stablescan.xyz/address/0x58fa68A373956285dDfb340EDf755246f8DfCA16) | 0.01% | 24h |
+| **sthUSD / FUNDAMENTAL** | [0xb81131B6368b3F0a83af09dB4E39Ac23DA96C2Db](https://stablescan.xyz/address/0xb81131B6368b3F0a83af09dB4E39Ac23DA96C2Db) | 0.5% | 12h |
+| **thBILL / FUNDAMENTAL / USD** | [0x7532df197a36587aeD2B9A59785c8BeD182FA62D](https://stablescan.xyz/address/0x7532df197a36587aeD2B9A59785c8BeD182FA62D) | 0.5% | 6h |
+| **weETH / FUNDAMENTAL** | [0xD57b79401956BE4872D3d03F0C920639335e350F](https://stablescan.xyz/address/0xD57b79401956BE4872D3d03F0C920639335e350F) | 0.5% | 6h |
+
+## Reading a price feed
+
+Feed contracts implement the Chainlink-compatible [`AggregatorV3Interface`](https://docs.redstone.finance/docs/dapps/redstone-push/). The same consumer pattern used for any Chainlink-style price feed applies.
+
+```solidity
+pragma solidity ^0.8.25;
+
+interface AggregatorV3Interface {
+    function latestRoundData()
+        external
+        view
+        returns (
+            uint80 roundId,
+            int256 answer,
+            uint256 startedAt,
+            uint256 updatedAt,
+            uint80 answeredInRound
+        );
+    function decimals() external view returns (uint8);
+    function description() external view returns (string memory);
+}
+
+contract OracleConsumer {
+    AggregatorV3Interface public oracle;
+
+    constructor(address oracleAddress) {
+        oracle = AggregatorV3Interface(oracleAddress);
+    }
+
+    function getLatestPriceData()
+        external
+        view
+        returns (
+            uint80 roundId,
+            int256 answer,
+            uint256 updatedAt
+        )
+    {
+        (roundId, answer, , updatedAt, ) = oracle.latestRoundData();
+        return (roundId, answer, updatedAt);
+    }
+}
+```
+
+:::note
+RedStone push feeds on Stable are currently available on mainnet only. Always verify on-chain `updatedAt` against your application's freshness tolerance before consuming a price.
+:::
+
+### Reading a feed directly
+
+You can read any RedStone feed without deploying a consumer contract. The following call reads the ETH/USD feed:
+
+```bash
+cast call 0x457BE3C697c644bF329C2C3ea79EbF1D254d603a "latestRoundData()(uint80,int256,uint256,uint256,uint80)" --rpc-url https://rpc.stable.xyz
+```
+
+### Deploying a consumer to Stable mainnet
+
+This assumes you have Foundry installed and a funded wallet. See the [Deploy Smart Contract](/en/tutorial/smart-contract) tutorial for full setup instructions.
+
+1. Save the contract above to `src/OracleConsumer.sol` in a Foundry project.
+
+2. Deploy with the BTC/USD mainnet feed address:
+
+```bash
+source .env ;
+forge create src/OracleConsumer.sol:OracleConsumer --broadcast --rpc-url $STABLE_MAINNET_RPC_URL --private-key $PRIVATE_KEY --constructor-args 0x687103bA8CC2f66C94696182Ef410400Da45fb24
+```
+
+3. Read the latest price from your deployed contract:
+
+```bash
+cast call <DEPLOYED_ADDRESS> "getLatestPriceData()(uint80,int256,uint256)" --rpc-url $STABLE_MAINNET_RPC_URL
+```
+
+## Have an oracle integrating Stable?
+
+Reach the team at [bizdev@stable.xyz](mailto:bizdev@stable.xyz) to be listed on this page.

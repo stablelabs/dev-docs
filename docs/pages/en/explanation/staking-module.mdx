@@ -1,0 +1,46 @@
+---
+title: "Staking module"
+description: "The staking precompile exposes delegation, undelegation, and validator management to EVM contracts, with authorization checks that enforce caller identity."
+diataxis: "explanation"
+---
+
+# Staking module
+
+The `x/staking` module controls validator participation and delegation on Stable. Its precompile makes these operations callable from Solidity, so a contract can delegate STABLE, undelegate after the unbonding period, redelegate between validators, or query validator state without leaving the EVM.
+
+## What it exposes
+
+- **Create validator**: register a new validator with description, commission rate, and initial self-delegation.
+- **Edit validator**: update validator metadata and commission parameters.
+- **Delegate**: stake STABLE with a validator.
+- **Undelegate**: begin unbonding from a validator (the tokens become available after the unbonding period).
+- **Redelegate**: move stake between validators without unbonding.
+- **Cancel unbonding delegation**: reverse an in-progress unbonding before the period completes.
+- **Query methods**: read validator sets, delegation records, unbonding records, and parameters.
+
+## Authorization semantics
+
+The precompile performs two checks:
+
+1. The bond denom (staking token) must be registered at chain initialization. On Stable this is the STABLE token.
+2. The caller must match the validator or delegator whose state is being modified. You cannot delegate on someone else's behalf by calling the precompile directly.
+
+## Unbonding completions
+
+When an unbonding period finishes, the tokens become liquid, but the SDK handles this quietly and the EVM doesn't see a direct event. Stable's [system transaction](/en/explanation/system-transactions) mechanism bridges this: the protocol emits an `UnbondingCompleted` event through the `StableSystem` precompile once the unbonding clears, so dApps can subscribe via standard EVM logs.
+
+## When to use it
+
+- A staking protocol manages delegation from a vault contract: call `delegate` and `undelegate` as users deposit and withdraw.
+- A governance dashboard needs a live validator set: use the query methods.
+- A restaking or liquid-staking product tracks unbonding completions: subscribe to the `UnbondingCompleted` event (see [Tracking unbonding completions](/en/how-to/track-unbonding) once that guide ships).
+
+## Where to find the ABI
+
+Full method signatures, struct definitions, and emitted events are in the [Staking precompile reference](/en/reference/staking-module-api).
+
+## Next recommended
+
+- [**Staking precompile reference**](/en/reference/staking-module-api) — Call `delegate`, `undelegate`, `redelegate`, and read validator state.
+- [**System transactions**](/en/explanation/system-transactions) — Learn how unbonding completions reach the EVM as events.
+- [**Distribution module**](/en/explanation/distribution-module) — Withdraw rewards earned from the delegations managed here.

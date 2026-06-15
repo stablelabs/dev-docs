@@ -1,0 +1,179 @@
+---
+title: "Indexers"
+description: "Indexing and analytics providers for Stable including The Graph, Goldsky, Allium, Stablescan, and CoinGecko."
+diataxis: "reference"
+---
+
+# Indexers
+
+Indexers and analytics platforms provide structured access to on-chain data, enabling developers to query transactions, balances, logs, events, and application-specific data at scale. Stable is EVM-compatible, so standard Ethereum indexing tools work seamlessly.
+
+This page lists current and upcoming indexing providers, along with the capabilities developers can expect.
+
+## Overview table
+
+| **Provider**                                                                | **Category**                  | **Docs / Get Started**                                                                                                              | **Notes**                                                          |
+| :-------------------------------------------------------------------------- | :---------------------------- | :---------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------- |
+| [**Stablescan**](https://stablescan.xyz/)                               | Blockchain Explorer           | [https://docs.etherscan.io/introduction](https://docs.etherscan.io/introduction)                                                     | Blockchain explorer; transaction, block, and contract visibility. |
+| [**The Graph**](https://thegraph.com/explorer/participants/indexers) | Indexer                       | [https://thegraph.com/docs/en/developing/creating-a-subgraph/](https://thegraph.com/docs/en/developing/creating-a-subgraph/) | Build, deploy, and query subgraphs using GraphQL.                  |
+| [**Goldsky**](https://goldsky.com/)                                  | Indexer                       | [https://docs.goldsky.com/introduction](https://docs.goldsky.com/introduction)                                               | High-performance indexing and real-time data streaming.            |
+| [**Ormi Labs**](https://ormilabs.com/)                               | Indexer                       | [https://docs.ormilabs.com/subgraphs/quickstart](https://docs.ormilabs.com/subgraphs/quickstart)                             | Next-gen subgraph indexer with real-time data capabilities.        |
+| [**Allium**](https://www.allium.so/)                                 | Analytics / Data Platform     | [https://docs.allium.so/](https://docs.allium.so/)                                                                           | Normalized blockchain datasets & analytics tooling.                |
+| [**CoinMarketCap**](https://coinmarketcap.com/api/)                  | Market Data Aggregator        | [https://coinmarketcap.com/api/documentation/v1/](https://coinmarketcap.com/api/documentation/v1/)                           | Market prices, listings, and tracking tools.                       |
+| [**CoinGecko**](https://www.coingecko.com/en/api)                    | Market Data Aggregator        | [https://docs.coingecko.com/](https://docs.coingecko.com/)                                                                   | Independent market data with developer APIs.                       |
+| [**Dexscreener**](https://docs.dexscreener.com/)                     | DEX Analytics                 | [https://docs.dexscreener.com/](https://docs.dexscreener.com/)                                                               | Real-time DEX charts, liquidity analytics, and dashboards.         |
+| [**DeBank**](https://debank.com/)                                    | Portfolio / Wallet Analytics  | [https://cloud.debank.com/](https://cloud.debank.com/)                                                                       | EVM wallet tracking, transactions, and portfolio insights.         |
+
+## 1. Indexers
+
+Indexers transform raw blockchain data into searchable, queryable formats. They power dashboards, analytics, wallets, block explorers, and application backends.
+
+### The Graph
+
+Decentralized indexing protocol powering data access for over 75,000 projects.
+
+**Capabilities**
+
+- Subgraphs for Stable
+- GraphQL-based querying
+- Distributed indexing network
+
+**Docs**
+
+Follow this quick-start guide to create, deploy, and query a subgraph within minutes:
+
+[https://thegraph.com/docs/en/developing/creating-a-subgraph/](https://thegraph.com/docs/en/developing/creating-a-subgraph/)
+
+### Ormi Labs
+
+Ormi is a next-generation indexer built to deliver real-time and historical blockchain data at scale.
+
+**Capabilities**
+
+- Tip of the chain indexing
+- Sub-second query latency
+- No-code feature
+
+**Docs**
+
+Start querying real-time data with Ormi:
+
+[https://docs.ormilabs.com/subgraphs/quickstart](https://docs.ormilabs.com/subgraphs/quickstart)
+
+Learn how to query USDT0 data on Stable in real-time:
+
+[https://docs.ormilabs.com/subgraphs/tutorials/query-usdt0](https://docs.ormilabs.com/subgraphs/tutorials/query-usdt0)
+
+### Goldsky
+
+High-performance indexing platform with instant subgraphs and developer tooling.
+
+**Capabilities**
+
+- Subgraph deployment and management
+- Webhook creation for real-time event streaming
+- Multi-subgraph sync to external databases
+
+**Docs**
+
+[https://docs.goldsky.com/introduction](https://docs.goldsky.com/introduction)
+
+For 24/7 support, contact [support@goldsky.com](mailto:support@goldsky.com).
+
+## 2. Analytics providers
+
+Analytics tools help teams track network activity, real-world payments, dashboards, usage flows, and contract interactions.
+
+### Allium
+
+A foundational data platform for engineers and analysts across the blockchain ecosystem.
+
+**Capabilities**
+
+- Normalized blockchain datasets
+- Query tooling for analytics teams
+- Enterprise data infrastructure
+
+**Docs**
+
+Get started with Allium’s data platform and API resources:
+
+[https://www.allium.so/](https://www.allium.so/)
+
+**Get started**: Sign up at [allium.so](https://www.allium.so/) to get API access, then query normalized Stable on-chain datasets using the REST API.
+
+### CoinMarketCap
+
+The largest global market tracking platform for crypto assets.
+
+**Capabilities**
+
+- Price tracking for Stable assets
+- Portfolio tool
+- Market data APIs
+
+**Docs**
+
+Explore the CMC API and integration resources:
+
+[https://coinmarketcap.com/api/](https://coinmarketcap.com/api/)
+
+**Get started**: Register for an API key at [coinmarketcap.com/api](https://coinmarketcap.com/api/) and query Stable asset price and market data via the REST API.
+
+### CoinGecko
+
+The world’s largest independent crypto data aggregator.
+
+**Capabilities**
+
+- Market listings and price data
+- Historical analytics
+- API access for developers
+
+**Docs**
+
+Access CoinGecko’s API documentation:
+
+[https://www.coingecko.com/en/api](https://www.coingecko.com/en/api)
+
+**Get started**: Get a free or Pro API key from [coingecko.com/en/api](https://www.coingecko.com/en/api) and query Stable token price and market data via the REST API.
+
+### Dexscreener
+
+Real-time charts and analytics for decentralized venues.
+
+**Capabilities**
+
+- Live DEX charts
+- Liquidity and pair analytics
+- Trading dashboards
+
+**Docs**
+
+Explore Dexscreener’s API endpoints and developer tools:
+
+[https://docs.dexscreener.com/](https://docs.dexscreener.com/)
+
+**Get started**: Browse the [Dexscreener API docs](https://docs.dexscreener.com/) to query real-time pair data, liquidity, and trading activity for Stable-based DEX pools.
+
+### DeBank
+
+Portfolio tracker for Ethereum and EVM ecosystems.
+
+**Capabilities**
+
+- Wallet analytics
+- Transaction summaries
+- Portfolio tracking across chains
+
+**Docs**
+
+Read DeBank’s API reference and integration documentation:
+
+[https://docs.debank.com/](https://docs.debank.com/)
+
+**Get started**: Sign up for [DeBank Cloud](https://cloud.debank.com/) to access API keys and query Stable wallet balances, transaction history, and portfolio data.
+
+---
+
+Have an indexing or analytics platform integrating Stable? Reach out at [bizdev@stable.xyz](mailto:bizdev@stable.xyz).

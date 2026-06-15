@@ -1,0 +1,51 @@
+---
+title: "EIP-7702"
+description: "Batch payments, spending limits, and session keys for EOAs, with no new account or wallet migration required."
+diataxis: "explanation"
+---
+
+# EIP-7702
+
+Stable supports **EIP-7702**, which allows an EOA to **set its account code to an existing smart contract**. The EOA executes that contract's logic while keeping its original address and private key. The delegation is persistent until the EOA explicitly changes or clears it.
+
+For a full specification, see [EIP-7702](https://eips.ethereum.org/EIPS/eip-7702).
+
+## What EIP-7702 enables on Stable
+
+EIP-7702 lets existing EOAs execute smart contract logic without account migration. In Stable's USDT-centric payment environment, this supports patterns such as:
+
+- **Batch payments**: multiple calls (e.g., paying several recipients in a payroll run) execute in a single atomic transaction.
+- **Spending limits**: a delegate contract enforces daily caps or per-transaction limits on the EOA.
+- **Session keys**: an EOA grants a dApp scoped, time-limited transaction permissions without exposing the owner's private key.
+
+:::note
+**Ready to implement?** See the [Account Abstraction (EIP-7702) implementation guide](/en/reference/eip-7702-api) for contract templates, authorization signing, and transaction submission.
+:::
+
+## How it works
+
+EIP-7702 introduces a new transaction type (`0x04`) that carries an `authorizationList`. Each authorization designates a smart contract whose code the EOA will execute for that transaction. The flow is:
+
+1. **Choose or deploy a delegate contract**: a standard Solidity contract that implements the logic you want the EOA to run. You can use an existing deployed contract or deploy your own. Use an audited contract whenever possible.
+2. **Sign an authorization**: the EOA owner signs a message designating the delegate contract.
+3. **Submit an EIP-7702 transaction**: the transaction includes the authorization, and the EOA runs the delegate's code during execution.
+
+After submission, the EOA's account code is set to the delegate. Subsequent transactions to the EOA execute the delegate's logic until the owner clears or replaces the delegation.
+
+## What doesn't change
+
+- **No new account needed**: users keep their existing EOA address and private key. There is no migration step.
+- **Existing keys still sign**: the EOA's private key signs the authorization and any follow-on transactions. EIP-7702 does not introduce a new signing scheme.
+- **Standard EVM execution**: the delegate runs as regular contract code. Tooling that debugs or traces contract execution works unchanged.
+
+## Security considerations
+
+- **Delegate access is total.** The delegate contract has full execution authority over the EOA for the duration of the delegation. Treat delegate selection as a trust decision: a malicious delegate can drain assets.
+- **Delegation persists.** It does not expire at the end of a single transaction. The owner must explicitly clear or replace the delegation when they no longer want it.
+- **Gas costs are slightly higher** due to authorization processing, but this is offset when the delegate batches multiple calls. On Stable, where the base fee is 1 gwei and gas is denominated in USDT0, the additional authorization overhead stays well under a cent, comparable to a standard ERC-20 transfer in cost.
+
+## Next recommended
+
+- [**Account Abstraction (EIP-7702)**](/en/reference/eip-7702-api) — Implement batch payments, spending limits, and session keys against a delegate contract.
+- [**USDT as gas**](/en/explanation/usdt-as-gas-token) — Understand the gas model that EIP-7702 transactions run on.
+- [**Gas waiver**](/en/explanation/gas-waiver) — Compare delegation to gas-waived flows where an application pays the user's gas instead.

@@ -1,0 +1,189 @@
+---
+title: "Use system modules"
+description: "Call Stable's Bank, Distribution, and Staking precompiles from Solidity and ethers.js with minimal ABIs and working examples."
+diataxis: "how-to"
+---
+
+# Use system modules
+
+Stable exposes protocol-level settlement logic through **precompiled contracts** at fixed addresses. The precompiles let EVM code call Stable SDK modules (staking, reward distribution, STABLE token operations) without re-implementing them. They're significantly more gas efficient than equivalent Solidity implementations because they run at the protocol level.
+
+This guide shows how to call a precompile from both Solidity and ethers.js, and when to use one over a regular contract.
+
+:::note
+**Concept**: For what system modules do and why they're precompiles, see [System modules](/en/explanation/system-modules-overview). For per-module method signatures and events, see the [System modules reference](/en/reference/system-modules-api-overview).
+:::
+
+## What's exposed
+
+| **Module** | **Precompile address** | **Use for** |
+| :--- | :--- | :--- |
+| Bank | `0x0000000000000000000000000000000000001003` | STABLE token transfers and balance operations |
+| Distribution | `0x0000000000000000000000000000000000000801` | Claiming staking rewards, reward queries, commission management |
+| Staking | `0x0000000000000000000000000000000000000800` | Delegation, undelegation, redelegation, validator queries |
+| Gov | `0x0000000000000000000000000000000000000805` | Proposals, tally results, and on-chain vote records |
+| Slashing | `0x0000000000000000000000000000000000000806` | Validator signing info and uptime |
+| StableSystem | `0x0000000000000000000000000000000000009999` | EVM event emission for system transactions (unbonding completions) |
+
+All of these are callable from any EVM contract or off-chain client. The addresses are stable and identical on mainnet and testnet.
+
+## When to call a precompile vs a regular contract
+
+- **Use a precompile** when the operation maps to a Stable SDK module: staking, reward distribution, STABLE token ops. Calling the precompile is both cheaper and the only way to trigger protocol-level behavior.
+- **Use a regular contract** when the operation is application logic: escrow, pricing, access control. Wrap the precompile call in your own contract if you need custom authorization or validation.
+
+Precompiles are not a replacement for application contracts. They're a stable interface into the underlying protocol.
+
+## Call from Solidity
+
+Declare an interface for the methods you need, then call the precompile as if it were a deployed contract.
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+interface IStaking {
+    function delegate(
+        address delegatorAddress,
+        string calldata validatorAddress,
+        uint256 amount
+    ) external returns (bool success);
+
+    function delegation(
+        address delegatorAddress,
+        string calldata validatorAddress
+    ) external view returns (uint256 shares, uint256 balance);
+}
+
+contract StakingHelper {
+    address constant STAKING_PRECOMPILE =
+        0x0000000000000000000000000000000000000800;
+
+    /// @notice Delegate STABLE tokens to a validator from this contract.
+    function delegateToValidator(
+        string calldata validatorAddress,
+        uint256 amount
+    ) external returns (bool) {
+        return IStaking(STAKING_PRECOMPILE).delegate(
+            address(this),
+            validatorAddress,
+            amount
+        );
+    }
+
+    /// @notice Read the current delegation of this contract to a validator.
+    function myDelegation(string calldata validatorAddress)
+        external
+        view
+        returns (uint256 shares, uint256 balance)
+    {
+        return IStaking(STAKING_PRECOMPILE).delegation(
+            address(this),
+            validatorAddress
+        );
+    }
+}
+```
+
+Compile and deploy with Foundry or Hardhat. The precompile address is burned into the contract at the constant slot, so there's nothing to wire up post-deployment.
+
+```solidity
+// SAFE: precompile address is fixed on Stable and never changes.
+```
+
+## Call from ethers.js
+
+For off-chain clients, declare the same interface as a minimal ABI and instantiate a contract pointed at the precompile address.
+
+```typescript
+// queryDelegation.ts
+import { ethers } from "ethers";
+import "dotenv/config";
+
+const provider = new ethers.JsonRpcProvider("https://rpc.testnet.stable.xyz");
+
+const STAKING_PRECOMPILE = "0x0000000000000000000000000000000000000800";
+
+const staking = new ethers.Contract(
+  STAKING_PRECOMPILE,
+  [
+    "function delegation(address delegator, string validator) view returns (uint256 shares, uint256 balance)",
+  ],
+  provider
+);
+
+const delegator = "0xDelegatorAddress";
+const validator = "stablevaloper1..."; // bech32 validator operator address
+
+const [shares, balance] = await staking.delegation(delegator, validator);
+console.log("Delegation shares: ", shares.toString());
+console.log("Delegation balance:", ethers.formatUnits(balance, 18), "STABLE");
+```
+
+```bash
+npx tsx queryDelegation.ts
+```
+
+```text
+Delegation shares:  1000000000000000000000
+Delegation balance: 1000.0 STABLE
+```
+
+## Subscribe to system transaction events
+
+Some Stable SDK operations (unbonding completions, for example) don't naturally emit EVM events. Stable closes this gap with **system transactions**: validator-generated transactions that call the `StableSystem` precompile to emit standard EVM events during the next block.
+
+To watch `UnbondingCompleted`, subscribe at the precompile address like any ERC-20 `Transfer` listener.
+
+```typescript
+// watchUnbonding.ts
+import { ethers } from "ethers";
+
+const provider = new ethers.JsonRpcProvider("https://rpc.testnet.stable.xyz");
+
+const STABLE_SYSTEM = "0x0000000000000000000000000000000000009999";
+
+const stableSystem = new ethers.Contract(
+  STABLE_SYSTEM,
+  [
+    "event UnbondingCompleted(address indexed delegator, address indexed validator, uint256 amount)",
+  ],
+  provider
+);
+
+stableSystem.on("UnbondingCompleted", (delegator, validator, amount, event) => {
+  console.log("Unbonding completed for:", delegator);
+  console.log("Amount:", ethers.formatEther(amount), "STABLE");
+  console.log("Tx:", event.log.transactionHash);
+});
+
+console.log("Listening for UnbondingCompleted events...");
+```
+
+```bash
+npx tsx watchUnbonding.ts
+```
+
+```text
+Listening for UnbondingCompleted events...
+Unbonding completed for: 0xabcd...
+Amount: 100.0 STABLE
+Tx: 0x12ab...
+```
+
+For the full system-transaction mechanism and the filter-by-user / historical-query patterns, see [Track unbonding completions](/en/how-to/track-unbonding).
+
+## Per-module references
+
+Each precompile's full method list, events, and authorization rules live in its reference page.
+
+- [Bank precompile](/en/reference/bank-module-api): STABLE token transfers and supply queries.
+- [Distribution precompile](/en/reference/distribution-module-api): reward claims and commission.
+- [Staking precompile](/en/reference/staking-module-api): delegate, undelegate, redelegate, validator queries.
+- [System transactions](/en/reference/system-transactions-api): StableSystem event format and authorization.
+
+## Next recommended
+
+- [**Track unbonding completions**](/en/how-to/track-unbonding) — Subscribe to the UnbondingCompleted event emitted via the StableSystem precompile.
+- [**System modules reference**](/en/reference/system-modules-api-overview) — Jump to the per-module ABI, method signatures, and event schemas.
+- [**System modules concept**](/en/explanation/system-modules-overview) — Understand why Stable exposes SDK modules through precompiles.

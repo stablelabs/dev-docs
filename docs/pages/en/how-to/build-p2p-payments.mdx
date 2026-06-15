@@ -1,0 +1,306 @@
+---
+title: "Learn P2P payments"
+description: "Build a P2P payment app on Stable. Create wallets, check balances, send and receive USDT0, and query transaction history."
+diataxis: "how-to"
+---
+
+# Learn P2P payments
+
+This guide walks through building a P2P payment application on Stable. The app handles the full payment lifecycle: the sender transfers USDT0 directly, the receiver detects the incoming payment in real time, and both can query their own transaction history. Same architecture as any wallet or payment interface, whether a mobile app, web checkout, or backend service.
+
+No middleware, no intermediary. For the conceptual overview, see [P2P payments](/en/reference/p2p-payments). To skip the ABI work and reach a working `transfer` in a few lines, use the [Stable SDK](/en/explanation/sdk-overview).
+
+## What you'll build
+
+Five scripts forming a minimal payment app:
+
+- `wallet.ts` — create or restore a wallet.
+- `getBalance.ts` — query the current USDT0 balance.
+- `send.ts` — send USDT0 to another address.
+- `receive.ts` — watch for incoming payments in real time.
+- `history.ts` — query past Transfer events for an address.
+
+### Demo
+
+```text
+step 1. Alice creates wallet → address: 0xAlice...
+step 2. Alice's balance: 0.01 USDT0
+
+step 3. Alice sends 0.001 USDT0 to Bob
+        tx:             0x8f3a...2d41
+        gas fee:        0.000021 USDT0
+        Alice balance:  0.008979 USDT0
+
+step 4. Bob receives payment (real-time event)
+        from:   0xAlice...
+        amount: 0.001 USDT0
+        tx:     0x8f3a...2d41
+```
+
+## Prerequisites
+
+- Node.js 20 or later.
+- A private key with testnet USDT0 (see [Quick start](/en/tutorial/quick-start) to fund a wallet).
+
+## Project setup
+
+```bash
+mkdir stable-p2p && cd stable-p2p
+npm init -y && npm install ethers dotenv
+```
+
+```text
+added 2 packages, audited 3 packages in 1s
+```
+
+Create `config.ts` shared by every script:
+
+```typescript
+// config.ts
+import { ethers } from "ethers";
+import "dotenv/config";
+
+export const STABLE_RPC = "https://rpc.testnet.stable.xyz";
+export const STABLE_WS = "wss://rpc.testnet.stable.xyz";
+export const USDT0_ADDRESS = "0x78Cf24370174180738C5B8E352B6D14c83a6c9A9";
+
+export const provider = new ethers.JsonRpcProvider(STABLE_RPC);
+```
+
+## 1. Create or restore a wallet
+
+A wallet is a key pair derived from a seed phrase. Generate one for a new user and return the phrase so they can back it up. A returning user restores their wallet from the same phrase.
+
+```typescript
+// wallet.ts
+import { ethers } from "ethers";
+import { provider } from "./config";
+
+/** Create a new wallet for a new user. */
+export function createWallet() {
+  const wallet = ethers.Wallet.createRandom(provider);
+  return {
+    wallet,
+    address: wallet.address,
+    seedPhrase: wallet.mnemonic!.phrase, // display to user for backup
+  };
+}
+
+/** Restore a wallet from a seed phrase (returning user). */
+export function restoreWallet(seedPhrase: string) {
+  const wallet = ethers.Wallet.fromPhrase(seedPhrase, provider);
+  return { wallet, address: wallet.address };
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const { address, seedPhrase } = createWallet();
+  console.log("Address:    ", address);
+  console.log("Seed phrase:", seedPhrase);
+}
+```
+
+```bash
+npx tsx wallet.ts
+```
+
+```text
+Address:     0xAlice...1234
+Seed phrase: liberty shoot ... (12 words)
+```
+
+## 2. Check the balance
+
+USDT0 is the native asset on Stable, so balance queries work exactly like ETH on Ethereum. Native balance is 18 decimals, use `formatEther` for display.
+
+```typescript
+// getBalance.ts
+import { ethers } from "ethers";
+import { provider } from "./config";
+
+export async function getBalance(address: string) {
+  const balance = await provider.getBalance(address);
+  return ethers.formatEther(balance); // 18 decimals
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const address = process.argv[2];
+  const balance = await getBalance(address);
+  console.log("Balance:", balance, "USDT0");
+}
+```
+
+```bash
+npx tsx getBalance.ts 0xAlice...1234
+```
+
+```text
+Balance: 0.01 USDT0
+```
+
+## 3. Send a payment
+
+The sender signs and submits a transfer directly. On Stable, USDT0 is the native asset, so a simple value transfer is the cheapest path (21,000 gas). This is the same code path as "Send" in any payment app.
+
+```typescript
+// send.ts
+import { ethers } from "ethers";
+import { provider } from "./config";
+
+export async function sendPayment(
+  senderKey: string,
+  recipient: string,
+  amount: string // e.g. "0.001" for 0.001 USDT0
+) {
+  const wallet = new ethers.Wallet(senderKey, provider);
+  const block = await provider.getBlock("latest");
+  const baseFee = block!.baseFeePerGas!;
+
+  const tx = await wallet.sendTransaction({
+    to: recipient,
+    value: ethers.parseEther(amount),
+    maxFeePerGas: baseFee * 2n,
+    maxPriorityFeePerGas: 0n, // always 0 on Stable
+  });
+
+  console.log("Payment sent:", tx.hash);
+
+  const receipt = await tx.wait(1);
+  if (receipt!.status === 1) console.log("Payment settled");
+  return tx.hash;
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const [, , recipient, amount] = process.argv;
+  await sendPayment(process.env.PRIVATE_KEY!, recipient, amount);
+}
+```
+
+```bash
+npx tsx send.ts 0xBob...5678 0.001
+```
+
+```text
+Payment sent: 0x8f3a...2d41
+Payment settled
+```
+
+## 4. Receive payments in real time
+
+The receiver listens for incoming `Transfer` events. This is equivalent to push notifications in a traditional payment app. On Stable, single-slot finality means the receiver sees a payment almost instantly.
+
+```typescript
+// receive.ts
+import { ethers } from "ethers";
+import { STABLE_WS, USDT0_ADDRESS } from "./config";
+
+const wsProvider = new ethers.WebSocketProvider(STABLE_WS);
+const usdt0 = new ethers.Contract(
+  USDT0_ADDRESS,
+  ["event Transfer(address indexed from, address indexed to, uint256 value)"],
+  wsProvider
+);
+
+export function watchIncomingPayments(address: string) {
+  const filter = usdt0.filters.Transfer(null, address);
+
+  usdt0.on(filter, (from: string, to: string, value: bigint, event: any) => {
+    console.log("Payment received:");
+    console.log("  from:  ", from);
+    console.log("  amount:", ethers.formatUnits(value, 6), "USDT0");
+    console.log("  tx:    ", event.log.transactionHash);
+  });
+
+  console.log("Watching for incoming payments to", address);
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  watchIncomingPayments(process.argv[2]);
+}
+```
+
+```bash
+npx tsx receive.ts 0xBob...5678
+```
+
+```text
+Watching for incoming payments to 0xBob...5678
+Payment received:
+  from:   0xAlice...1234
+  amount: 0.001 USDT0
+  tx:     0x8f3a...2d41
+```
+
+:::note
+Native transfers (value transfers) also emit a `Transfer` event on the USDT0 ERC-20 contract because USDT0 is both the native asset and an ERC-20 token on Stable. A single event listener covers both transfer methods.
+:::
+
+## 5. Query transaction history
+
+Query past `Transfer` events to build a transaction history view, like a bank statement or transaction list in any payment app.
+
+```typescript
+// history.ts
+import { ethers } from "ethers";
+import { provider, USDT0_ADDRESS } from "./config";
+
+const usdt0 = new ethers.Contract(
+  USDT0_ADDRESS,
+  ["event Transfer(address indexed from, address indexed to, uint256 value)"],
+  provider
+);
+
+export async function getTransactionHistory(address: string, fromBlock?: number) {
+  if (fromBlock === undefined) {
+    const latest = await provider.getBlockNumber();
+    fromBlock = Math.max(0, latest - 10_000);
+  }
+
+  const [sentEvents, receivedEvents] = await Promise.all([
+    usdt0.queryFilter(usdt0.filters.Transfer(address, null), fromBlock),
+    usdt0.queryFilter(usdt0.filters.Transfer(null, address), fromBlock),
+  ]);
+
+  return [
+    ...sentEvents.map((e: any) => ({
+      type: "sent" as const,
+      counterparty: e.args[1],
+      amount: ethers.formatUnits(e.args[2], 6),
+      txHash: e.transactionHash,
+      block: e.blockNumber,
+    })),
+    ...receivedEvents.map((e: any) => ({
+      type: "received" as const,
+      counterparty: e.args[0],
+      amount: ethers.formatUnits(e.args[2], 6),
+      txHash: e.transactionHash,
+      block: e.blockNumber,
+    })),
+  ].sort((a, b) => b.block - a.block);
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const history = await getTransactionHistory(process.argv[2]);
+  for (const tx of history) {
+    console.log(`${tx.type}  ${tx.amount} USDT0  ${tx.counterparty}  ${tx.txHash}`);
+  }
+}
+```
+
+```bash
+npx tsx history.ts 0xAlice...1234
+```
+
+```text
+sent      0.001 USDT0  0xBob...5678    0x8f3a...2d41
+received  0.01  USDT0  0xFaucet...     0x22b1...3f09
+```
+
+:::warning
+Scanning wide block ranges (millions of blocks) can time out and exceed RPC rate limits. For production, use the [Stablescan Etherscan-compatible API](https://stablescan.xyz) for paginated history queries — every transaction is already indexed.
+:::
+
+## Next recommended
+
+- [**Subscribe and collect**](/en/how-to/subscribe-and-collect) — Pull-based recurring subscriptions with EIP-7702 delegation.
+- [**Paying with invoice**](/en/how-to/pay-with-invoice) — Settle invoices with ERC-3009 and deterministic nonces.
+- [**Send your first USDT0**](/en/tutorial/send-usdt0) — Reference the basic native vs. ERC-20 transfer flow.

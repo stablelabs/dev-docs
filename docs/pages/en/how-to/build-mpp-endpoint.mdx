@@ -1,0 +1,466 @@
+---
+title: "Build an MPP endpoint on Stable"
+description: "Accept USDT0 payments on Stable through MPP's HTTP 402 flow by writing the three custom-method hooks against viem."
+diataxis: "how-to"
+---
+
+# Build an MPP endpoint on Stable
+
+This guide walks through writing a custom [MPP](/en/explanation/mpp) payment method for USDT0 on Stable and serving an MPP-gated endpoint. The buyer signs an [ERC-3009](/en/explanation/erc-3009) `transferWithAuthorization`, the server validates it through `mppx`'s `verify()` hook, and settlement happens in a separate step you control.
+
+:::note
+**Concept:** For what MPP is and how it relates to x402, see [Machine Payments Protocol (MPP)](/en/explanation/mpp). For the x402 equivalent, see [Build a pay-per-call API](/en/how-to/build-pay-per-call).
+:::
+
+:::note
+The example uses Stable mainnet. Use small amounts when testing.
+:::
+
+## What you'll build
+
+An HTTP endpoint that returns `402 Payment Required` with an MPP `WWW-Authenticate` challenge, accepts a signed credential in the `Authorization` header, verifies it, settles `transferWithAuthorization` on USDT0, and returns the response with a `Payment-Receipt` header.
+
+```text
+step 1. Client: GET /weather (no Authorization header)
+        Server: 402 Payment Required
+                WWW-Authenticate: Payment realm="...", challenges="[...usdt0-stable charge for $0.001...]"
+
+step 2. Client signs an ERC-3009 authorization with their viem account
+
+step 3. Client: GET /weather + Authorization header containing the serialized credential
+        Server: verify() validates the EIP-712 signature
+        Server: settle() submits transferWithAuthorization on Stable
+                (~700ms block confirmation)
+        Server: 200 OK { weather: "sunny" }
+                Payment-Receipt: reference="0x8f3a...", status="success"
+
+step 4. Verify settlement on Stablescan
+        https://stablescan.xyz/tx/0x8f3a...
+```
+
+## Prerequisites
+
+- A funded USDT0 wallet on Stable. See [Use the faucet](/en/how-to/use-faucet) or [Move USDT0](/en/tutorial/send-usdt0).
+- Node 20+ with `mppx`, `viem`, and `zod` installed.
+- A seller account (an EOA) on Stable. For the default settlement path, the seller pays gas in USDT0; the [Gas Waiver](#alternative-settle-through-the-gas-waiver) section shows the zero-gas variant.
+
+```bash
+npm install mppx viem zod express
+```
+
+## 1. Define the shared schema
+
+`Method.from()` declares the intent and the schemas for the request (Challenge) and the credential payload. Both client and server import this definition.
+
+```typescript
+// src/method.ts
+import { Method } from "mppx";
+import { z } from "zod";
+import { parseUnits } from "viem";
+
+export const USDT0_STABLE = "0x779Ded0c9e1022225f8E0630b35a9b54bE713736";
+export const CHAIN_ID = 988;
+
+// Request: the Challenge payload the server sends to the client.
+const zRequest = z.pipe(
+  z.object({
+    chainId: z.literal(CHAIN_ID),
+    asset: z.literal(USDT0_STABLE),
+    amount: z.string(),             // human-readable, e.g. "0.001"
+    decimals: z.literal(6),
+    payTo: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
+    validAfter: z.number().int().nonnegative(),
+    validBefore: z.number().int().positive(),
+    nonce: z.string().regex(/^0x[a-fA-F0-9]{64}$/),
+  }),
+  z.transform(({ amount, decimals, ...rest }) => ({
+    ...rest,
+    amount: parseUnits(amount, decimals).toString(),  // atomic units
+  })),
+);
+
+// Credential payload: what the client returns after signing.
+const zPayload = z.object({
+  from: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
+  signature: z.string().regex(/^0x[a-fA-F0-9]{130}$/), // 65-byte hex
+});
+
+export const usdt0Stable = Method.from({
+  intent: "charge",
+  name: "usdt0-stable",
+  schema: { request: zRequest, credential: { payload: zPayload } },
+});
+
+// EIP-712 domain + type, used by both client and server.
+export const EIP712_DOMAIN = {
+  name: "USDT0",
+  version: "1",
+  chainId: CHAIN_ID,
+  verifyingContract: USDT0_STABLE,
+} as const;
+
+export const TRANSFER_WITH_AUTHORIZATION_TYPES = {
+  TransferWithAuthorization: [
+    { name: "from", type: "address" },
+    { name: "to", type: "address" },
+    { name: "value", type: "uint256" },
+    { name: "validAfter", type: "uint256" },
+    { name: "validBefore", type: "uint256" },
+    { name: "nonce", type: "bytes32" },
+  ],
+} as const;
+```
+
+```text
+usdt0Stable.name === "usdt0-stable"
+usdt0Stable.intent === "charge"
+```
+
+## 2. Server: verify the credential
+
+`Method.toServer` wires `verify()` into `mppx`. The function receives the deserialized credential (challenge + payload) and must throw on invalid proofs or return a `Receipt`.
+
+```typescript
+// src/server-method.ts
+import { Method, Receipt } from "mppx";
+import { verifyTypedData } from "viem";
+import {
+  usdt0Stable,
+  EIP712_DOMAIN,
+  TRANSFER_WITH_AUTHORIZATION_TYPES,
+} from "./method";
+
+export const usdt0StableServer = Method.toServer(usdt0Stable, {
+  async verify({ credential }) {
+    const { request } = credential.challenge;
+    const { from, signature } = credential.payload;
+
+    const valid = await verifyTypedData({
+      address: from as `0x${string}`,
+      domain: EIP712_DOMAIN,
+      types: TRANSFER_WITH_AUTHORIZATION_TYPES,
+      primaryType: "TransferWithAuthorization",
+      message: {
+        from: from as `0x${string}`,
+        to: request.payTo as `0x${string}`,
+        value: BigInt(request.amount),
+        validAfter: BigInt(request.validAfter),
+        validBefore: BigInt(request.validBefore),
+        nonce: request.nonce as `0x${string}`,
+      },
+      signature: signature as `0x${string}`,
+    });
+
+    if (!valid) throw new Error("Invalid ERC-3009 signature");
+
+    // The Receipt's reference is filled in with the tx hash after settle().
+    return Receipt.from({
+      method: usdt0Stable.name,
+      reference: "pending",
+      status: "success",
+      timestamp: new Date().toISOString(),
+    });
+  },
+});
+```
+
+```text
+{
+  method: "usdt0-stable",
+  reference: "pending",
+  status: "success",
+  timestamp: "2026-06-01T12:34:56.000Z"
+}
+```
+
+:::warning
+`verify()` checks the signature but does not check nonce uniqueness or whether the authorization has already been spent. The chain enforces both at submission time: `transferWithAuthorization` reverts on a used nonce. The settle step turns those reverts into errors the server can surface to the client.
+:::
+
+## 3. Settle: submit `transferWithAuthorization`
+
+Settlement is intentionally separate from `verify()`. After `verify()` returns, you submit the authorization on-chain through whichever path fits your operational model. Three options, in order of recommendation.
+
+### Default: server submits directly
+
+The seller's EOA submits `transferWithAuthorization` to USDT0 with the signed authorization. The seller pays gas in USDT0 (Stable's native gas token), so there is no separate gas-token balance to manage.
+
+```typescript
+// src/settle.ts
+import { createWalletClient, http, parseSignature } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+import { stable } from "viem/chains";
+import { USDT0_STABLE } from "./method";
+
+const USDT0_ABI = [
+  {
+    name: "transferWithAuthorization",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "from", type: "address" },
+      { name: "to", type: "address" },
+      { name: "value", type: "uint256" },
+      { name: "validAfter", type: "uint256" },
+      { name: "validBefore", type: "uint256" },
+      { name: "nonce", type: "bytes32" },
+      { name: "v", type: "uint8" },
+      { name: "r", type: "bytes32" },
+      { name: "s", type: "bytes32" },
+    ],
+    outputs: [],
+  },
+] as const;
+
+const seller = privateKeyToAccount(process.env.SELLER_KEY as `0x${string}`);
+const wallet = createWalletClient({
+  account: seller,
+  chain: stable,
+  transport: http("https://rpc.stable.xyz"),
+});
+
+export async function settleDirect(credential: {
+  challenge: { request: any };
+  payload: { from: string; signature: string };
+}): Promise<{ txHash: `0x${string}` }> {
+  const { request } = credential.challenge;
+  const { v, r, s } = parseSignature(credential.payload.signature as `0x${string}`);
+
+  const txHash = await wallet.writeContract({
+    address: USDT0_STABLE,
+    abi: USDT0_ABI,
+    functionName: "transferWithAuthorization",
+    args: [
+      credential.payload.from as `0x${string}`,
+      request.payTo as `0x${string}`,
+      BigInt(request.amount),
+      BigInt(request.validAfter),
+      BigInt(request.validBefore),
+      request.nonce as `0x${string}`,
+      Number(v),
+      r as `0x${string}`,
+      s as `0x${string}`,
+    ],
+  });
+
+  return { txHash };
+}
+```
+
+```text
+{ txHash: "0x8f3a1b2c..." }
+```
+
+### Alternative: settle through the Gas Waiver
+
+Use Stable's [Gas Waiver](/en/how-to/integrate-gas-waiver) to submit the inner transaction at `gasPrice = 0`. The seller still signs the wrapping transaction, but pays no gas. Requires a Waiver Server API key.
+
+```typescript
+// src/settle-waiver.ts
+import { encodeFunctionData } from "viem";
+import { USDT0_STABLE } from "./method";
+import { USDT0_ABI } from "./settle";
+
+const WAIVER_SERVER = "https://waiver.stable.xyz"; // mainnet endpoint
+
+export async function settleViaWaiver(
+  credential: { challenge: { request: any }; payload: { from: string; signature: string } },
+  signedInnerTxHex: `0x${string}`,
+): Promise<{ txHash: `0x${string}` }> {
+  const res = await fetch(`${WAIVER_SERVER}/v1/submit`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${process.env.WAIVER_API_KEY}`,
+    },
+    body: JSON.stringify({ transactions: [signedInnerTxHex] }),
+  });
+
+  const lines = (await res.text()).trim().split("\n");
+  const result = JSON.parse(lines[0]);
+  if (!result.success) throw new Error(`Settle failed: ${result.error?.message}`);
+  return { txHash: result.txHash };
+}
+```
+
+```text
+{ txHash: "0x8f3a1b2c..." }
+```
+
+See [Gas waiver protocol](/en/reference/gas-waiver-api) for how to build the signed inner transaction (`gasPrice: 0`, encoded `transferWithAuthorization` call) before posting.
+
+### Alternative: hand off to an x402 facilitator
+
+If you already operate an x402 facilitator integration ([Semantic Pay](https://docs.semanticpay.io) or [Heurist](https://docs.heurist.ai/x402-products/facilitator)), you can reuse it as a settlement target. POST a `paymentPayload` to `/settle`; the facilitator submits the on-chain call.
+
+The exact `paymentPayload` shape is x402-middleware-internal and not specified at the wire level. The simplest path is to use the facilitator's own SDK to build the payload, or stick with the direct-submission path above. The facilitator does not need to speak MPP; it sees only the `transferWithAuthorization` fields.
+
+## 4. Client: sign a credential
+
+`Method.toClient` wires `createCredential()` into `mppx`. The client reads the Challenge, signs the EIP-712 authorization with the agent's viem account, and serializes the credential.
+
+```typescript
+// src/client-method.ts
+import { Credential, Method } from "mppx";
+import { hexToSignature, parseSignature } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+import {
+  usdt0Stable,
+  EIP712_DOMAIN,
+  TRANSFER_WITH_AUTHORIZATION_TYPES,
+} from "./method";
+
+export function createUsdt0StableClient(privateKey: `0x${string}`) {
+  const account = privateKeyToAccount(privateKey);
+
+  return Method.toClient(usdt0Stable, {
+    async createCredential({ challenge }) {
+      const { request } = challenge;
+
+      const signature = await account.signTypedData({
+        domain: EIP712_DOMAIN,
+        types: TRANSFER_WITH_AUTHORIZATION_TYPES,
+        primaryType: "TransferWithAuthorization",
+        message: {
+          from: account.address,
+          to: request.payTo as `0x${string}`,
+          value: BigInt(request.amount),
+          validAfter: BigInt(request.validAfter),
+          validBefore: BigInt(request.validBefore),
+          nonce: request.nonce as `0x${string}`,
+        },
+      });
+
+      return Credential.serialize({
+        challenge,
+        payload: { from: account.address, signature },
+      });
+    },
+  });
+}
+```
+
+```text
+"eyJjaGFsbGVuZ2UiOnsi..." // base64-serialized credential, ~600 bytes
+```
+
+## 5. Wire the server together
+
+Use `mppx`'s Express middleware to issue Challenges, parse incoming `Authorization` headers, run `verify()`, call your settle function, and emit the `Payment-Receipt` header.
+
+```typescript
+// src/server.ts
+import express from "express";
+import { Mppx } from "mppx/express";
+import { randomBytes } from "node:crypto";
+import { usdt0StableServer } from "./server-method";
+import { settleDirect } from "./settle";
+
+const PAY_TO = process.env.PAY_TO_ADDRESS as `0x${string}`;
+const PORT = Number(process.env.PORT ?? 4022);
+
+const mppx = Mppx.create({
+  secretKey: process.env.MPP_SECRET_KEY!,
+  methods: [usdt0StableServer],
+  onVerified: async ({ credential, receipt }) => {
+    const { txHash } = await settleDirect(credential);
+    return { ...receipt, reference: txHash };
+  },
+});
+
+const app = express();
+
+app.get(
+  "/weather",
+  mppx.charge({
+    amount: "0.001",
+    method: "usdt0-stable",
+    request: {
+      chainId: 988,
+      asset: "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
+      decimals: 6,
+      payTo: PAY_TO,
+      validAfter: 0,
+      validBefore: Math.floor(Date.now() / 1000) + 300,
+      nonce: `0x${randomBytes(32).toString("hex")}`,
+    },
+  })((_req, res) => {
+    res.json({ weather: "sunny", temperature: 70 });
+  }),
+);
+
+app.listen(PORT, () => {
+  console.log(`MPP server listening on http://localhost:${PORT}`);
+});
+```
+
+```text
+MPP server listening on http://localhost:4022
+```
+
+## 6. Run the flow end to end
+
+Start the server, confirm the Challenge, run a client, and confirm settlement.
+
+:::warning
+The next step settles a real USDT0 payment on Stable mainnet. Use a dedicated wallet and small amounts.
+:::
+
+### Confirm the Challenge
+
+```bash
+curl -i http://localhost:4022/weather
+```
+
+```text
+HTTP/1.1 402 Payment Required
+WWW-Authenticate: Payment realm="...", challenges="[{\"method\":\"usdt0-stable\",\"request\":{...}}]"
+Content-Type: application/json
+
+{"error":"Payment required"}
+```
+
+### Send a paid request
+
+```typescript
+// src/client.ts
+import { Mppx } from "mppx/client";
+import { createUsdt0StableClient } from "./client-method";
+
+const client = Mppx.create({
+  methods: [createUsdt0StableClient(process.env.BUYER_KEY as `0x${string}`)],
+});
+
+const res = await fetch("http://localhost:4022/weather", {
+  // mppx wraps fetch with the 402 retry loop:
+  ...client.fetchOptions(),
+});
+
+console.log(res.status, await res.json());
+console.log("Payment-Receipt:", res.headers.get("Payment-Receipt"));
+```
+
+```bash
+npx tsx src/client.ts
+```
+
+```text
+200 { weather: "sunny", temperature: 70 }
+Payment-Receipt: reference="0x8f3a1b2c...", status="success", timestamp="2026-06-01T12:34:56.000Z"
+```
+
+### Verify on Stablescan
+
+Open `https://stablescan.xyz/tx/0x8f3a1b2c...` and confirm the `transferWithAuthorization` settled to your `PAY_TO` address.
+
+## What you just did
+
+- Paid in USDT0, denominated in dollars, with no gas-token balance to manage on the buyer side.
+- Used MPP's `WWW-Authenticate` / `Authorization` / `Payment-Receipt` wire format on the client-server hop.
+- Settled with `transferWithAuthorization` on Stable in the same HTTP request lifecycle (~700 ms block time).
+
+## Next recommended
+
+- [**MPP concept**](/en/explanation/mpp) — Read how MPP relates to x402 and what the other intents look like.
+- [**MPP sessions**](/en/explanation/mpp-sessions) — Stream micropayments with off-chain vouchers when per-request settlement is too expensive.
+- [**Facilitators**](/en/reference/agentic-facilitators) — Use Semantic Pay or Heurist as the settlement target instead of submitting directly.

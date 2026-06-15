@@ -1,0 +1,73 @@
+---
+title: "FAQ"
+description: "Get quick answers to common onboarding questions: what Stable is, how to start, what differs from Ethereum, and where to find deeper docs."
+diataxis: "reference"
+---
+
+# FAQ
+
+## Getting started
+
+**What is Stable?**
+
+A Layer 1 where USDT0 is the native gas token and settlement asset. Standard EVM tooling works unchanged.
+
+**Who is Stable for?**
+
+Three builder profiles: payment and wallet teams moving USDT0, smart contract developers deploying to an EVM, and infrastructure teams running nodes or RPC. The [Learn overview](/en/explanation/learn-overview) has a card per path.
+
+**Where should I start: Payments, Contracts, AI/Agents, or Infrastructure?**
+
+- Moving USDT0 or building payment flows → [Payments](/en/explanation/payments-overview).
+- Deploying contracts → [Contracts](/en/explanation/contracts-overview).
+- Wiring AI editors or building agent-paid services → [Agent settlement](/en/explanation/agent-settlement).
+- Running nodes or covering gas for users → [Infrastructure](/en/explanation/integrate-overview).
+
+If you haven't connected to testnet yet, start with [Quick start](/en/tutorial/quick-start).
+
+## Technical
+
+**Is Stable EVM-compatible?**
+
+Yes. Solidity, Vyper, Foundry, Hardhat, ethers, viem, and the `eth_*` JSON-RPC methods all work unchanged. Four behaviors differ from Ethereum — see [Differences from Ethereum](/en/explanation/ethereum-comparison).
+
+**Why is USDT0 the gas token?**
+
+So you pay fees in the asset you're already transacting in. No second token to fund, and fees stay denominated in a stablecoin. The protocol also optimizes USDT0-heavy workloads through guaranteed blockspace and transfer aggregation; see [Core concepts](/en/explanation/core-concepts).
+
+**How do I get USDT0?**
+
+- **Testnet:** use the faucet at [faucet.stable.xyz](https://faucet.stable.xyz), or bridge Test USDT from Ethereum Sepolia. Walkthrough in [Get testnet USDT0](/en/how-to/use-faucet).
+- **Mainnet:** bridge USDT0 from another chain via LayerZero, or acquire through an exchange or custodian.
+
+**What changes when I port a contract from Ethereum?**
+
+Most contracts deploy unchanged. Three things to fix if they apply:
+
+- Don't mirror native balance in internal variables. `transferFrom` can drain native without calling the contract.
+- Don't transfer to `address(0)`. Both native and ERC-20 transfers to zero revert.
+- Don't rely on `EXTCODEHASH` for address-reuse detection. Permit-based approvals change native balance without a nonce increment.
+
+Full checklist: [USDT0 behavior on Stable](/en/explanation/usdt0-behavior).
+
+## Resources
+
+**Where do I find tokenomics, roadmap, and architecture?**
+
+- [Tokenomics](/en/reference/tokenomics): STABLE supply, allocation, and vesting.
+- [Technical roadmap](/en/explanation/technical-roadmap): phased optimization plan.
+- [Tech overview](/en/explanation/tech-overview): StableBFT, Stable EVM, StableDB, and RPC design.
+- [USDT-specific features](/en/explanation/usdt-features-overview): detail on gas, blockspace, aggregation, and confidential transfer.
+
+**Where do I go for help?**
+
+- [Developer assistance](/en/reference/developer-assistance): FAQ and reference pointers.
+- [Discord](https://discord.gg/stablexyz): community support and protocol updates.
+- `bizdev@stable.xyz`: partnership and integration conversations.
+
+## Next recommended
+
+- [**Quick start**](/en/tutorial/quick-start) — Send a first transaction on testnet.
+- [**Core concepts**](/en/explanation/core-concepts) — Learn the four core concepts you need before you build.
+- [**Learn overview**](/en/explanation/learn-overview) — Pick the docs path that fits what you're building.
+- [**Production readiness**](/en/how-to/production-readiness) — Validate an integration before shipping to mainnet.

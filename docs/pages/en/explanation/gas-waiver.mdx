@@ -1,0 +1,59 @@
+---
+title: "Gas waiver"
+description: "Gas Waiver lets applications cover gas on behalf of users. Governance-approved waivers submit wrapper transactions that execute the user's signed payload at zero gas price."
+diataxis: "explanation"
+---
+
+# Gas waiver
+
+Governance-approved addresses (called **waivers**) submit a wrapper transaction that carries the user's signed payload and executes it at `gasPrice = 0`. The user holds no USDT0 and pays no gas. Stable operates one such waiver as a hosted service; partners can also register their own waiver addresses through validator governance.
+
+## How it works
+
+Gas Waiver uses a wrapper-transaction pattern:
+
+1. **The user signs an `InnerTx`** with `gasPrice = 0`. The user's signature is preserved end-to-end; the waiver cannot modify the payload without invalidating it.
+2. **A waiver wraps the `InnerTx` into a `WrapperTx`** sent to a protocol marker address (`0x000000000000000000000000000000000000f333`) with `value = 0`, `gasPrice = 0`, and the signed `InnerTx` as its data payload.
+3. **Validators detect the marker**, check the waiver's authorization and policy constraints, and execute the inner transaction under the user's identity (`from`, `nonce`, call semantics).
+
+Gas accounting is handled inside the waiver mechanism. The user pays nothing; the wrapper pays nothing; validators absorb the cost against the per-waiver policy.
+
+## Authorization and policy
+
+Waivers are controlled by validator governance, not application logic. Governance provides:
+
+- **Reviewable registration**: every waiver address is registered on-chain and visible in state.
+- **Revocation**: validators can remove a misbehaving waiver at any time.
+- **Scoped access via `AllowedTarget`**: each waiver is bound to a specific set of target contracts and method selectors. The protocol rejects any wrapper whose inner `to` address and method selector fall outside that scope.
+
+A valid wrapper transaction satisfies all of the following:
+
+- `WrapperTx.to == 0x000000000000000000000000000000000000f333` (the marker address).
+- `WrapperTx.from` is a waiver registered on-chain via governance.
+- `WrapperTx.gasPrice == 0` and `InnerTx.gasPrice == 0`.
+- `WrapperTx.value == 0`.
+- `InnerTx.to` and the extracted method selector are permitted by the waiver's `AllowedTarget` policy.
+
+If any condition fails, validators reject the wrapper without executing the inner transaction.
+
+## Security model
+
+- **User signature integrity**: the user signs the `InnerTx`. The waiver cannot mutate the payload without invalidating the signature. Partners are still responsible for ensuring the user signs only the intended payload.
+- **On-chain authorization**: authorization lives on-chain. Only governance-registered waiver addresses can produce a valid wrapper submission, regardless of where the request originates.
+- **Service-availability boundary**: when partners route through Stable's hosted Waiver Server, submission availability depends on the service. The protocol-level authorization guarantees are unaffected.
+
+## When to use Gas Waiver
+
+Gas Waiver fits any flow where the end user shouldn't have to hold USDT0 for gas:
+
+- Consumer apps onboarding users who have no stablecoin balance yet.
+- Agent-driven flows where the agent's wallet funds the gas.
+- Enterprise payment rails where the operator absorbs network costs.
+
+For flows where the user does hold USDT0 but wants to bundle multiple calls into one signed transaction, see [EIP-7702 delegation](/en/reference/eip-7702-api) instead.
+
+## Next recommended
+
+- [**Enable gas-free transactions**](/en/how-to/integrate-gas-waiver) — Integrate the hosted Waiver Server API with API-key submission and NDJSON responses.
+- [**Gas waiver protocol**](/en/reference/gas-waiver-api) — Read the full protocol spec: marker routing, wrapper format, governance controls.
+- [**USDT as gas**](/en/explanation/usdt-as-gas-token) — Understand the gas token that the waiver covers.

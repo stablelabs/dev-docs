@@ -1,0 +1,29 @@
+---
+title: "Use cases overview"
+description: "Payment patterns on Stable: P2P transfers, subscription billing, invoice settlement, pay-per-call APIs."
+diataxis: "explanation"
+---
+
+# Use cases overview
+
+Stable supports multiple payment patterns, from simple wallet-to-wallet transfers to agent-driven service payments. The use cases below cover the patterns that are production-ready today. For patterns on the horizon (guaranteed settlement, confidential payments, agent-to-agent commerce), see [Upcoming use cases](/en/explanation/upcoming-use-cases).
+
+## Live use cases
+
+- [**P2P payments**](/en/reference/p2p-payments) — Wallet-to-wallet USDT0 transfers. Sub-second settlement, zero gas via Gas Waiver.
+- [**Subscription billing**](/en/reference/subscriptions) — Pull-based recurring billing via EIP-7702. Subscriber authorizes once, provider collects each cycle.
+- [**Invoice settlement**](/en/reference/invoices) — B2B invoice payment with deterministic nonces. On-chain settlement links automatically to the invoice.
+- [**Pay-per-call APIs**](/en/reference/pay-per-call) — Per-request HTTP payments via x402 middleware. No accounts, no API keys, no billing cycles.
+
+## Shared foundations
+
+Most patterns build on the same two protocols:
+
+- **[ERC-3009](/en/explanation/erc-3009)**: signed authorizations for delegated settlement. Used by invoices, pay-per-call, and P2P application-initiated transfers.
+- **[x402](/en/explanation/x402)**: HTTP-native payments over standard headers. Used by pay-per-call APIs and MCP-driven payment flows.
+- **[EIP-7702](/en/explanation/eip-7702)**: EOA delegation for recurring authorization. Used by subscription billing.
+
+## Next recommended
+
+- [**ERC-3009**](/en/explanation/erc-3009) — Start with the core settlement standard.
+- [**Upcoming use cases**](/en/explanation/upcoming-use-cases) — Preview agent-to-agent commerce, guaranteed settlement, and confidential payments.

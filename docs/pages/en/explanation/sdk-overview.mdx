@@ -1,0 +1,58 @@
+---
+title: "Stable SDK"
+description: "Use the typed TypeScript SDK to transfer USDT0, bridge between chains, and swap tokens on Stable in a few lines."
+diataxis: "explanation"
+---
+
+# Stable SDK
+
+`@stablechain/sdk` is the official TypeScript client for Stable. It wraps viem with a small, typed API for the operations you reach for most: transfer USDT0, bridge between chains, and swap tokens on Stable. Routing, approvals, decimals, and chain switching are handled for you.
+
+```ts
+import { createStable, Network } from "@stablechain/sdk";
+import { privateKeyToAccount } from "viem/accounts";
+
+const stable = createStable({
+  network: Network.Mainnet,
+  account: privateKeyToAccount("0x..."),
+});
+
+const { txHash } = await stable.transfer({
+  from: "0xYourAddress",
+  to: "0xRecipient",
+  amount: 10,
+});
+```
+
+```text
+txHash: 0x8f3a...2d41
+```
+
+## What the SDK does
+
+- **`transfer`** — send native USDT0 or any ERC-20 on Stable. Gas is paid in USDT0 automatically.
+- **`quoteBridge` / `bridge`** — cross-chain transfers. LayerZero for USDT0 → USDT0, LI.FI for everything else. Route is picked for you.
+- **`quoteSwap` / `swap`** — same-chain token swaps via LI.FI, with ERC-20 approval handled internally.
+
+The SDK is published on npm as [`@stablechain/sdk`](https://www.npmjs.com/package/@stablechain/sdk) and requires `viem >= 2.0.0` as a peer dependency.
+
+## When to use it (and when not to)
+
+Use the SDK when you want a typed, opinionated client that hides routing and approval boilerplate. Drop down to raw viem or ethers when you need direct control over transaction construction, custom gas strategies, or contract calls outside transfer / bridge / swap.
+
+:::note
+The SDK signs with any viem-compatible signer: a private-key `Account`, a browser `Transport` like `custom(window.ethereum)`, or a pre-built `WalletClient` (for example, the one returned by wagmi's `useWalletClient`).
+:::
+
+## Start here
+
+- [**Quickstart**](/en/tutorial/sdk-quickstart) — Install the SDK and run your first transfer, bridge, and swap on testnet.
+- [**SDK reference**](/en/reference/sdk) — Every method, config option, enum, and error class.
+- [**Use with viem**](/en/how-to/sdk-with-viem) — Server-side accounts, browser wallets, and bring-your-own `WalletClient`.
+- [**Use with wagmi**](/en/how-to/sdk-with-wagmi) — Wire the SDK into a React app with `useWalletClient` and hooks.
+
+## Next recommended
+
+- [**Install from npm**](https://www.npmjs.com/package/@stablechain/sdk) — View the package on npmjs.com and check the latest version.
+- [**Connect to Stable**](/en/reference/connect) — Chain IDs, RPC endpoints, and explorers for mainnet and testnet.
+- [**Fund a testnet wallet**](/en/how-to/use-faucet) — Get testnet USDT0 from the faucet before running the quickstart.

@@ -1,0 +1,192 @@
+---
+title: "Index contract events"
+description: "Subscribe to smart contract events on Stable with ethers.js watchContractEvent and build a live event stream."
+diataxis: "how-to"
+---
+
+# Index contract events
+
+Indexing turns on-chain events into data your application can react to: balance updates, transaction history, UI notifications. This guide shows how to subscribe to events from a deployed Stable contract using ethers.js and how to backfill historical events so you don't miss any emitted while your service was offline.
+
+## Prerequisites
+
+- A deployed contract on Stable testnet or mainnet. If you need one, see [Deploy](/en/tutorial/smart-contract) and [Verify](/en/how-to/verify-contract).
+- Node.js 20 or later.
+- The contract address and the ABI of the events you want to index.
+
+## 1. Install and configure
+
+```bash
+npm install ethers
+```
+
+```typescript
+// config.ts
+import { ethers } from "ethers";
+
+export const STABLE_TESTNET_RPC = "https://rpc.testnet.stable.xyz";
+export const STABLE_TESTNET_WS = "wss://rpc.testnet.stable.xyz";
+export const CONTRACT_ADDRESS = "0xDeployedContractAddress";
+
+// Minimal ABI: only the events you want to index.
+export const CONTRACT_ABI = [
+  "event NumberUpdated(address indexed caller, uint256 oldValue, uint256 newValue)",
+];
+```
+
+## 2. Subscribe to live events
+
+Use a WebSocket provider so you receive events as soon as validators finalize each block. WebSocket avoids polling overhead and keeps notification latency close to block time (~0.7 seconds on Stable).
+
+```typescript
+// watchLive.ts
+import { ethers } from "ethers";
+import { STABLE_TESTNET_WS, CONTRACT_ADDRESS, CONTRACT_ABI } from "./config";
+
+const provider = new ethers.WebSocketProvider(STABLE_TESTNET_WS);
+const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
+
+contract.on("NumberUpdated", (caller, oldValue, newValue, event) => {
+  console.log("NumberUpdated:");
+  console.log("  caller:   ", caller);
+  console.log("  oldValue: ", oldValue.toString());
+  console.log("  newValue: ", newValue.toString());
+  console.log("  tx:       ", event.log.transactionHash);
+  console.log("  block:    ", event.log.blockNumber);
+});
+
+console.log("Listening for NumberUpdated events...");
+```
+
+```bash
+npx tsx watchLive.ts
+```
+
+```text
+Listening for NumberUpdated events...
+NumberUpdated:
+  caller:    0x1234...abcd
+  oldValue:  0
+  newValue:  42
+  tx:        0x8f3a...2d41
+  block:     1284371
+```
+
+Events arrive in real time as callers invoke your contract.
+
+## 3. Backfill historical events
+
+When a service starts, you usually need to catch up on events emitted while it was offline. Use `queryFilter` with a block range.
+
+```typescript
+// backfill.ts
+import { ethers } from "ethers";
+import { STABLE_TESTNET_RPC, CONTRACT_ADDRESS, CONTRACT_ABI } from "./config";
+
+const provider = new ethers.JsonRpcProvider(STABLE_TESTNET_RPC);
+const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
+
+const latest = await provider.getBlockNumber();
+const fromBlock = Math.max(0, latest - 10_000); // last ~10k blocks
+
+const events = await contract.queryFilter(
+  contract.filters.NumberUpdated(),
+  fromBlock,
+  latest
+);
+
+for (const event of events) {
+  console.log(
+    `[block ${event.blockNumber}]`,
+    event.args.caller,
+    "set number to",
+    event.args.newValue.toString()
+  );
+}
+
+console.log(`Backfilled ${events.length} events from block ${fromBlock} to ${latest}`);
+```
+
+```bash
+npx tsx backfill.ts
+```
+
+```text
+[block 1282351] 0x1234...abcd set number to 10
+[block 1283092] 0xef01...2345 set number to 25
+[block 1284371] 0x1234...abcd set number to 42
+Backfilled 3 events from block 1282351 to 1284371
+```
+
+:::warning
+Wide block ranges (millions of blocks) can exceed RPC rate limits and time out. For production indexers, paginate by 10k-block windows or use [Stablescan's Etherscan-compatible API](/en/how-to/build-p2p-payments#transaction-history) for indexed historical queries.
+:::
+
+## 4. Filter events by indexed arguments
+
+Events with `indexed` parameters (like `caller` above) can be filtered server-side. Pass the filter value instead of reading every event and filtering in your app.
+
+```typescript
+// watchUser.ts
+import { ethers } from "ethers";
+import { STABLE_TESTNET_WS, CONTRACT_ADDRESS, CONTRACT_ABI } from "./config";
+
+const provider = new ethers.WebSocketProvider(STABLE_TESTNET_WS);
+const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
+
+const userAddress = "0x1234...abcd";
+const filter = contract.filters.NumberUpdated(userAddress);
+
+contract.on(filter, (caller, oldValue, newValue, event) => {
+  console.log(`${caller} set number to ${newValue.toString()}`);
+});
+
+console.log(`Watching NumberUpdated for ${userAddress}...`);
+```
+
+```bash
+npx tsx watchUser.ts
+```
+
+```text
+Watching NumberUpdated for 0x1234...abcd...
+0x1234...abcd set number to 42
+```
+
+## Handle connection drops
+
+WebSocket connections can drop. For production indexers, implement reconnection logic so you don't miss events.
+
+```typescript
+// resilientWatch.ts
+import { ethers } from "ethers";
+import { STABLE_TESTNET_WS, CONTRACT_ADDRESS, CONTRACT_ABI } from "./config";
+
+let reconnectAttempts = 0;
+const MAX_RECONNECT = 5;
+
+function setupWatcher() {
+  const provider = new ethers.WebSocketProvider(STABLE_TESTNET_WS);
+  const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
+
+  contract.on("NumberUpdated", (caller, oldValue, newValue) => {
+    console.log(`${caller} set number to ${newValue.toString()}`);
+  });
+
+  provider.websocket.onerror = (err: any) => {
+    console.error("Provider error:", err);
+    if (reconnectAttempts < MAX_RECONNECT) {
+      reconnectAttempts++;
+      setTimeout(setupWatcher, 5000);
+    }
+  };
+}
+
+setupWatcher();
+```
+
+## Next recommended
+
+- [**Track unbonding completions**](/en/how-to/track-unbonding) — Index system transaction events (unbonding completions) emitted by the protocol.
+- [**Build a P2P payment app**](/en/how-to/build-p2p-payments) — Apply indexing to USDT0 Transfer events and build a payment history view.
+- [**JSON-RPC reference**](/en/reference/json-rpc-api) — See which `eth_getLogs` and related methods Stable supports.

@@ -1,0 +1,233 @@
+---
+title: "SDK reference"
+description: "Complete reference for @stablechain/sdk: createStable, StableClient methods, enums, chain configs, and error classes."
+diataxis: "reference"
+---
+
+# SDK reference
+
+Full surface of `@stablechain/sdk`. For a walkthrough, see [SDK quickstart](/en/tutorial/sdk-quickstart).
+
+## Install
+
+```bash
+npm install @stablechain/sdk viem
+```
+
+```text
+added 2 packages, audited 3 packages in 2s
+```
+
+`viem >= 2.0.0` is a peer dependency.
+
+## `createStable(config)`
+
+Construct a `StableClient`. Returns an object with the methods listed under [`StableClient`](#stableclient).
+
+```ts
+import { createStable, Network } from "@stablechain/sdk";
+
+const stable = createStable({ network: Network.Mainnet, account });
+```
+
+```text
+StableClient { transfer, quoteBridge, bridge, quoteSwap, swap }
+```
+
+### `StableConfig`
+
+| **Field** | **Type** | **Default** | **Description** |
+| :--- | :--- | :--- | :--- |
+| `network` | `Network` | `Network.Mainnet` | Target network. |
+| `rpc` | `string` | Public RPC for `network` | RPC override. |
+| `account` | `viem.Account` |  | Server-side signer (e.g. `privateKeyToAccount`). |
+| `transport` | `viem.Transport` |  | Browser-wallet transport (e.g. `custom(window.ethereum)`). |
+| `walletClient` | `viem.WalletClient` |  | Pre-built wallet client. Takes precedence over `account` and `transport`. |
+
+Provide one of `account`, `transport`, or `walletClient`.
+
+## `StableClient`
+
+### `transfer(params)`
+
+Send native USDT0 or any ERC-20 on Stable. Switches the wallet to the Stable chain, fetches token decimals on-chain when missing, and waits for the receipt.
+
+```ts
+const { txHash } = await stable.transfer({
+  from: "0xYourAddress",
+  to: "0xRecipient",
+  amount: 10,
+});
+```
+
+```text
+{ txHash: "0x8f3a...2d41" }
+```
+
+| **Param** | **Type** | **Description** |
+| :--- | :--- | :--- |
+| `from` | `string` | Sender address. |
+| `to` | `string` | Recipient address. |
+| `amount` | `number` | Human-readable amount. |
+| `token` | `string?` | ERC-20 contract address. Omit for native USDT0. |
+| `tokenDecimals` | `number?` | Decimals. Fetched on-chain when omitted. |
+
+Returns `OperationResult` (`{ txHash, toAmount? }`).
+
+### `quoteBridge(params)`
+
+Preview a bridge. Read-only — no signature, no gas.
+
+```ts
+const quote = await stable.quoteBridge({
+  fromChain: Chain.Ethereum,
+  toChain: Chain.Stable,
+  fromToken: "0x6C96dE32CEa08842dcc4058c14d3aaAD7Fa41dee",
+  toToken: "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
+  amount: 100,
+});
+```
+
+```text
+{ toAmount: 99.94 }
+```
+
+Returns `BridgeQuote`.
+
+### `bridge(params)`
+
+Bridge tokens cross-chain. The SDK picks the route: LayerZero for USDT0 → USDT0, LI.FI for everything else. Pass a pre-fetched `quote` to skip the internal quote call.
+
+```ts
+const { txHash } = await stable.bridge({ ...bridgeParams, quote });
+```
+
+```text
+{ txHash: "0xabcd...7890" }
+```
+
+| **Param** | **Type** | **Description** |
+| :--- | :--- | :--- |
+| `fromChain` | `Chain` | Source chain. |
+| `toChain` | `Chain` | Destination chain. |
+| `fromToken` | `string` | Source token contract address. |
+| `toToken` | `string` | Destination token contract address. |
+| `amount` | `number` | Human-readable amount. |
+| `fromDecimals` | `number?` | Source token decimals. Defaults to `6`. |
+| `recipient` | `string?` | Destination address. Defaults to signer. |
+| `quote` | `BridgeQuote?` | Pre-fetched quote. Skips internal quote call. |
+
+### `quoteSwap(params)`
+
+Fetch a LI.FI swap quote on Stable. Returns a pre-built transaction request and the approval address.
+
+```ts
+const quote = await stable.quoteSwap({
+  fromToken: "0x8a2B28364102Bea189D99A475C494330Ef2bDD0B",
+  toToken: "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
+  amount: 100,
+  fromDecimals: 6,
+});
+```
+
+```text
+{ toAmount: 99.81, fromAmount: 100000000n, fromToken: "0x8a2B...", approvalAddress: "0x...", transactionRequest: { ... } }
+```
+
+### `swap(params)`
+
+Swap tokens on Stable via LI.FI. Handles ERC-20 approval automatically and switches the wallet's chain when needed.
+
+```ts
+const { txHash, toAmount } = await stable.swap({ ...swapParams, quote });
+```
+
+```text
+{ txHash: "0xabcd...", toAmount: 99.81 }
+```
+
+| **Param** | **Type** | **Default** | **Description** |
+| :--- | :--- | :--- | :--- |
+| `fromToken` | `string` |  | Source token address. |
+| `toToken` | `string` |  | Destination token address. |
+| `amount` | `number` |  | Human-readable amount. |
+| `fromDecimals` | `number?` | `6` | Source token decimals. |
+| `toAddress` | `string?` | signer | Recipient address. |
+| `quote` | `SwapQuote?` |  | Pre-fetched quote. Skips LI.FI call. |
+
+## Enums
+
+### `Network`
+
+| **Value** | **Chain ID** |
+| :--- | :--- |
+| `Network.Mainnet` | 988 |
+| `Network.Testnet` | 2201 |
+
+### `Chain`
+
+Used by `quoteBridge` and `bridge`. Each entry has a corresponding `CHAIN_CONFIGS` entry.
+
+| **Enum** | **Network** | **Chain ID** |
+| :--- | :--- | :--- |
+| `Chain.Sepolia` | Ethereum Sepolia | 11155111 |
+| `Chain.StableTestnet` | Stable Testnet | 2201 |
+| `Chain.Stable` | Stable Mainnet | 988 |
+| `Chain.Ethereum` | Ethereum | 1 |
+| `Chain.Arbitrum` | Arbitrum One | 42161 |
+| `Chain.Ink` | Ink | 57073 |
+| `Chain.Bera` | Berachain | 80094 |
+| `Chain.MegaETH` | MegaETH | 4326 |
+| `Chain.Base` | Base | 8453 |
+| `Chain.BSC` | BNB Smart Chain | 56 |
+| `Chain.HyperEVM` | HyperEVM | 999 |
+
+## `CHAIN_CONFIGS`
+
+`Partial<Record<Chain, ChainConfig>>` keyed by `Chain` enum. Each entry exposes `id`, `rpc`, `usdt`, and `decimals`. Use it when you need the canonical USDT address on a supported chain without hard-coding it.
+
+```ts
+import { CHAIN_CONFIGS, Chain } from "@stablechain/sdk";
+
+console.log(CHAIN_CONFIGS[Chain.Stable]);
+```
+
+```text
+{ id: 988, rpc: "https://rpc.stable.xyz", usdt: "0x779Ded0c9e1022225f8E0630b35a9b54bE713736", decimals: 6 }
+```
+
+## Errors
+
+All SDK errors extend `StableError`, which extends viem's `BaseError`. Errors carry structured metadata so you can branch on `error.name` or `instanceof`.
+
+| **Class** | **Thrown when** | **Useful fields** |
+| :--- | :--- | :--- |
+| `StableValidationError` | A parameter fails validation (bad address, non-finite amount, unsupported chain). | `field`, `value` |
+| `StableQuoteError` | A quote request to LI.FI fails. | `provider`, `httpStatus`, `providerCode`, `body` |
+| `StableTransactionError` | On-chain step fails: chain switch, approval, send, or revert. | `phase`, `txHash`, `chainId`, `revertReason` |
+| `StableNetworkError` | An underlying HTTP/RPC call fails. | `url` |
+
+```ts
+import { StableTransactionError } from "@stablechain/sdk";
+
+try {
+  await stable.transfer({ from, to, amount: 1 });
+} catch (err) {
+  if (err instanceof StableTransactionError && err.phase === "switch_chain") {
+    // user rejected the chain switch
+  }
+  throw err;
+}
+```
+
+```text
+StableTransactionError: transfer: wallet rejected or failed to switch to chain 988
+  Phase: switch_chain
+  Chain ID: 988
+```
+
+## Next recommended
+
+- [**SDK quickstart**](/en/tutorial/sdk-quickstart) — Install the SDK and run your first transfer on testnet.
+- [**Use with viem**](/en/how-to/sdk-with-viem) — Switch between private-key, browser-wallet, and pre-built signers.
+- [**Use with wagmi**](/en/how-to/sdk-with-wagmi) — Wire the SDK into a React app with hooks.

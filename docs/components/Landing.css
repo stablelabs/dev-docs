@@ -1,0 +1,354 @@
+/* Stable landing. Colors/spacing inherit the Vocs theme via --vocs-*
+   variables; no brand hardcoding. The fold targets one viewport at
+   ≈1440×900 (desktop) and ≈390×844 (mobile); tier two (developer tiles +
+   closing CTA) sits below the fold. */
+
+.sl {
+  --sl-max: 1120px;
+  --sl-gap: 16px;
+  /* Brand accent — Stable green (#B4FF82), matching the docs chrome. Darkened
+     in light mode so accent text stays legible on a pale background. */
+  --sl-accent: #1f7a3d;
+  --sl-accent-hover: #18632f;
+  --sl-accent-text: #001e1e;
+  --sl-glow: rgba(31, 122, 61, 0.16);
+  --sl-grid: var(--vocs-color_border);
+  width: 100%;
+  margin: 0 auto;
+  font-family: var(--vocs-fontFamily_default);
+}
+.dark .sl {
+  --sl-accent: #b4ff82;
+  --sl-accent-hover: #c8ff9e;
+  --sl-accent-text: #001e1e;
+  --sl-glow: rgba(180, 255, 130, 0.14);
+}
+
+/* ---------------------------------- FOLD ---------------------------------- */
+.sl-fold {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  margin: 0;
+  padding: clamp(24px, 4vh, 56px) clamp(20px, 5vw, 80px);
+  min-height: calc(100vh - var(--vocs-topNav_height, 60px));
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: clamp(24px, 4vh, 48px);
+}
+/* Decorative grid — fades out toward the edges so there are no hard seams. */
+.sl-fold::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    repeating-linear-gradient(to right, var(--sl-grid) 0 1px, transparent 1px 48px),
+    repeating-linear-gradient(to bottom, var(--sl-grid) 0 1px, transparent 1px 48px);
+  opacity: 0.5;
+  -webkit-mask-image: radial-gradient(120% 80% at 30% 28%, #000 0%, transparent 70%);
+  mask-image: radial-gradient(120% 80% at 30% 28%, #000 0%, transparent 70%);
+}
+/* Soft teal glow behind the (left-aligned) headline for depth. */
+.sl-fold::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 28% 28%, var(--sl-glow), transparent 58%);
+}
+.sl-fold > * { position: relative; z-index: 1; }
+
+/* Hero */
+.sl-hero { text-align: left; }
+.sl-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 18px;
+  font-family: var(--vocs-fontFamily_mono);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--vocs-color_text3);
+}
+.sl-kicker__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--sl-accent);
+  box-shadow: 0 0 0 3px var(--sl-glow);
+}
+.sl-logo {
+  height: clamp(40px, 5vw, 60px);
+  width: auto;
+  display: block;
+  margin: 0 0 20px;
+}
+.sl-logo--dark { display: none; }
+.dark .sl-logo--light { display: none; }
+.dark .sl-logo--dark { display: block; }
+.sl-h1 {
+  font-family: var(--vocs-fontFamily_default);
+  font-weight: 700;
+  /* Kept at/under the logo height so the wordmark stays the anchor. */
+  font-size: clamp(22px, 2.6vw, 32px);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin: 0;
+  max-width: 24ch;
+  color: var(--vocs-color_text);
+}
+.sl-h1__accent { color: var(--sl-accent); }
+
+/* Subheadline — elaborates the value prop the h1 compresses. */
+.sl-sub {
+  margin: 16px 0 0;
+  max-width: 56ch;
+  font-size: var(--vocs-fontSize_16);
+  line-height: 1.55;
+  color: var(--vocs-color_text2);
+}
+
+/* Hero actions: search trigger + primary CTA, side by side. */
+.sl-actions {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  margin-top: 28px;
+  flex-wrap: wrap;
+}
+/* Search trigger — styled like an input, opens Vocs' global search dialog. */
+.sl-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 320px;
+  max-width: 420px;
+  min-width: 0;
+  padding: 0 16px;
+  border: 1px solid var(--vocs-color_border);
+  border-radius: var(--vocs-borderRadius_8);
+  background: var(--vocs-color_background2);
+  color: var(--vocs-color_text3);
+  font-family: inherit;
+  font-size: var(--vocs-fontSize_15);
+  text-align: left;
+  cursor: text;
+  transition: border-color 0.12s ease, color 0.12s ease;
+}
+.sl-search:hover {
+  border-color: var(--sl-accent);
+  color: var(--vocs-color_text2);
+}
+.sl-search svg { width: 18px; height: 18px; flex-shrink: 0; }
+.sl-search__label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sl-search__kbd {
+  margin-left: auto;
+  font-family: var(--vocs-fontFamily_mono);
+  font-size: 12px;
+  line-height: 1;
+  padding: 3px 7px;
+  border: 1px solid var(--vocs-color_border2);
+  border-radius: 5px;
+  color: var(--vocs-color_text3);
+}
+
+/* CTA button (accent) */
+.sl-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  padding: 14px 28px;
+  border-radius: var(--vocs-borderRadius_8);
+  background: var(--vocs-color_background);
+  color: var(--sl-accent);
+  border: 1px solid var(--sl-accent);
+  font-weight: 600;
+  font-size: var(--vocs-fontSize_16);
+  text-decoration: none;
+  transition: background-color 0.12s ease, color 0.12s ease,
+    transform 0.12s ease, box-shadow 0.12s ease;
+}
+.sl-cta:hover {
+  background: var(--sl-glow);
+  transform: translateY(-1px);
+  box-shadow: 0 12px 30px -8px var(--sl-glow);
+}
+.sl-arrow { transition: transform 0.12s ease; }
+.sl-cta:hover .sl-arrow,
+.sl-card:hover .sl-arrow { transform: translateX(2px); }
+
+/* Use-case cards — auto-fit so any count flows cleanly (3-up → 2-up → 1-up). */
+.sl-paths {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--sl-gap);
+}
+.sl-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 20px;
+  border: 1px solid var(--vocs-color_border);
+  border-radius: var(--vocs-borderRadius_8);
+  background: var(--vocs-color_background2);
+  text-decoration: none;
+  transition: border-color 0.12s ease, transform 0.12s ease;
+}
+.sl-card:hover {
+  border-color: var(--sl-accent);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 28px -14px var(--sl-glow);
+}
+.sl-card__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--vocs-borderRadius_8);
+  background: var(--sl-glow);
+  color: var(--sl-accent);
+}
+.sl-card__icon svg { width: 20px; height: 20px; }
+.sl-card__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sl-card__title {
+  font-weight: 600;
+  font-size: var(--vocs-fontSize_16);
+  color: var(--vocs-color_text);
+}
+.sl-card__pain {
+  font-size: var(--vocs-fontSize_14);
+  line-height: 1.45;
+  color: var(--vocs-color_text2);
+}
+.sl-card__link {
+  margin-top: auto;
+  font-size: var(--vocs-fontSize_13);
+  font-weight: 600;
+  color: var(--sl-accent);
+}
+
+/* Pilot chip — honest scope signal, neutral outline (not a warning) */
+.sl-chip {
+  font-family: var(--vocs-fontFamily_mono);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 0;
+  border: 1px solid var(--vocs-color_border2);
+  color: var(--vocs-color_text3);
+  white-space: nowrap;
+}
+
+/* Trust strip */
+.sl-trust {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+.sl-trust__facts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 18px;
+  font-family: var(--vocs-fontFamily_mono);
+  font-size: var(--vocs-fontSize_13);
+  color: var(--vocs-color_text3);
+}
+.sl-trust__facts li { position: relative; }
+.sl-trust__facts li + li::before {
+  content: '·';
+  position: absolute;
+  left: -11px;
+  color: var(--vocs-color_text4);
+}
+.sl-trust__links {
+  display: flex;
+  gap: 16px;
+  font-size: var(--vocs-fontSize_13);
+}
+.sl-trust__links a { color: var(--vocs-color_text3); text-decoration: none; }
+.sl-trust__links a:hover { color: var(--vocs-color_text); }
+
+/* ------------------------------- RESPONSIVE -------------------------------
+   The fold is sized to one screen on desktop/laptop (no scroll). On phones it
+   sheds the subhead and hero search so the toggle + 3 cards still fit. */
+
+/* Wide desktops — a touch more breathing room between cards. */
+@media (min-width: 1440px) {
+  .sl-paths { gap: 20px; }
+}
+
+/* Tablets / small laptops. */
+@media (max-width: 900px) {
+  .sl-fold {
+    min-height: auto;
+    padding: clamp(32px, 7vh, 56px) clamp(20px, 6vw, 48px);
+    gap: clamp(28px, 5vh, 40px);
+  }
+}
+
+/* Phones. */
+@media (max-width: 560px) {
+  .sl-fold {
+    padding: 28px 18px;
+    gap: 24px;
+  }
+  /* Hide the grid on small screens; keep a faint glow only. */
+  .sl-fold::before { display: none; }
+  .sl-fold::after { opacity: 0.7; }
+  .sl-kicker { margin-bottom: 14px; }
+  .sl-paths { gap: 10px; }
+  /* compact role cards: icon + title carry the fold; pain is supporting */
+  .sl-card { padding: 14px; gap: 6px; }
+  .sl-card__pain {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .sl-card__link { display: none; }
+  /* Reclaim vertical space so the fold holds: drop the subhead + hero search
+     (search still lives in the top nav). Toggle + CTA carry the actions. */
+  .sl-sub { display: none; }
+  .sl-search { display: none; }
+  .sl-cta { width: 100%; }
+}
+
+/* Small phones — stack everything to one column so nothing gets cramped. */
+@media (max-width: 380px) {
+  .sl-card__pain { -webkit-line-clamp: 3; }
+}
+
+/* Respect reduced-motion preferences. */
+@media (prefers-reduced-motion: reduce) {
+  .sl-cta,
+  .sl-card,
+  .sl-arrow {
+    transition: none;
+  }
+  .sl-cta:hover,
+  .sl-card:hover { transform: none; }
+}

@@ -1,0 +1,79 @@
+---
+title: "Ethereum comparison"
+description: "Stable is fully EVM-compatible. What stays the same, what changes, and what to watch out for when porting from Ethereum."
+diataxis: "explanation"
+---
+
+# Ethereum comparison
+
+Stable is fully EVM-compatible, so most Ethereum tools, libraries, and contract patterns work without modification. The sections below walk through what stays the same and what changes when you move from Ethereum to Stable.
+
+## What stays the same
+
+Stable maintains full compatibility with the Ethereum development ecosystem:
+
+| **Area** | **Compatibility** |
+| :--- | :--- |
+| Languages | Solidity, Vyper |
+| Tooling | Hardhat, Foundry |
+| Libraries | ethers.js, web3.js |
+| Contract patterns | All standard EVM conventions (ERC-20, ERC-721, ERC-1155, proxies, etc.) |
+| RPC interface | Most `eth_*` methods supported (`eth_call`, `eth_sendRawTransaction`, `eth_getBalance`, `eth_getLogs`, `eth_estimateGas`, etc.). For the full list, see [JSON-RPC API](/en/reference/json-rpc-api) |
+
+Existing smart contracts, deployment scripts, and frontend integrations target Stable by changing the RPC endpoint and chain ID.
+
+## What is different
+
+Four behaviors differ from Ethereum.
+
+### 1. Single-slot finality
+
+Ethereum requires multiple block confirmations before a transaction is considered final. Stable provides single-slot finality: a transaction is final once included in a block.
+
+For developers, this means:
+
+- Once a transaction appears in a confirmed block, its state changes are final and irreversible.
+- Applications can safely rely on block inclusion as confirmation of settlement.
+
+Even with deterministic finality, applications handling financially sensitive flows should:
+
+- Verify transaction success via RPC or emitted events before proceeding with dependent actions (e.g., unlocks, redemptions).
+- Implement retry and reconciliation logic for automation and batch operations to handle transient submission or RPC errors.
+
+### 2. Gas token: USDT0
+
+On Stable, transaction fees are paid in USDT0, not a volatile native token. This provides USDT-denominated, predictable low gas costs.
+
+- Users need USDT0 in their wallet to submit transactions.
+- The `value` field in transactions still works for sending USDT0, similar to how ETH is sent on Ethereum.
+- See [USDT as gas](/en/explanation/usdt-as-gas-token) for details.
+
+### 3. No priority tips
+
+Stable uses a single-component gas model. There is no tip-based transaction ordering.
+
+- `maxPriorityFeePerGas` is ignored (always 0).
+- Transaction ordering is not influenced by fee bidding.
+- Wallets should hide or disable the priority tip input field.
+- See [Gas pricing](/en/explanation/gas-pricing) for details.
+
+### 4. USDT0 dual-role behavior
+
+USDT0 functions as both the native gas token and an ERC-20 token. This introduces behavioral differences around balance semantics, allowance safety, and certain opcode assumptions. For the full details, see [USDT0 behavior on Stable](/en/explanation/usdt0-behavior).
+
+## Quick comparison
+
+| **Parameter** | **Stable** | **Ethereum** |
+| :--- | :--- | :--- |
+| Gas token | USDT0 | ETH |
+| Finality | Single-slot | Multi-block confirmations |
+| Block time | ~0.7 seconds | ~12 seconds |
+| Priority tip (`maxPriorityFeePerGas`) | Ignored (always 0) | Used for ordering |
+| EIP-1559 transaction format | Supported | Supported |
+| EVM compatibility | Full | N/A |
+
+## Next recommended
+
+- [**USDT as gas**](/en/explanation/usdt-as-gas-token) — Understand the asset model that replaces ETH for gas.
+- [**Gas pricing**](/en/explanation/gas-pricing) — Review the single-component fee model in detail.
+- [**USDT0 behavior on Stable**](/en/explanation/usdt0-behavior) — Audit contracts for dual-role asset semantics, allowance safety, and `EXTCODEHASH` behavior.

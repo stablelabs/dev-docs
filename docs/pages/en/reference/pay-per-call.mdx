@@ -1,0 +1,51 @@
+---
+title: "Bill per API request"
+description: "Monetize HTTP endpoints with per-request USDT0 payments using x402 middleware on Stable."
+diataxis: "reference"
+---
+
+# Bill per API request
+
+Monetize any HTTP endpoint with per-request pricing using [x402](/en/explanation/x402) middleware. A server declares its price, a client pays per call, and settlement happens within the request lifecycle. No accounts, no API keys, no billing cycles.
+
+## How it works
+
+The server adds x402 middleware to the endpoints it wants to monetize. When a request arrives without payment, the server responds with HTTP `402 Payment Required` and a `PAYMENT-REQUIRED` header containing the price, token, and network. The client signs an [ERC-3009](/en/explanation/erc-3009) authorization for the specified amount and resubmits. The facilitator settles the payment on-chain, and the server returns the resource.
+
+### Request flow
+
+1. Client sends an HTTP request to the server.
+2. Server returns `402 Payment Required` with a `PAYMENT-REQUIRED` header containing the price, token, network, and recipient.
+3. Client signs an ERC-3009 authorization for the specified amount and resubmits the request with a `PAYMENT-SIGNATURE` header.
+4. Facilitator verifies the signature and settles the transfer on-chain.
+5. Server returns the resource with a `PAYMENT-RESPONSE` header containing the settlement receipt.
+
+### Pricing
+
+Prices are denominated in USDT0 atomic units (6 decimals). A cost parameter of `"1000"` translates to exactly $0.001. A cost of `"50000"` is $0.05. This precision allows servers to set prices at fractions of a cent.
+
+### Infrastructure
+
+On Stable, [Semantic Pay](https://x402.semanticpay.io) operates a public facilitator. Developers can point their middleware to this endpoint without running their own settlement infrastructure.
+
+x402 provides middleware for Express (`@x402/express`), Hono (`@x402/hono`), and Next.js (`@x402/next`). The pattern is the same across all frameworks: create a facilitator client, register the EVM scheme, and apply middleware.
+
+## What makes it different
+
+Traditional API monetization requires user registration, API key management, usage tracking, billing cycles, and payment processor integration. With x402, the server attaches a payment handler to each endpoint, the client pays per request, and settlement completes within the same HTTP lifecycle. The server does not need to know who the client is, only that a valid payment was submitted.
+
+| **Aspect** | **Traditional (API key + billing cycle)** | **Stable (x402)** |
+| :--- | :--- | :--- |
+| Server-side setup | Registration, API keys, usage tracking, billing cycles, payment processor | x402 payment handler per endpoint |
+| Client onboarding | Account creation, API key issuance | None (wallet only) |
+| Billing model | Monthly or usage-based invoicing | Per-request settlement |
+| Client identity required | Yes (API key) | No (only valid payment) |
+| Settlement | End of billing cycle | Within request lifecycle (under 1 second) |
+| Minimum viable price | ~$0.30 (card processing floor) | $0.001 (USDT0 atomic units) |
+| Client type | Human users only (sign-up required) | Any wallet: humans, AI agents, scripts |
+
+**See also:**
+
+- [x402 (HTTP-Native Payments)](/en/explanation/x402)
+- [ERC-3009 (Transfer With Authorization)](/en/explanation/erc-3009)
+- [Gas Waiver](/en/how-to/integrate-gas-waiver)

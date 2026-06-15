@@ -1,0 +1,50 @@
+---
+title: "Settle invoices"
+description: "Settle invoices on Stable using ERC-3009 with deterministic nonces derived from invoice metadata for automatic reconciliation."
+diataxis: "reference"
+---
+
+# Settle invoices
+
+Each invoice maps to a unique, deterministic nonce derived from invoice metadata: invoice number, parties, amount, and due date. This nonce drives settlement via [ERC-3009](/en/explanation/erc-3009) and creates an immutable receipt that can be reconciled with existing accounting systems.
+
+## How it works
+
+Both the buyer and the vendor independently compute the same nonce from the same invoice metadata. No external registry is required to coordinate payment.
+
+The nonce is derived deterministically:
+
+```
+nonce = keccak256(invoiceNumber, vendor, buyer, amount, dueDate)
+```
+
+When the buyer signs the ERC-3009 authorization using this nonce, the on-chain settlement event serves as a tamper-proof payment receipt.
+
+### Settlement flow
+
+1. **Invoice issued**: the vendor creates an invoice with a unique number, amount, and due date.
+2. **Nonce computed**: both parties independently derive the same nonce from the invoice metadata.
+3. **Buyer signs**: the buyer signs an ERC-3009 authorization off-chain using the deterministic nonce. The `validBefore` field can be set to the due date plus a grace period.
+4. **Settlement**: the buyer or vendor submits `transferWithAuthorization` on-chain. Settlement confirms in under a second.
+5. **Reconciliation**: the emitted `AuthorizationUsed` event contains the nonce, linking the on-chain settlement to the exact invoice. The `Transfer` event in the same transaction verifies sender, recipient, and amount.
+
+### Double-payment prevention
+
+The nonce is consumed on-chain upon payment. The same invoice cannot be settled twice; resubmitting an authorization with an already-used nonce reverts.
+
+## What makes it different
+
+Traditional B2B invoicing involves bank wires (1–5 business days), manual reconciliation, and no cryptographic proof of payment tied to the invoice itself. With deterministic nonces, the on-chain payment is self-documenting: the nonce links the settlement to the exact invoice, and the blockchain event log provides an immutable audit trail.
+
+| **Aspect** | **Traditional (bank wire)** | **Stable (ERC-3009)** |
+| :--- | :--- | :--- |
+| Settlement | 1–5 business days | Under 1 second |
+| Reconciliation | Manual matching against bank statements | `AuthorizationUsed` event links payment to invoice nonce |
+| Payment proof | Bank confirmation letter | On-chain transaction, cryptographically linked to invoice |
+| Intermediaries | Correspondent banks | None |
+| Fees | Wire fees ($15–45) + FX spread | ~0.00021 USDT0 (or 0 with Gas Waiver) |
+
+**See also:**
+
+- [ERC-3009 (Transfer With Authorization)](/en/explanation/erc-3009)
+- [Gas Waiver](/en/how-to/integrate-gas-waiver)

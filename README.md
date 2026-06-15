@@ -37,13 +37,7 @@ npm run docs:preview  # preview the production build
 | --- | --- |
 | `docs/pages/` | Content pages (`en`, `cn`, `ko` locales; `en` uses a Diátaxis structure) |
 | `docs/sidebar.json` | Navigation, generated from the Mintlify `docs.json` by `migrate.py` |
-| `docs/lib/structured-data.ts` | Per-page JSON-LD / SEO `<head>` injection (see [DR009](./ADRs/DR009_SEO_Structured_Data.md)) |
+| `docs/lib/structured-data.ts` | Per-page JSON-LD / SEO `<head>` injection (see [DR001](./ADRs/DR001_SEO_Structured_Data.md)) |
 | `docs/components/`, `docs/layout.tsx`, `docs/styles.css` | Theme and layout |
 | `vocs.config.ts` | Site config, theme, nav, socials |
 | `ADRs/` | Architectural Design Records |
-
-## SEO / structured data
-
-The JSON-LD strategy, its rationale, and the verification/testing steps are documented
-in [DR009](./ADRs/DR009_SEO_Structured_Data.md). Implementation lives in
-`docs/lib/structured-data.ts`, wired into `vocs.config.ts` via the `head` option.

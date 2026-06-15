@@ -1,4 +1,4 @@
-# DR009: Structured Data (JSON-LD) Strategy
+# DR001: Structured Data (JSON-LD) Strategy
 
 ## Context
 

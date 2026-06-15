@@ -15,23 +15,16 @@ ADRs capture the context, decision, and consequences of significant architectura
 - Start with `DR` followed by a three-digit incremented number and an underscore
 - Use descriptive names that clearly indicate the decision being documented
 - Format: `DR###_DESCRIPTIVE_NAME.md`
-- Example: `DR032_Database_Migration_Strategy.md`
+- Example: `DR002_Search_Provider.md`
 
 ## Structure
 
 Each ADR should follow this general structure:
 1. **Title**: Clear, concise description of the decision
 2. **Context**: Background information and problem being solved
-3. **Consequences**: Expected outcomes, trade-offs, and implications
+3. **Decision**: The approach chosen and how it works
+4. **Consequences**: Expected outcomes, trade-offs, and implications
 
 ## Current Records
 
-- DR001: Deployment guide and infrastructure decisions
-- DR002: RSVP approval and calendar integration feature
-- DR003: Email queue system architecture
-- DR004: Default profile picture implementation
-- DR005: Client testing methodology
-- DR006: General testing guidelines
-- DR007: Clerk profile integration approach
-- DR008: Directory
-- [DR009: Structured Data (JSON-LD) Strategy](./DR009_SEO_Structured_Data.md)
+- [DR001: Structured Data (JSON-LD) Strategy](./DR001_SEO_Structured_Data.md) — central JSON-LD / SEO `<head>` injection via the Vocs `head` option

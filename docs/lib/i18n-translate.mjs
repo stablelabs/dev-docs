@@ -9,7 +9,7 @@
  * Used by both the auto-draft CI workflow (.github/workflows/i18n-translate.yml)
  * and one-off local backfills.
  *
- *   ANTHROPIC_API_KEY=... node docs/lib/i18n-translate.mjs <locale> [--stale] [--force] [--limit N] [page ...]
+ *   LLM_API_KEY=... node docs/lib/i18n-translate.mjs <locale> [--stale] [--force] [--limit N] [page ...]
  *
  *   <locale>     cn | ko (required)
  *   --stale      in a full sweep, also re-translate pages whose source_sha drifted (default: missing only)
@@ -18,10 +18,12 @@
  *   page ...     explicit en-relative paths to consider; in-sync ones are still
  *                skipped (drift is always checked) unless --force is given
  *
- * Model: claude-opus-4-8, adaptive thinking, streamed (pages can be long).
+ * Provider/model are env-configurable via docs/lib/llm.mjs (LLM_BASE_URL,
+ * LLM_API_KEY, TRANSLATE_MODEL, REVIEW_MODEL). When REVIEW_MODEL is set, a
+ * second model reviews and corrects each draft before it's written.
  */
 
-import Anthropic from '@anthropic-ai/sdk'
+import { complete, TRANSLATE_MODEL, REVIEW_MODEL, MAX_OUTPUT_TOKENS } from './llm.mjs'
 import { execFileSync } from 'node:child_process'
 import { readdirSync, readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs'
 import { join, relative, dirname } from 'node:path'
@@ -33,7 +35,7 @@ const LANGUAGE = { cn: 'Simplified Chinese (zh-CN)', ko: 'Korean (ko-KR)' }
 
 const [locale, ...rest] = process.argv.slice(2)
 if (!LANGUAGE[locale]) {
-  console.error('Usage: node docs/lib/i18n-translate.mjs <cn|ko> [--stale] [--limit N] [page ...]')
+  console.error('Usage: LLM_API_KEY=... node docs/lib/i18n-translate.mjs <cn|ko> [--stale] [--force] [--limit N] [page ...]')
   process.exit(2)
 }
 const includeStale = rest.includes('--stale')
@@ -109,26 +111,58 @@ Rules:
 - Keep the frontmatter "diataxis" value unchanged if present.
 - Output ONLY the translated MDX file content, with no commentary, no markdown code fence around the whole file.`
 
-const client = new Anthropic()
+const REVIEW_SYSTEM = `You are a senior reviewer for ${LANGUAGE[locale]} translations of the Stable blockchain developer docs. You are given the English source MDX and a draft translation. Return a corrected version of the translation.
+
+Fix:
+- Any untranslated prose, mistranslations, or awkward phrasing.
+- Any structural drift from the source: the draft MUST keep the same frontmatter keys, the same number and content of fenced code blocks, the same inline code, URLs, file paths, JSX/MDX components and props, HTML tags, and identifiers (USDT0, EVM, RPC, etc.) — all unchanged from the English.
+- Keep the frontmatter "diataxis" value unchanged. Translate frontmatter "title"/"description" values only.
+
+Output ONLY the corrected MDX file content — no commentary, no markdown code fence around the whole file. If the draft is already correct, output it unchanged.`
+
+// Count top-level fenced code blocks (``` or ~~~) in MDX prose. Used as a cheap
+// structural check: a faithful translation keeps every code block intact.
+const fenceCount = (text) => (text.match(/^\s*(`{3,}|~{3,})/gm) || []).length
+
+// Reject a generation that lost structure rather than writing corrupt output.
+// Throwing here skips the page and surfaces it in the run (per-page try/catch).
+function validateStructure(rel, source, out) {
+  if (!out) throw new Error('empty translation')
+  if (/^\s*```/.test(out)) throw new Error('translation is wrapped in a markdown code fence')
+  if (source.startsWith('---\n') && !out.startsWith('---\n'))
+    throw new Error('translation dropped the frontmatter block')
+  const want = fenceCount(source)
+  const got = fenceCount(out)
+  if (got !== want) throw new Error(`code-fence count drifted (source ${want}, translation ${got})`)
+}
 
 async function translateOne(rel) {
   const srcPath = join(PAGES, SOURCE, rel)
   const sha = blobSha(srcPath)
   const source = readFileSync(srcPath, 'utf8')
 
-  const stream = client.messages.stream({
-    model: 'claude-opus-4-8',
-    max_tokens: 64000,
-    thinking: { type: 'adaptive' },
-    system: SYSTEM,
-    messages: [{ role: 'user', content: `Translate this MDX file:\n\n${source}` }],
-  })
-  const final = await stream.finalMessage()
-  let body = final.content
-    .filter((b) => b.type === 'text')
-    .map((b) => b.text)
-    .join('')
-    .trim()
+  let body = (
+    await complete({
+      model: TRANSLATE_MODEL,
+      system: SYSTEM,
+      user: `Translate this MDX file:\n\n${source}`,
+      maxTokens: MAX_OUTPUT_TOKENS,
+    })
+  ).trim()
+
+  // Optional second pass: a (usually stronger) model corrects the draft.
+  if (REVIEW_MODEL) {
+    body = (
+      await complete({
+        model: REVIEW_MODEL,
+        system: REVIEW_SYSTEM,
+        user: `English source MDX:\n\n${source}\n\n---\n\nDraft translation to review and correct:\n\n${body}`,
+        maxTokens: MAX_OUTPUT_TOKENS,
+      })
+    ).trim()
+  }
+
+  validateStructure(rel, source, body)
 
   // Inject source tracking into the translated frontmatter so verify-i18n can
   // detect drift later. Assumes the model preserved the leading `---` fence.

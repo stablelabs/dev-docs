@@ -19,8 +19,8 @@ the Diátaxis structure: `explanation/`, `how-to/`, `reference/`, `tutorial/`,
   `/ko` sections are **generated** from `/en` (links re-prefixed, labels
   translated) — never hand-edit them. Regenerate after editing `/en`:
   ```bash
-  ANTHROPIC_API_KEY=… node docs/lib/i18n-sidebar.mjs cn
-  ANTHROPIC_API_KEY=… node docs/lib/i18n-sidebar.mjs ko
+  LLM_API_KEY=… node docs/lib/i18n-sidebar.mjs cn
+  LLM_API_KEY=… node docs/lib/i18n-sidebar.mjs ko
   ```
 - **Internal links** are absolute and locale-prefixed (`/en/...` in source). The
   translation pipeline rewrites them to the target locale automatically; never
@@ -30,9 +30,14 @@ the Diátaxis structure: `explanation/`, `how-to/`, `reference/`, `tutorial/`,
 - **Generate/refresh translations locally** (e.g. when CI can't, or for a
   freshness pass):
   ```bash
-  ANTHROPIC_API_KEY=… node docs/lib/i18n-translate.mjs cn [--stale] [pages…]
-  ANTHROPIC_API_KEY=… node docs/lib/i18n-translate.mjs ko [--stale] [pages…]
+  LLM_API_KEY=… node docs/lib/i18n-translate.mjs cn [--stale] [pages…]
+  LLM_API_KEY=… node docs/lib/i18n-translate.mjs ko [--stale] [pages…]
   ```
+- **LLM provider/model are env-swappable** (one seam, [`docs/lib/llm.mjs`](./docs/lib/llm.mjs)).
+  `LLM_API_KEY` (or `OPENROUTER_API_KEY`) is required; `LLM_BASE_URL` defaults to
+  OpenRouter; `TRANSLATE_MODEL` picks the translator and an optional `REVIEW_MODEL`
+  enables a second QA pass; `MAX_OUTPUT_TOKENS` (default 8000) must fit the chosen
+  model's output cap. Changing provider or model is config, never a code edit.
 - **Verify** before finishing: `npm run i18n:check` (expect `0 missing`) and
   `npm run docs:build`.
 

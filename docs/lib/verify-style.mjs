@@ -74,25 +74,29 @@ function body(text) {
  * strings, e.g. `ts twoslash`). Vocs `:::code-group` wrappers are directives, not
  * fences, so their inner ``` fences are still seen here.
  */
-function partition(text) {
+function partition(text, offset = 0) {
   const lines = text.split('\n')
   const proseLines = []
   const fences = []
   let inFence = false
-  for (const line of lines) {
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
     const fence = line.match(/^(\s*)(`{3,}|~{3,})(.*)$/)
     if (fence) {
       if (!inFence) {
         inFence = true
-        fences.push(fence[3].trim())
+        // 1-based line number in the original file.
+        fences.push({ info: fence[3].trim(), line: offset + i + 1 })
       } else {
         inFence = false
       }
       continue
     }
-    if (!inFence) proseLines.push(line)
+    // Keep prose lines paired with their original 1-based line number so
+    // findings can be anchored to an exact line.
+    if (!inFence) proseLines.push({ text: line, line: offset + i + 1 })
   }
-  return { prose: proseLines.join('\n'), fences }
+  return { proseLines, prose: proseLines.map((l) => l.text).join('\n'), fences }
 }
 
 const enRoot = join(PAGES, SOURCE)
@@ -109,10 +113,16 @@ for (const file of files) {
   const topFolder = parts.length > 1 ? parts[0] : null
   const text = readFileSync(file, 'utf8')
   const fm = frontmatter(text)
-  const { prose, fences } = partition(body(text))
+  // Offset = lines consumed by the stripped frontmatter block, so prose/fence
+  // line numbers map back to the original file.
+  const fmMatch = text.match(/^---\n[\s\S]*?\n---\n?/)
+  const offset = fmMatch ? fmMatch[0].split('\n').length - 1 : 0
+  const { proseLines, prose, fences } = partition(body(text), offset)
 
-  const err = (msg) => { blocking++; issues.push({ rel, level: '✗', msg }) }
-  const warn = (msg) => { warnings++; issues.push({ rel, level: '⚠', msg }) }
+  const err = (msg, line) => { blocking++; issues.push({ rel, level: '✗', msg, line }) }
+  const warn = (msg, line) => { warnings++; issues.push({ rel, level: '⚠', msg, line }) }
+  // First prose line (1-based, original file) matching a regex, or undefined.
+  const proseLine = (re) => proseLines.find((l) => re.test(l.text))?.line
 
   // Frontmatter presence.
   if (!fm.title) err('missing frontmatter: title')
@@ -132,26 +142,26 @@ for (const file of files) {
   }
 
   // Code fences must declare a language (first token of the info string).
-  for (const info of fences) {
+  for (const { info, line } of fences) {
     const lang = info.split(/[\s[]/)[0]
-    if (!lang) err('code block has no language tag')
+    if (!lang) err('code block has no language tag', line)
   }
 
   // Em dashes in prose only.
   if (prose.includes('—')) {
     const n = (prose.match(/—/g) || []).length
-    err(`${n} em dash${n > 1 ? 'es' : ''} in prose (use a colon, comma, or two sentences)`)
+    err(`${n} em dash${n > 1 ? 'es' : ''} in prose (use a colon, comma, or two sentences)`, proseLine(/—/))
   }
 
   // Marketing adjectives (advisory).
   for (const word of MARKETING_WORDS) {
     const re = new RegExp(`\\b${word}\\b`, 'i')
-    if (re.test(prose)) warn(`marketing word "${word}"`)
+    if (re.test(prose)) warn(`marketing word "${word}"`, proseLine(re))
   }
 }
 
-for (const { rel, level, msg } of issues) {
-  console.log(`  ${level} ${rel}: ${msg}`)
+for (const { rel, level, msg, line } of issues) {
+  console.log(`  ${level} ${rel}${line ? `:${line}` : ''}: ${msg}`)
 }
 
 const summary =
@@ -167,12 +177,19 @@ if (process.env.STYLE_REPORT) {
 }
 
 function renderReport() {
+  // STYLE_REPO_URL is the blob base for the PR head commit, e.g.
+  // https://github.com/owner/repo/blob/<sha>. When set, file paths become
+  // clickable links (with #L line anchors); otherwise they stay plain text.
+  const base = process.env.STYLE_REPO_URL?.replace(/\/$/, '')
+  const fileUrl = (rel, line) =>
+    base ? `${base}/docs/pages/en/${rel}${line ? `#L${line}` : ''}` : null
+
   const lines = ['## Styleguide check', '', `**${summary}**`, '']
   if (issues.length === 0) {
     lines.push('No styleguide issues found. ✨')
     return lines.join('\n')
   }
-  // Group issues by file, blocking errors first within each group.
+  // Group issues by file, preserving discovery order.
   const byFile = new Map()
   for (const it of issues) {
     if (!byFile.has(it.rel)) byFile.set(it.rel, [])
@@ -182,13 +199,23 @@ function renderReport() {
     lines.push('Blocking issues must be fixed before merge; warnings are advisory.', '')
   }
   for (const [rel, list] of byFile) {
-    lines.push(`### \`docs/pages/en/${rel}\``)
-    for (const { level, msg } of list) {
-      lines.push(`- ${level === '✗' ? '**✗ blocking**' : '⚠ warning'}: ${msg}`)
+    const url = fileUrl(rel)
+    lines.push(url ? `### [docs/pages/en/${rel}](${url})` : `### \`docs/pages/en/${rel}\``)
+    for (const { level, msg, line } of list) {
+      const label = level === '✗' ? '**✗ blocking**' : '⚠ warning'
+      const loc = line
+        ? base
+          ? ` ([L${line}](${fileUrl(rel, line)}))`
+          : ` (line ${line})`
+        : ''
+      lines.push(`- ${label}: ${msg}${loc}`)
     }
     lines.push('')
   }
-  lines.push('<sub>Enforced by `npm run style:check` — see [STYLEGUIDE.md](../blob/HEAD/STYLEGUIDE.md).</sub>')
+  const guide = base
+    ? `[STYLEGUIDE.md](${base}/STYLEGUIDE.md)`
+    : '[STYLEGUIDE.md](../blob/HEAD/STYLEGUIDE.md)'
+  lines.push(`<sub>Enforced by \`npm run style:check\` — see ${guide}.</sub>`)
   return lines.join('\n')
 }
 

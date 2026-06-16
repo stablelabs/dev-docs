@@ -31,10 +31,13 @@ jobs:
         # the job is failed explicitly in the final step.
         run: |
           set +e
-          STYLE_REPORT="$RUNNER_TEMP/style-report.md" npm run style:check
+          npm run style:check
           echo "exit_code=$?" >> "$GITHUB_OUTPUT"
         env:
           STYLE_REPORT: ${{ runner.temp }}/style-report.md
+          # Blob base for the PR head commit; makes report paths clickable
+          # links pinned to the exact reviewed revision.
+          STYLE_REPO_URL: ${{ github.server_url }}/${{ github.repository }}/blob/${{ github.event.pull_request.head.sha }}
       - name: Comment styleguide report
         if: always() && github.event_name == 'pull_request'
         uses: actions/github-script@v7

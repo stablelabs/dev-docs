@@ -55,6 +55,7 @@ Point your middleware at `https://facilitator.heurist.xyz`. No API key is requir
 - Use a hosted facilitator (Semantic Pay or Heurist) to start fast. No infrastructure to run, no gas tokens to manage.
 - Pick by what matters most for your workload: Semantic Pay if you want Stable-native tooling with lifecycle callbacks and agent oversight controls; Heurist if you need a single endpoint that spans Stable plus other EVM networks, or if OFAC screening is a hard requirement.
 - Self-host if you need full control over settlement policy, want to keep payment data in your own environment, or expect volume that justifies the operational overhead.
+- Whichever route you choose, test against a small payment first to confirm verification and settlement behave as you expect before sending production traffic.
 - Both facilitators settle x402 on Stable today. The same `/settle` endpoint can also serve as the on-chain submission target for an MPP server, since MPP's wire format only differs from x402 on the client ↔ resource-server hop. See [Build an MPP endpoint on Stable](/en/how-to/build-mpp-endpoint).
 
 ---

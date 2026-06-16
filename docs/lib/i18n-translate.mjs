@@ -68,11 +68,19 @@ function frontmatterSha(file) {
 const blobSha = (file) =>
   execFileSync('git', ['hash-object', file], { encoding: 'utf8' }).trim()
 
-// en source links are absolute `/en/...`. Rewrite the markdown-link token
-// `](/en/` to the target locale so a translated page navigates within its own
-// language tree. External URLs that merely contain `/en/` start with `](http`
-// and are intentionally left alone. Idempotent.
-const localizeLinks = (body, locale) => body.replaceAll('](/en/', `](/${locale}/`)
+// Normalize internal markdown-link hrefs to the target locale tree. en source
+// links are `](/en/...)`, but translation models often "localize" the path
+// themselves — emitting the language tag (`/zh-CN/`, `/ko-KR/`), the wrong
+// locale slug, or a duplicated section. This rewrites the locale prefix of any
+// `](/<loc>/...)` link to `](/<locale>/...)` and collapses a duplicated section
+// segment. Only the locale prefix is touched, so asset paths like `/images/...`
+// and external `](http...)` links are left alone. Idempotent.
+const LOCALE_TOKENS = 'en|cn|ko|zh|zh-cn|ko-kr'
+const SECTIONS = 'tutorial|how-to|reference|explanation|resources'
+const localizeLinks = (body, locale) =>
+  body
+    .replace(new RegExp(`\\]\\(/(?:${LOCALE_TOKENS})/`, 'gi'), `](/${locale}/`)
+    .replace(new RegExp(`\\]\\(/${locale}/(${SECTIONS})/\\1/`, 'g'), `](/${locale}/$1/`)
 
 // Discover which en pages this locale actually needs translating.
 //
@@ -108,6 +116,7 @@ Rules:
 - Translate prose, headings, the frontmatter "title" and "description" values, alt text, and table cell text.
 - DO NOT translate: code blocks, inline code, command output, URLs, file paths, frontmatter keys, MDX/JSX component names and props, HTML tags, or identifiers like USDT0, EVM, RPC, JSON-RPC, chain IDs, hex values, env var names.
 - Preserve the exact MDX structure: frontmatter fences, import statements, JSX components, links (translate link text, keep the href), and whitespace/indentation.
+- Internal links use \`/en/...\` paths. Keep the href EXACTLY as \`/en/...\` — do not change the \`/en/\` prefix to a language tag or locale, and do not alter the path.
 - Keep the frontmatter "diataxis" value unchanged if present.
 - Output ONLY the translated MDX file content, with no commentary, no markdown code fence around the whole file.`
 

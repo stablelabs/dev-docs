@@ -214,7 +214,7 @@
             },
             {
               "text": "Accounts Index",
-              "link": "/en/explanation/accounts-index"
+              "link": "/en/explanation/accounts-guides"
             },
             {
               "text": "Create Wallet",
@@ -240,7 +240,7 @@
             },
             {
               "text": "Payments Index",
-              "link": "/en/explanation/payments-index"
+              "link": "/en/explanation/payments-guides"
             },
             {
               "text": "Move USDT0",
@@ -328,7 +328,7 @@
             },
             {
               "text": "Contracts Index",
-              "link": "/en/explanation/contracts-index"
+              "link": "/en/explanation/contracts-guides"
             },
             {
               "text": "Deploy your first contract",
@@ -604,7 +604,7 @@
         },
         {
           "text": "Ai Agents Index",
-          "link": "/en/explanation/ai-agents-index"
+          "link": "/en/explanation/ai-agents-guides"
         },
         {
           "text": "Pay over x402 and MPP",
@@ -872,7 +872,7 @@
             },
             {
               "text": "Accounts Index",
-              "link": "/ko/explanation/accounts-index"
+              "link": "/ko/explanation/accounts-guides"
             },
             {
               "text": "Create Wallet",
@@ -898,7 +898,7 @@
             },
             {
               "text": "Payments Index",
-              "link": "/ko/explanation/payments-index"
+              "link": "/ko/explanation/payments-guides"
             },
             {
               "text": "Move USDT0",
@@ -986,7 +986,7 @@
             },
             {
               "text": "Contracts Index",
-              "link": "/ko/explanation/contracts-index"
+              "link": "/ko/explanation/contracts-guides"
             },
             {
               "text": "Deploy your first contract",
@@ -1262,7 +1262,7 @@
         },
         {
           "text": "Ai Agents Index",
-          "link": "/ko/explanation/ai-agents-index"
+          "link": "/ko/explanation/ai-agents-guides"
         },
         {
           "text": "Pay over x402 and MPP",
@@ -1530,7 +1530,7 @@
             },
             {
               "text": "Accounts Index",
-              "link": "/cn/explanation/accounts-index"
+              "link": "/cn/explanation/accounts-guides"
             },
             {
               "text": "Create Wallet",
@@ -1556,7 +1556,7 @@
             },
             {
               "text": "Payments Index",
-              "link": "/cn/explanation/payments-index"
+              "link": "/cn/explanation/payments-guides"
             },
             {
               "text": "Move USDT0",
@@ -1644,7 +1644,7 @@
             },
             {
               "text": "Contracts Index",
-              "link": "/cn/explanation/contracts-index"
+              "link": "/cn/explanation/contracts-guides"
             },
             {
               "text": "Deploy your first contract",
@@ -1920,7 +1920,7 @@
         },
         {
           "text": "Ai Agents Index",
-          "link": "/cn/explanation/ai-agents-index"
+          "link": "/cn/explanation/ai-agents-guides"
         },
         {
           "text": "Pay over x402 and MPP",

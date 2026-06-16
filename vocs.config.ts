@@ -66,8 +66,8 @@ export default defineConfig({
       text: 'Language',
       items: [
         { text: 'English', link: '/en/explanation/learn-overview' },
-        { text: '中文', link: '/cn/index' },
-        { text: '한국어', link: '/ko/index' },
+        { text: '中文', link: '/cn' },
+        { text: '한국어', link: '/ko' },
       ],
     },
   ],

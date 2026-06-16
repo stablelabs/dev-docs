@@ -61,6 +61,43 @@ export default defineConfig({
   // Sidebar is generated from the Mintlify docs.json by migrate.py.
   sidebar,
 
+  // Locale-scope search results to the script the user typed: Latin → English,
+  // Hangul → Korean, Han → Chinese. Vocs indexes all three language trees
+  // (pages/{en,cn,ko}/...) into one MiniSearch index, so without this a query
+  // returns mixed-language results. Every result's `href` carries the locale
+  // prefix, so we filter on it.
+  //
+  // NOTE: Vocs serializes this function and re-creates it with `new Function()`
+  // in the browser, so it has NO closure scope — it may only reference globals
+  // (`document`, `window`, `URLSearchParams`, regex literals). Keep it
+  // self-contained: no outer variables, imports, or helper functions.
+  search: {
+    filter(result) {
+      if (typeof document === 'undefined') return true
+
+      // MiniSearch's filter receives only the result, not the query term. The
+      // live search input is the source of truth at query time; fall back to
+      // the ?q= param that Vocs keeps in sync.
+      const input = document.getElementById('search-input')
+      const q =
+        (input && 'value' in input ? (input as HTMLInputElement).value : '') ||
+        new URLSearchParams(window.location.search).get('q') ||
+        ''
+
+      // Detect the script of the query. Check Hangul before Han so Korean wins.
+      let locale = 'en'
+      if (/[가-힯ᄀ-ᇿ㄰-㆏]/.test(q)) locale = 'ko'
+      else if (/[一-鿿㐀-䶿]/.test(q)) locale = 'cn'
+
+      const href: string = (result as { href?: string }).href || ''
+      if (locale === 'ko') return href.startsWith('/ko/')
+      if (locale === 'cn') return href.startsWith('/cn/')
+      // English (or any Latin/other query): everything that is NOT cn/ko, so
+      // untranslated/root pages still surface under English.
+      return !href.startsWith('/cn/') && !href.startsWith('/ko/')
+    },
+  },
+
   topNav: [
     {
       text: 'Language',

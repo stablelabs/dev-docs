@@ -1,14 +1,16 @@
 ---
 source_path: reference/connect.mdx
-source_sha: 21a5b6baf9d48aa18e34b2c6bb4751a3eba4c5a3
+source_sha: 060ec94cc0c0a0d7da55d200afbb8f7b69fdb8cd
 title: "连接"
-description: "Stable 的主网和测试网链 ID、RPC 端点、区块浏览器和水龙头。"
+description: "Stable 的主网和测试网 chain ID、RPC 端点、区块浏览器和水龙头。"
 diataxis: "reference"
 ---
 
+import { AddToMetaMask } from '../../../components/AddToMetaMask'
+
 # 连接
 
-本页整合了连接到 Stable 所需的网络详细信息。
+本页汇总了连接 Stable 所需的网络详情。
 
 ## 主网
 
@@ -32,21 +34,25 @@ diataxis: "reference"
 | WebSocket | `wss://rpc.testnet.stable.xyz` |
 | 区块浏览器 | [https://testnet.stablescan.xyz](https://testnet.stablescan.xyz) |
 
-有关第三方 RPC 提供商，请参阅 [RPC 提供商](/cn/reference/rpc-providers)。如需一个为你预先接入这些端点的类型化客户端，请参阅 [Stable SDK](/cn/explanation/sdk-overview)。
+如需第三方 RPC 提供商，请参阅 [RPC 提供商](/cn/reference/rpc-providers)。如需为你接入这些端点的类型化客户端，请参阅 [Stable SDK](/cn/explanation/sdk-overview)。
 
 ## 速率限制
 
-公共 RPC 端点（`https://rpc.stable.xyz` 和 `https://rpc.testnet.stable.xyz`）的速率限制为**每个 IP 每 10 秒 1,000 个请求**。超过限制的请求会返回 `HTTP 429`。
+公共 RPC 端点（`https://rpc.stable.xyz` 和 `https://rpc.testnet.stable.xyz`）的速率限制为**每个 IP 每 10 秒 1,000 次请求**。超过限制的请求将返回 `HTTP 429`。
 
-如需更高的吞吐量，请使用[第三方 RPC 提供商](/cn/reference/rpc-providers)。
+如需更高吞吐量，请使用[第三方 RPC 提供商](/cn/reference/rpc-providers)。
 
 :::note
-USDT0 作为原生 gas 代币时使用 **18 位小数**（由 `address(x).balance` 返回），作为 ERC-20 代币时使用 **6 位小数**（由 `USDT0.balanceOf(x)` 返回）。这两个接口操作的是同一个底层余额。viem 和 ethers.js 等库报告 18 位小数，因为它们读取的是原生 gas 代币。有关如何协调精度差异的详细信息，请参阅 [USDT0 在 Stable 上的行为](/cn/explanation/usdt0-behavior)。
+USDT0 作为原生 gas 代币使用 **18 位小数**（由 `address(x).balance` 返回），作为 ERC-20 代币使用 **6 位小数**（由 `USDT0.balanceOf(x)` 返回）。这两个接口操作的是同一个底层余额。viem 和 ethers.js 等库报告 18 位小数，因为它们读取的是原生 gas 代币。有关如何调和精度差异的详细信息，请参阅 [USDT0 在 Stable 上的行为](/cn/explanation/usdt0-behavior)。
 :::
 
 ## 将 Stable 添加到你的钱包
 
-要手动添加 Stable，请打开浏览器钱包的网络设置，并输入上述表格中的值。必填字段为：
+如果你使用 MetaMask（或其他注入式 EVM 钱包），只需点击一下即可添加 Stable。该按钮会调用 `wallet_addEthereumChain`，因此你的钱包会提示你确认下面的网络详情。由于 USDT0 是原生 gas 代币，添加网络后你的余额会自动显示，无需单独导入代币。
+
+<AddToMetaMask />
+
+如需手动添加 Stable，请打开你的钱包网络设置，输入上表中的值。必填字段为：
 
 - **网络名称**
 - **RPC URL**（EVM JSON-RPC 端点）
@@ -55,7 +61,7 @@ USDT0 作为原生 gas 代币时使用 **18 位小数**（由 `address(x).balanc
 
 ## 验证连接
 
-通过查询链 ID 确认你的 RPC 端点可访问：
+通过查询 chain ID 来确认你的 RPC 端点可访问：
 
 ```bash
 cast chain-id --rpc-url https://rpc.stable.xyz
@@ -81,6 +87,6 @@ cast chain-id --rpc-url https://rpc.testnet.stable.xyz
 
 ## 下一步推荐
 
-- [**快速开始**](/cn/tutorial/quick-start) — 五分钟内发送你的第一笔测试网交易。
-- [**获取测试网 USDT0**](/cn/how-to/use-faucet) — 从水龙头为钱包注资或从 Sepolia 跨链转入。
-- [**USDT0 在 Stable 上的行为**](/cn/explanation/usdt0-behavior) — 在针对余额编写代码之前，了解 18/6 位小数的双重角色。
+- [**快速开始**](/cn/tutorial/quick-start)：五分钟内发送你的第一笔测试网交易。
+- [**获取测试网 USDT0**](/cn/how-to/use-faucet)：从水龙头充值钱包或从 Sepolia 跨链。
+- [**USDT0 在 Stable 上的行为**](/cn/explanation/usdt0-behavior)：在针对余额编写代码之前，理解 18/6 位小数的双重角色。

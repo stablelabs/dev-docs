@@ -1,0 +1,71 @@
+name: i18n auto-translate
+
+# Runs on the PR itself: translates the en pages changed in this PR into cn/ko
+# and commits them back to the PR branch, so translations land in the SAME PR
+# and the i18n-check parity gate passes without a separate post-merge step.
+#
+# Scoped to the PR's changed en pages (not a global sweep) so it won't churn
+# the whole site or re-touch the untracked re-homed pages on unrelated PRs.
+# For a global backfill/freshness pass, run docs/lib/i18n-translate.mjs locally
+# with --stale.
+
+on:
+  pull_request:
+    paths:
+      - 'docs/pages/en/**'
+
+permissions:
+  contents: write
+
+jobs:
+  translate:
+    # Fork PRs get a read-only token and can't be pushed to — skip them; their
+    # parity gate will fail and a maintainer runs the engine locally instead.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0 # need base history to diff changed en pages
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: npm
+      - run: npm ci
+
+      # en pages added/modified/renamed in this PR (relative to en/), excluding deletes.
+      - name: Collect changed en pages
+        id: changed
+        run: |
+          BASE="${{ github.event.pull_request.base.sha }}"
+          pages=$(git diff --name-only --diff-filter=ACMR "$BASE"...HEAD -- 'docs/pages/en/**/*.mdx' \
+            | sed 's#^docs/pages/en/##')
+          {
+            echo 'pages<<EOF'
+            echo "$pages"
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
+          echo "Changed en pages:"; echo "$pages"
+
+      - name: Translate changed pages into cn + ko
+        if: steps.changed.outputs.pages != ''
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          pages=$(echo "${{ steps.changed.outputs.pages }}" | tr '\n' ' ')
+          node docs/lib/i18n-translate.mjs cn $pages
+          node docs/lib/i18n-translate.mjs ko $pages
+
+      - name: Commit translations to the PR branch
+        if: steps.changed.outputs.pages != ''
+        run: |
+          if [ -n "$(git status --porcelain docs/pages/cn docs/pages/ko)" ]; then
+            git config user.name 'github-actions[bot]'
+            git config user.email 'github-actions[bot]@users.noreply.github.com'
+            git add docs/pages/cn docs/pages/ko
+            git commit -m 'i18n: auto-translate cn/ko for changed en pages'
+            git push origin HEAD:${{ github.head_ref }}
+          else
+            echo 'No translation changes to commit.'
+          fi

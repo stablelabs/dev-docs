@@ -1,0 +1,654 @@
+{
+  "note": "en is source of truth; cn & ko share identical structure. Apply same mapping to both. status: rehome|rename|translate|retire(pending decision)",
+  "generated_for_locales": [
+    "cn",
+    "ko"
+  ],
+  "mapping": [
+    {
+      "cn_ko_path": "architecture/core-optimization/appendix/autobahn.mdx",
+      "en_path": "explanation/autobahn.mdx",
+      "status": "rename"
+    },
+    {
+      "cn_ko_path": "architecture/core-optimization/consensus.mdx",
+      "en_path": "explanation/consensus.mdx",
+      "status": "rename"
+    },
+    {
+      "cn_ko_path": "architecture/core-optimization/execution.mdx",
+      "en_path": "explanation/execution.mdx",
+      "status": "rename"
+    },
+    {
+      "cn_ko_path": "architecture/core-optimization/high-performance-rpc.mdx",
+      "en_path": "explanation/high-performance-rpc.mdx",
+      "status": "rename"
+    },
+    {
+      "cn_ko_path": "architecture/core-optimization/overview.mdx",
+      "en_path": "explanation/core-optimization-overview.mdx",
+      "status": "rename"
+    },
+    {
+      "cn_ko_path": "architecture/core-optimization/stable-db.mdx",
+      "en_path": "explanation/stable-db.mdx",
+      "status": "rename"
+    },
+    {
+      "cn_ko_path": "architecture/key-features.mdx",
+      "en_path": "explanation/key-features.mdx",
+      "status": "rename"
+    },
+    {
+      "cn_ko_path": "architecture/tech-overview.mdx",
+      "en_path": "explanation/tech-overview.mdx",
+      "status": "rename"
+    },
+    {
+      "cn_ko_path": "architecture/usdt-specific-features/confidential-transfer.mdx",
+      "en_path": "explanation/confidential-transfer.mdx",
+      "status": "rename"
+    },
+    {
+      "cn_ko_path": "architecture/usdt-specific-features/guaranteed-blockspace.mdx",
+      "en_path": "explanation/guaranteed-blockspace.mdx",
+      "status": "rename"
+    },
+    {
+      "cn_ko_path": "architecture/usdt-specific-features/overview.mdx",
+      "en_path": "explanation/usdt-features-overview.mdx",
+      "status": "rename"
+    },
+    {
+      "cn_ko_path": "architecture/usdt-specific-features/usdt-as-gas-token.mdx",
+      "en_path": "explanation/usdt-as-gas-token.mdx",
+      "status": "rename"
+    },
+    {
+      "cn_ko_path": "architecture/usdt-specific-features/usdt-transfer-aggregator.mdx",
+      "en_path": "explanation/usdt-transfer-aggregator.mdx",
+      "status": "rename"
+    },
+    {
+      "cn_ko_path": "developers/core-mechanics/eip-7702.mdx",
+      "en_path": "explanation/eip-7702.mdx",
+      "status": "rename"
+    },
+    {
+      "cn_ko_path": "developers/core-mechanics/ethereum-compatibility.mdx",
+      "en_path": "explanation/ethereum-compatibility.mdx",
+      "status": "rename"
+    },
+    {
+      "cn_ko_path": "developers/core-mechanics/finality.mdx",
+      "en_path": "explanation/finality.mdx",
+      "status": "rename"
+    },
+    {
+      "cn_ko_path": "developers/core-mechanics/gas-pricing.mdx",
+      "en_path": "explanation/gas-pricing.mdx",
+      "status": "rename"
+    },
+    {
+      "cn_ko_path": "developers/core-mechanics/gas-waiver.mdx",
+      "en_path": "explanation/gas-waiver.mdx",
+      "status": "rename"
+    },
+    {
+      "cn_ko_path": "developers/core-mechanics/json-rpc-api.mdx",
+      "en_path": "reference/json-rpc-api.mdx",
+      "status": "rename"
+    },
+    {
+      "cn_ko_path": "developers/core-mechanics/overview.mdx",
+      "en_path": "explanation/core-concepts.mdx",
+      "status": "rename"
+    },
+    {
+      "cn_ko_path": "developers/core-mechanics/system-modules/bank.mdx",
+      "en_path": "explanation/bank-module.mdx",
+      "status": "rename"
+    },
+    {
+      "cn_ko_path": "developers/core-mechanics/system-modules/distribution.mdx",
+      "en_path": "explanation/distribution-module.mdx",
+      "status": "rename"
+    },
+    {
+      "cn_ko_path": "developers/core-mechanics/system-modules/overview.mdx",
+      "en_path": "explanation/system-modules-overview.mdx",
+      "status": "rename"
+    },
+    {
+      "cn_ko_path": "developers/core-mechanics/system-modules/staking.mdx",
+      "en_path": "explanation/staking-module.mdx",
+      "status": "rename"
+    },
+    {
+      "cn_ko_path": "developers/core-mechanics/system-modules/system-transactions.mdx",
+      "en_path": "explanation/system-transactions.mdx",
+      "status": "rename"
+    },
+    {
+      "cn_ko_path": "developers/developer-assistance.mdx",
+      "en_path": "reference/developer-assistance.mdx",
+      "status": "rename"
+    },
+    {
+      "cn_ko_path": "developers/mainnet/mainnet-information.mdx",
+      "en_path": "reference/mainnet-information.mdx",
+      "status": "rename"
+    },
+    {
+      "cn_ko_path": "developers/mainnet/version-history.mdx",
+      "en_path": "reference/mainnet-version-history.mdx",
+      "status": "rename"
+    },
+    {
+      "cn_ko_path": "developers/node-operations/configuration.mdx",
+      "en_path": "reference/node-configuration.mdx",
+      "status": "rename"
+    },
+    {
+      "cn_ko_path": "developers/node-operations/installation.mdx",
+      "en_path": "how-to/install-node.mdx",
+      "status": "rename"
+    },
+    {
+      "cn_ko_path": "developers/node-operations/monitoring.mdx",
+      "en_path": "how-to/monitor-node.mdx",
+      "status": "rename"
+    },
+    {
+      "cn_ko_path": "developers/node-operations/overview.mdx",
+      "en_path": "reference/node-operations-overview.mdx",
+      "status": "rename"
+    },
+    {
+      "cn_ko_path": "developers/node-operations/snapshots.mdx",
+      "en_path": "how-to/use-node-snapshots.mdx",
+      "status": "rename"
+    },
+    {
+      "cn_ko_path": "developers/node-operations/system-requirements.mdx",
+      "en_path": "reference/node-system-requirements.mdx",
+      "status": "rename"
+    },
+    {
+      "cn_ko_path": "developers/node-operations/troubleshooting.mdx",
+      "en_path": "how-to/troubleshoot-node.mdx",
+      "status": "rename"
+    },
+    {
+      "cn_ko_path": "developers/node-operations/upgrades.mdx",
+      "en_path": "how-to/upgrade-node.mdx",
+      "status": "rename"
+    },
+    {
+      "cn_ko_path": "developers/quick-start.mdx",
+      "en_path": "tutorial/quick-start.mdx",
+      "status": "rename"
+    },
+    {
+      "cn_ko_path": "developers/testnet/ecosystem.mdx",
+      "en_path": "reference/testnet-ecosystem.mdx",
+      "status": "rename"
+    },
+    {
+      "cn_ko_path": "developers/testnet/funding-guide.mdx",
+      "en_path": "how-to/use-faucet.mdx",
+      "status": "rename"
+    },
+    {
+      "cn_ko_path": "developers/testnet/testnet-information.mdx",
+      "en_path": "reference/testnet-information.mdx",
+      "status": "rename"
+    },
+    {
+      "cn_ko_path": "developers/testnet/version-history.mdx",
+      "en_path": "reference/testnet-version-history.mdx",
+      "status": "rename"
+    },
+    {
+      "cn_ko_path": "index.mdx",
+      "en_path": "index.mdx",
+      "status": "rehome"
+    },
+    {
+      "cn_ko_path": "introduction/faq.mdx",
+      "en_path": "reference/faq.mdx",
+      "status": "rename"
+    },
+    {
+      "cn_ko_path": "introduction/stable-for-users.mdx",
+      "en_path": null,
+      "status": "retire"
+    },
+    {
+      "cn_ko_path": "introduction/technical-roadmap.mdx",
+      "en_path": "explanation/technical-roadmap.mdx",
+      "status": "rename"
+    },
+    {
+      "cn_ko_path": "introduction/tokenomics.mdx",
+      "en_path": "reference/tokenomics.mdx",
+      "status": "rename"
+    },
+    {
+      "cn_ko_path": "introduction/why-stable.mdx",
+      "en_path": null,
+      "status": "retire"
+    },
+    {
+      "cn_ko_path": "resources/brand-kit.mdx",
+      "en_path": "resources/brand-kit.mdx",
+      "status": "rehome"
+    },
+    {
+      "cn_ko_path": "resources/official-links.mdx",
+      "en_path": null,
+      "status": "retire"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "explanation/accounts-index.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "explanation/accounts-overview.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "explanation/agent-settlement.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "explanation/ai-agents-index.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "explanation/bridge-security.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "explanation/build-overview.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "explanation/contracts-index.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "explanation/contracts-overview.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "explanation/erc-3009.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "explanation/ethereum-comparison.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "explanation/flow-of-funds.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "explanation/integrate-overview.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "explanation/learn-overview.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "explanation/mpp-sessions.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "explanation/mpp.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "explanation/overview.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "explanation/payment-use-cases-overview.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "explanation/payments-index.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "explanation/payments-overview.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "explanation/sdk-overview.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "explanation/upcoming-use-cases.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "explanation/usdt0-behavior.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "explanation/usdt0-bridging.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "explanation/use-case-payments.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "explanation/use-case-payroll.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "explanation/use-case-private.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "explanation/use-case-sponsored.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "explanation/x402.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "how-to/account-abstraction.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "how-to/build-mpp-endpoint.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "how-to/build-p2p-payments.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "how-to/build-pay-per-call.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "how-to/create-wallet.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "how-to/develop-with-ai.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "how-to/index-contract.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "how-to/index-validator-data.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "how-to/integrate-gas-waiver.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "how-to/pay-with-invoice.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "how-to/pay-with-mcp.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "how-to/production-readiness.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "how-to/run-validator.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "how-to/sdk-with-viem.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "how-to/sdk-with-wagmi.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "how-to/self-hosted-gas-waiver.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "how-to/subscribe-and-collect.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "how-to/track-unbonding.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "how-to/use-system-modules.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "how-to/verify-contract.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "how-to/work-with-usdt-gas.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "how-to/zero-gas-transactions.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "reference/agentic-facilitators.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "reference/agentic-wallets.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "reference/bank-module-api.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "reference/bridges.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "reference/connect.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "reference/custody.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "reference/dexes.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "reference/distribution-module-api.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "reference/eip-7702-api.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "reference/gas-pricing-api.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "reference/gas-waiver-api.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "reference/indexers.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "reference/invoices.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "reference/network-routing.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "reference/network-upgrades.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "reference/oracles.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "reference/p2p-payments.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "reference/pay-per-call.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "reference/ramps.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "reference/rpc-providers.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "reference/sdk.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "reference/staking-module-api.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "reference/subscriptions.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "reference/system-modules-api-overview.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "reference/system-transactions-api.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "reference/wallets.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "tutorial/bridge-usdt0.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "tutorial/sdk-quickstart.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "tutorial/send-usdt0.mdx",
+      "status": "translate"
+    },
+    {
+      "cn_ko_path": null,
+      "en_path": "tutorial/smart-contract.mdx",
+      "status": "translate"
+    }
+  ]
+}

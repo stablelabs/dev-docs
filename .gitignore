@@ -3,3 +3,4 @@ docs/dist/
 .vocs/
 *.log
 .DS_Store
+.env

@@ -1,0 +1,32 @@
+name: i18n parity
+
+# en is the source of truth. This gate fails when an en page has no cn/ko
+# counterpart (blocking) and annotates stale translations (advisory). It also
+# builds the site to catch broken links / orphaned sidebar entries across all
+# three locales.
+
+on:
+  pull_request:
+    paths:
+      - 'docs/pages/**'
+      - 'docs/sidebar.json'
+      - 'docs/lib/verify-i18n.mjs'
+      - 'docs/i18n-allowlist.json'
+  workflow_dispatch:
+
+jobs:
+  parity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: npm
+      - run: npm ci
+      # Blocks the PR when any en page is missing a translation.
+      - name: Check translation parity
+        run: npm run i18n:check
+      # Catches broken internal links and missing sidebar targets in every locale.
+      - name: Build docs
+        run: npm run docs:build

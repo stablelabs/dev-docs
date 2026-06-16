@@ -28,3 +28,4 @@ Each ADR should follow this general structure:
 ## Current Records
 
 - [DR001: Structured Data (JSON-LD) Strategy](./DR001_SEO_Structured_Data.md) — central JSON-LD / SEO `<head>` injection via the Vocs `head` option
+- [DR002: i18n Parity & Translation Pipeline](./DR002_i18n_Sync_Pipeline.md) — en as source of truth; checker + CI gate + auto-draft translation engine to keep cn/ko in sync

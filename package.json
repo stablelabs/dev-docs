@@ -10,7 +10,8 @@
     "docs:dev": "vocs dev",
     "docs:build": "NODE_OPTIONS=--max-old-space-size=6144 vocs build",
     "docs:preview": "vocs preview",
-    "i18n:check": "node docs/lib/verify-i18n.mjs"
+    "i18n:check": "node docs/lib/verify-i18n.mjs",
+    "style:check": "node docs/lib/verify-style.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.104.2",

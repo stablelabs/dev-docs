@@ -38,6 +38,14 @@ the Diátaxis structure: `explanation/`, `how-to/`, `reference/`, `tutorial/`,
 
 Full rationale: [`ADRs/DR002_i18n_Sync_Pipeline.md`](./ADRs/DR002_i18n_Sync_Pipeline.md).
 
+## Writing style
+
+Before editing or adding a page, read [`STYLEGUIDE.md`](./STYLEGUIDE.md). It is the
+authority on voice, frontmatter (`title` / `description` / `diataxis`), file/folder
+rules, callout directives, code blocks, and the Vocs authoring features to use. The
+mechanical rules are enforced on every PR by `npm run style:check`
+([`docs/lib/verify-style.mjs`](./docs/lib/verify-style.mjs)) — run it before finishing.
+
 ## Build
 
 Node `>=22`. `npm run docs:dev` / `docs:build` / `docs:preview`.

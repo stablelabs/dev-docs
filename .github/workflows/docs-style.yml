@@ -1,0 +1,25 @@
+name: docs style
+
+# Enforces the mechanical rules in STYLEGUIDE.md on the en source pages
+# (frontmatter, diataxis/folder match, description length, code-fence language
+# tags, no em dashes). en is the source of truth; generated cn/ko are not checked.
+
+on:
+  pull_request:
+    paths:
+      - 'docs/pages/en/**'
+      - 'docs/lib/verify-style.mjs'
+  workflow_dispatch:
+
+jobs:
+  style:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: npm
+      - run: npm ci
+      - name: Check styleguide compliance
+        run: npm run style:check

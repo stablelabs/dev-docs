@@ -1,21 +1,14 @@
 /**
  * Styleguide lint for the en source pages.
  *
- * Enforces the mechanical rules in `STYLEGUIDE.md` on every `en/**​/*.mdx` page.
- * `en` is the source of truth, so the generated `cn`/`ko` trees are NOT checked
+ * Enforces the mechanical styleguide rules on every `en/**​/*.mdx` page. `en` is
+ * the source of truth, so the generated `cn`/`ko` trees are NOT checked
  * (translation may legitimately differ in punctuation and wording).
  *
- * Blocking (non-zero exit):
- *   - Missing/empty `title`, `description`, or `diataxis` frontmatter.
- *   - `diataxis` not one of tutorial | how-to | reference | explanation.
- *   - Folder does not match `diataxis` (a `how-to` page must live in `how-to/`).
- *     Pages under `resources/` are exempt from the folder match.
- *   - `description` longer than 160 characters.
- *   - A fenced code block with no language tag.
- *   - An em dash (—) in prose (code-block interiors are exempt).
- *
- * Warnings (advisory, do not block):
- *   - Marketing adjectives with no technical meaning.
+ * The enforced rules live in the `RULES` block below — the single source of
+ * truth. STYLEGUIDE.md is the human narrative and links here rather than
+ * restating values. Print the current rules with:
+ *   npm run style:check -- --rules
  *
  * The checker is Vocs-aware: it ignores directive markers (`:::note`,
  * `:::code-group`, `::::steps`, `:badge[...]`) and treats the first token after a
@@ -23,7 +16,8 @@
  * `ts filename="y"`).
  *
  * Run from the repo root:
- *   npm run style:check
+ *   npm run style:check            # check pages
+ *   npm run style:check -- --rules # print the enforced rules
  */
 
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs'
@@ -31,15 +25,47 @@ import { join, relative } from 'node:path'
 
 const PAGES = 'docs/pages'
 const SOURCE = 'en'
-const DIATAXIS = ['tutorial', 'how-to', 'reference', 'explanation']
-// Folders that hold pages but are not Diataxis types (no folder/diataxis match).
-const EXEMPT_FOLDERS = ['resources']
-const MAX_DESCRIPTION = 160
-const MARKETING_WORDS = [
-  'comprehensive', 'robust', 'meticulously', 'powerful', 'seamless',
-  'seamlessly', 'cutting-edge', 'world-class', 'unparalleled', 'revolutionary',
-  'game-changing', 'state-of-the-art', 'best-in-class', 'effortless',
-]
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RULES — the single source of truth for the mechanically-enforced styleguide.
+//
+// To change what CI enforces, edit THIS block. STYLEGUIDE.md does not restate
+// these values; it links here. Print the current rules with:
+//   npm run style:check -- --rules
+// ─────────────────────────────────────────────────────────────────────────────
+const RULES = {
+  // Valid `diataxis` frontmatter values; a page must also live in the matching
+  // folder (e.g. a `how-to` page under `how-to/`).
+  diataxis: ['tutorial', 'how-to', 'reference', 'explanation'],
+  // Folders that hold pages but are not Diataxis types (skip the folder match).
+  exemptFolders: ['resources'],
+  // Max length (chars) of the frontmatter `description`.
+  maxDescription: 160,
+  // Marketing adjectives with no technical meaning — advisory warnings only.
+  marketingWords: [
+    'comprehensive', 'robust', 'meticulously', 'powerful', 'seamless',
+    'seamlessly', 'cutting-edge', 'world-class', 'unparalleled', 'revolutionary',
+    'game-changing', 'state-of-the-art', 'best-in-class', 'effortless',
+  ],
+}
+
+// `--rules`: print the enforced rules and exit (so docs/contributors can read
+// the source of truth instead of a copy that drifts).
+if (process.argv.includes('--rules')) {
+  console.log(`Styleguide rules enforced by docs/lib/verify-style.mjs:
+
+Blocking (fail CI):
+  - frontmatter present: title, description, diataxis
+  - diataxis is one of: ${RULES.diataxis.join(' | ')}
+  - page folder matches its diataxis (exempt: ${RULES.exemptFolders.join(', ')})
+  - description ≤ ${RULES.maxDescription} characters
+  - every fenced code block declares a language
+  - no em dash (—) in prose
+
+Warnings (advisory):
+  - marketing words: ${RULES.marketingWords.join(', ')}`)
+  process.exit(0)
+}
 
 function walk(dir) {
   const out = []
@@ -133,15 +159,15 @@ for (const file of files) {
   if (!fm.diataxis) err('missing frontmatter: diataxis')
 
   // Diataxis value + folder match.
-  if (fm.diataxis && !DIATAXIS.includes(fm.diataxis)) {
-    err(`invalid diataxis "${fm.diataxis}" (expected one of ${DIATAXIS.join(', ')})`)
-  } else if (fm.diataxis && topFolder && !EXEMPT_FOLDERS.includes(topFolder) && topFolder !== fm.diataxis) {
+  if (fm.diataxis && !RULES.diataxis.includes(fm.diataxis)) {
+    err(`invalid diataxis "${fm.diataxis}" (expected one of ${RULES.diataxis.join(', ')})`)
+  } else if (fm.diataxis && topFolder && !RULES.exemptFolders.includes(topFolder) && topFolder !== fm.diataxis) {
     err(`diataxis "${fm.diataxis}" but file is under "${topFolder}/" (move it to "${fm.diataxis}/")`)
   }
 
   // Description length.
-  if (fm.description && fm.description.length > MAX_DESCRIPTION) {
-    err(`description is ${fm.description.length} chars (max ${MAX_DESCRIPTION})`)
+  if (fm.description && fm.description.length > RULES.maxDescription) {
+    err(`description is ${fm.description.length} chars (max ${RULES.maxDescription})`)
   }
 
   // Code fences must declare a language (first token of the info string).
@@ -166,7 +192,7 @@ for (const file of files) {
   }
 
   // Marketing adjectives (advisory).
-  for (const word of MARKETING_WORDS) {
+  for (const word of RULES.marketingWords) {
     const re = new RegExp(`\\b${word}\\b`, 'i')
     if (re.test(prose)) warn(`marketing word "${word}"`, proseLine(re))
   }

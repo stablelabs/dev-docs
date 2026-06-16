@@ -24,7 +24,7 @@ Before returning any page, read it back and answer these four questions. Fix any
 - Keep sentences under **30 words** where possible. Treat 30 as a signal to review. Short sentences over long multi-clause ones.
 - Don't make a case for the product. Assume the reader has already decided to use it.
 - Be direct. If a sentence can be cut without losing information, cut it.
-- **No marketing adjectives** without technical meaning. Cut words like *comprehensive*, *robust*, *meticulously*, *powerful*, *seamless*, *cutting-edge*, *world-class*, *unparalleled*.
+- **No marketing adjectives** without technical meaning (*robust*, *seamless*, *powerful*, and the like). The checker flags an enforced list of these — run `npm run style:check -- --rules` to see it.
 
 ## What to remove
 
@@ -78,7 +78,7 @@ diataxis: "reference"
 ```
 
 - `title`: required. Sentence case.
-- `description`: required. One sentence, under 160 characters. **Frame it as an outcome**, not a topic description. Vocs renders this as the page subtitle and uses it for SEO and social cards, so it's the first thing the reader sees.
+- `description`: required. One sentence, kept short (the checker enforces a hard length cap — run `npm run style:check -- --rules` for the current value). **Frame it as an outcome**, not a topic description. Vocs renders this as the page subtitle and uses it for SEO and social cards, so it's the first thing the reader sees.
   - Good: "Send your first transaction on Stable Testnet: connect, fund a wallet, and submit."
   - Bad: "This page covers connecting to Stable and sending a transaction."
 - `diataxis`: required. One of:
@@ -276,16 +276,22 @@ English is the source of truth. Edit only `docs/pages/en/`; the `cn` and `ko` pa
 
 ## Automated checks
 
-The mechanical rules above are enforced on every PR by `npm run style:check`
+The **mechanical** rules are enforced on every PR by `npm run style:check`
 ([`docs/lib/verify-style.mjs`](./docs/lib/verify-style.mjs)), which scans the `en`
 source pages only. Run it locally before pushing.
 
-- **Blocking** (fails CI): missing or empty `title` / `description` / `diataxis`
-  frontmatter, a `diataxis` value outside the four types, a page in a folder that
-  doesn't match its `diataxis`, a `description` over 160 characters, a code fence
-  with no language tag, or an em dash in prose.
-- **Warnings** (advisory, never block): marketing adjectives with no technical
-  meaning (e.g. "robust", "seamless", "comprehensive").
+The exact enforced rules — which `diataxis` values are valid, the `description`
+length cap, the banned marketing words, etc. — are defined once, in the `RULES`
+block of `verify-style.mjs` (the single source of truth). This guide does not
+restate those values. To see the current rules, run:
+
+```bash
+npm run style:check -- --rules
+```
+
+Some are **blocking** (fail CI); the marketing-word list is **advisory**
+(warnings, never block). The everything-else of this styleguide — voice, tone,
+structure — is human judgment a linter can't check; it lives in the prose above.
 
 On a PR, the `docs style` workflow surfaces results two ways:
 
@@ -302,3 +308,20 @@ On a PR, the `docs style` workflow surfaces results two ways:
 
 A suggestion is a starting point, not a mandate — apply it, edit it, or fix the
 line by hand. CI passes once no blocking issues remain.
+
+## Updating the styleguide
+
+There are two kinds of rule, with two different homes — change the one that fits,
+not both:
+
+- **A mechanical rule** (a new banned word, a different length cap, another
+  `diataxis` type or exempt folder): edit the `RULES` block in
+  [`docs/lib/verify-style.mjs`](./docs/lib/verify-style.mjs). That's the only
+  place the value lives — CI and `--rules` pick it up automatically. No prose
+  change needed. (Adding a brand-new *kind* of check — not just a new value —
+  also means a few lines of checker logic next to `RULES`.)
+- **A judgment rule** (voice, tone, structure, when to use a callout): edit the
+  prose in this file. Nothing mechanical to touch.
+
+If a rule can't be expressed as a value or a small regex, it belongs in the prose,
+not the checker — keep the checker to things it can decide unambiguously.

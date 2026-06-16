@@ -18,20 +18,21 @@
 .a2mm__btn {
   display: inline-flex;
   align-items: center;
-  padding: 0.5rem 0.9rem;
+  padding: 0.55rem 1rem;
   font-size: 0.875rem;
   font-weight: 600;
   line-height: 1;
-  color: var(--vocs-color_background);
-  background: var(--vocs-color_accent);
-  border: 1px solid var(--vocs-color_accent);
-  border-radius: var(--vocs-borderRadius_4);
+  color: var(--vocs-color_backgroundAccentText);
+  background: var(--vocs-color_backgroundAccent);
+  border: 1px solid var(--vocs-color_backgroundAccent);
+  border-radius: var(--vocs-borderRadius_8);
   cursor: pointer;
-  transition: opacity 0.15s ease;
+  transition: background-color 0.15s ease;
 }
 
 .a2mm__btn:hover {
-  opacity: 0.85;
+  background: var(--vocs-color_backgroundAccentHover);
+  border-color: var(--vocs-color_backgroundAccentHover);
 }
 
 .a2mm__btn:disabled {
@@ -45,12 +46,12 @@
 }
 
 .a2mm__status--success {
-  color: var(--vocs-color_accent);
+  color: var(--vocs-color_successText);
 }
 
 .a2mm__status--error,
 .a2mm__status--no-wallet {
-  color: var(--vocs-color_danger, #d23);
+  color: var(--vocs-color_dangerText);
 }
 
 @media (prefers-reduced-motion: reduce) {

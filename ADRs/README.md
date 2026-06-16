@@ -30,3 +30,5 @@ Each ADR should follow this general structure:
 - [DR001: Structured Data (JSON-LD) Strategy](./DR001_SEO_Structured_Data.md) — central JSON-LD / SEO `<head>` injection via the Vocs `head` option
 - [DR002: i18n Parity & Translation Pipeline](./DR002_i18n_Sync_Pipeline.md) — en as source of truth; checker + CI gate + auto-draft translation engine to keep cn/ko in sync
 - [DR003: Page filenames must not end in `index`](./DR003_Page_Filename_Index_Constraint.md) — Vocs strips a trailing `index` from any filename; `*-index.mdx` pages 404. Use `index.mdx` or a non-`index` suffix.
+- [DR004: Translation LLM provider](./DR004_Translation_LLM_Provider.md) — swappable OpenAI-compatible seam (`llm.mjs`) defaulting to OpenRouter + a cheap model, optional review pass, structural + link guards; supersedes DR002 §5–6 internals.
+- [DR005: Styleguide enforcement](./DR005_Styleguide_Enforcement.md) — mechanical rules in a single `RULES` source enforced by `verify-style.mjs`, surfaced on PRs as a sticky comment + inline applyable suggestions; judgment rules stay prose.

@@ -1,0 +1,50 @@
+---
+source_path: explanation/bridge-security.mdx
+source_sha: f1e67d648ec59eb4f8972eedeef0e8cda8c943af
+title: "桥接安全性与 DVN"
+description: "了解 Stable 如何配置 LayerZero DVN 来验证跨链消息，以及为什么单个密钥泄露不会造成致命影响。"
+diataxis: "explanation"
+---
+
+# 桥接安全性与 DVN
+
+LayerZero 桥的安全性，完全取决于确认某条链上发送的消息确实在另一条链上发生的验证层。这个层就是去中心化验证者网络（Decentralized Verifier Network，DVN）。本页将解释 DVN 的作用、Stable 如何在其桥上配置 DVN，以及为什么任何单个 DVN 的泄露都不会使 Stable 面临风险。
+
+## DVN 如何工作
+
+当 LayerZero 消息从链 A 移动到链 B 时，目标合约不会立即执行它，直到一组配置好的 DVN 独立证明该消息是真实的。每个应用都选择自己的配置：
+
+- **必需 DVN（Required DVNs）。** 每个必需 DVN 都必须签名后，消息才会被接受。
+- **带 N-of-M 阈值的可选 DVN（Optional DVNs）。** 可在必需集合之上额外添加一个可选池，设置类似 2-of-5 的阈值，在必需签名之外还必须满足该阈值。
+- **区块确认深度。** DVN 在签名前等待的源链确认数量。
+
+桥的安全性完全由这个配置决定。如果采用 1/1 配置，仅由单个 DVN 作为唯一验证者，那么该 DVN 签名密钥的任何泄露都会让攻击者伪造跨链消息。而横跨三个独立运营商的 3/3 配置，则要求三者同时被攻破。这其中的差别，就是因单个被盗密钥而失去整座桥，与在针对某一运营商的定向攻击中幸存下来之间的差别。
+
+## Stable 的配置
+
+Stable 的桥运行 **3/3 必需 DVN** 配置，由三个独立运营商组成：**LayerZero Labs**、**Canary** 和 **Horizen**。三者都必须对每条跨链消息签名后，目标合约才会执行它。这里没有带阈值的可选池；必需集合就是全部的验证面。
+
+单个签名密钥被泄露（包括 LayerZero 自己的密钥）对这种安全态势毫无作用。伪造一条消息将需要同时攻破全部三个独立运营商。
+
+关于 DVN 合约地址，请参阅 [桥：Stable 的 DVN 运营商](/en/reference/bridges#stable-s-dvn-operators)。
+
+## STABLE OFT 架构
+
+STABLE 代币使用 LayerZero 的全链同质化代币（Omnichain Fungible Token，OFT）标准桥接到其他链。部署了两种合约类型：
+
+- **`StableOFTAdapter`** 部署在 Stable 上。当 STABLE 被跨链发送时，该适配器在主链上锁定 STABLE 并发出一条 LayerZero 消息。
+- **`StableOFTUpgradeable`** 部署在每条远程链上。当消息被配置的 DVN 验证后，该合约在目标链上铸造 STABLE，并在返回路径上销毁它，从而使主链供应量保持权威性。
+
+关于各链上的已部署地址，请参阅 [桥：STABLE OFT 合约](/en/reference/bridges#stable-oft-contracts)。
+
+## 运营依赖
+
+Stable 自身的桥接安全性独立于上游协议，但当合作协议暂停其自身的桥时，通过 Stable 的跨链流动仍可能暂停。例如，当 USDT0 暂停跨链铸造和销毁时，USDT0 无法进出 Stable，直到 USDT0 恢复为止。Stable 内的资金仍可自由流动；仅特定的跨链操作不可用。
+
+通过合作桥进行路由的应用界面应清楚地传达这一点，以便用户理解其中的区别：他们的资金没有风险，只是某条特定的跨链路径暂时不可用。
+
+## 下一步推荐
+
+- [**将 USDT0 桥接到 Stable**](/en/explanation/usdt0-bridging) — 了解 USDT0 如何通过 OFT Mesh 和 Legacy Mesh 到达 Stable。
+- [**桥提供商与地址**](/en/reference/bridges) — 参考合约地址、DVN 运营商和支持的桥提供商。
+- [**LayerZero DVN 文档**](https://docs.layerzero.network/v2/concepts/protocol/security-stack-dvns) — 阅读 LayerZero 关于必需和可选 DVN 验证的规范。

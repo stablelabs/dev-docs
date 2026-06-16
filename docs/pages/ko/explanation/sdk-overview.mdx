@@ -1,0 +1,60 @@
+---
+source_path: explanation/sdk-overview.mdx
+source_sha: db4361dfdc3233c02ea6e871850e34e477964a67
+title: "Stable SDK"
+description: "타입이 지정된 TypeScript SDK를 사용하여 USDT0를 전송하고, 체인 간 브리지하고, Stable에서 토큰을 스왑하는 작업을 단 몇 줄로 수행하세요."
+diataxis: "explanation"
+---
+
+# Stable SDK
+
+`@stablechain/sdk`는 Stable을 위한 공식 TypeScript 클라이언트입니다. viem을 감싸서 가장 자주 사용하는 작업들을 위한 작고 타입이 지정된 API를 제공합니다: USDT0 전송, 체인 간 브리지, 그리고 Stable에서의 토큰 스왑. 라우팅, 승인, 소수점 처리, 체인 전환은 모두 자동으로 처리됩니다.
+
+```ts
+import { createStable, Network } from "@stablechain/sdk";
+import { privateKeyToAccount } from "viem/accounts";
+
+const stable = createStable({
+  network: Network.Mainnet,
+  account: privateKeyToAccount("0x..."),
+});
+
+const { txHash } = await stable.transfer({
+  from: "0xYourAddress",
+  to: "0xRecipient",
+  amount: 10,
+});
+```
+
+```text
+txHash: 0x8f3a...2d41
+```
+
+## SDK가 하는 일
+
+- **`transfer`** — 네이티브 USDT0 또는 Stable의 모든 ERC-20을 전송합니다. 가스는 자동으로 USDT0로 지불됩니다.
+- **`quoteBridge` / `bridge`** — 체인 간 전송. USDT0 → USDT0에는 LayerZero를, 그 외 모든 것에는 LI.FI를 사용합니다. 경로는 자동으로 선택됩니다.
+- **`quoteSwap` / `swap`** — LI.FI를 통한 동일 체인 토큰 스왑이며, ERC-20 승인은 내부적으로 처리됩니다.
+
+SDK는 npm에 [`@stablechain/sdk`](https://www.npmjs.com/package/@stablechain/sdk)로 게시되어 있으며, 피어 의존성으로 `viem >= 2.0.0`이 필요합니다.
+
+## 언제 사용해야 하나 (그리고 언제 사용하지 말아야 하나)
+
+라우팅과 승인 보일러플레이트를 숨겨주는, 타입이 지정되고 의견이 반영된 클라이언트를 원할 때 SDK를 사용하세요. 트랜잭션 구성에 대한 직접적인 제어, 사용자 정의 가스 전략, 또는 transfer / bridge / swap 외부의 컨트랙트 호출이 필요할 때는 원시 viem이나 ethers로 내려가세요.
+
+:::note
+SDK는 viem 호환 서명자라면 무엇으로든 서명합니다: 프라이빗 키 `Account`, `custom(window.ethereum)`과 같은 브라우저 `Transport`, 또는 미리 빌드된 `WalletClient`(예를 들어 wagmi의 `useWalletClient`가 반환하는 것).
+:::
+
+## 여기서 시작하세요
+
+- [**빠른 시작**](/en/tutorial/sdk-quickstart) — SDK를 설치하고 테스트넷에서 첫 번째 전송, 브리지, 스왑을 실행해 보세요.
+- [**SDK 레퍼런스**](/en/reference/sdk) — 모든 메서드, 설정 옵션, 열거형, 그리고 오류 클래스.
+- [**viem과 함께 사용하기**](/en/how-to/sdk-with-viem) — 서버 측 계정, 브라우저 지갑, 그리고 직접 만든 `WalletClient` 사용.
+- [**wagmi와 함께 사용하기**](/en/how-to/sdk-with-wagmi) — `useWalletClient`와 훅으로 SDK를 React 앱에 연결하기.
+
+## 다음 권장 사항
+
+- [**npm에서 설치하기**](https://www.npmjs.com/package/@stablechain/sdk) — npmjs.com에서 패키지를 보고 최신 버전을 확인하세요.
+- [**Stable에 연결하기**](/en/reference/connect) — 메인넷과 테스트넷의 체인 ID, RPC 엔드포인트, 그리고 익스플로러.
+- [**테스트넷 지갑에 자금 충전하기**](/en/how-to/use-faucet) — 빠른 시작을 실행하기 전에 faucet에서 테스트넷 USDT0를 받으세요.

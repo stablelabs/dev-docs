@@ -1,0 +1,338 @@
+---
+source_path: tutorial/bridge-usdt0.mdx
+source_sha: 401984b7572b9f0b7ee12064bf18768f17849e60
+title: "将 USDT0 跨链桥接到 Stable"
+description: "一份分步教程，介绍如何使用 LayerZero 的 OFT 协议将 USDT0 从 Ethereum Sepolia 桥接到 Stable Testnet。"
+type: "tutorial"
+diataxis: "tutorial"
+---
+
+# 将 USDT0 跨链桥接到 Stable
+
+在本教程中，你将使用 TypeScript 和 ethers v6 以编程方式将 USDT0 从 Ethereum Sepolia 桥接到 Stable Testnet。你将逐步构建这个脚本，每一步添加一个函数。
+
+本教程使用 OFT Mesh 路径。Sepolia 上的 OFT Adapter 锁定你的代币，LayerZero 的双 DVN 验证确认消息，然后在 Stable 上铸造 USDT0。要全面了解其工作原理，请参阅[桥接到 Stable](/en/explanation/usdt0-bridging)。
+
+:::note
+想要更少的代码行数吗？[Stable SDK](/en/explanation/sdk-overview) 暴露了 `quoteBridge` 和 `bridge`，并会为你选择路由（LayerZero 或 LI.FI）。
+:::
+
+## 前置条件
+
+- Node.js 18.0.0 或更高版本（使用 `node --version` 验证）
+- 一个你掌控私钥的 Sepolia 钱包（切勿使用持有真实资金的私钥）
+- 用于支付 gas 的 SepoliaETH（从 [sepoliafaucet.com](https://sepoliafaucet.com) 或 [faucets.chain.link/sepolia](https://faucets.chain.link/sepolia) 获取）
+- 对在终端中运行脚本有基本的了解
+
+---
+
+## 1. 设置项目
+
+```bash
+mkdir stable-bridge && cd stable-bridge
+npm init -y
+npm install ethers@6 @layerzerolabs/lz-v2-utilities
+npm install -D tsx
+```
+
+你的 `package.json` 应包含：
+
+```json
+{
+  "name": "stable-bridge",
+  "version": "1.0.0",
+  "scripts": {
+    "bridge": "tsx --env-file=.env bridge.ts"
+  },
+  "dependencies": {
+    "@layerzerolabs/lz-v2-utilities": "^2.3.39",
+    "ethers": "^6.13.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0"
+  }
+}
+```
+
+## 2. 配置你的环境
+
+创建一个包含你的凭据的 `.env` 文件：
+
+```bash
+PRIVATE_KEY=0xYOUR_PRIVATE_KEY_HERE
+SEPOLIA_RPC_URL=https://rpc.sepolia.org
+```
+
+对于 `SEPOLIA_RPC_URL`，以下任何一个都可用：
+- 公共节点：`https://rpc.sepolia.org` 或 `https://ethereum-sepolia-rpc.publicnode.com`
+- Alchemy：`https://eth-sepolia.g.alchemy.com/v2/YOUR_KEY`
+- Infura：`https://sepolia.infura.io/v3/YOUR_KEY`
+
+## 3. 搭建脚本骨架
+
+创建 `bridge.ts`，包含导入、配置和一个 `main` 函数。你将在接下来的步骤中向该文件添加函数，并从 `main` 中调用它们。
+
+```ts
+import { ethers, Contract, Wallet, JsonRpcProvider } from "ethers";
+import { Options } from "@layerzerolabs/lz-v2-utilities";
+
+const PRIVATE_KEY = process.env.PRIVATE_KEY!;
+const SEPOLIA_RPC_URL = process.env.SEPOLIA_RPC_URL || "https://rpc.sepolia.org";
+
+// Contract addresses
+const SEPOLIA_USDT0 = "0xc4DCC311c028e341fd8602D8eB89c5de94625927";
+const SEPOLIA_OFT_ADAPTER = "0xc099cD946d5efCC35A99D64E808c1430cEf08126";
+const STABLE_USDT0 = "0x78Cf24370174180738C5B8E352B6D14c83a6c9A9";
+
+// Destination: Stable Testnet
+const STABLE_TESTNET_EID = 40374;
+
+// Minimal ABIs — only the functions we call
+const ERC20_ABI = [
+  "function balanceOf(address) view returns (uint256)",
+  "function approve(address, uint256) returns (bool)",
+  "function allowance(address, address) view returns (uint256)",
+  "function mint(address, uint256)",
+];
+
+const OFT_ADAPTER_ABI = [
+  "function quoteSend((uint32 dstEid, bytes32 to, uint256 amountLD, uint256 minAmountLD, bytes extraOptions, bytes composeMsg, bytes oftCmd), bool) view returns ((uint256 nativeFee, uint256 lzTokenFee))",
+  "function send((uint32 dstEid, bytes32 to, uint256 amountLD, uint256 minAmountLD, bytes extraOptions, bytes composeMsg, bytes oftCmd), (uint256 nativeFee, uint256 lzTokenFee), address) payable returns ((bytes32, uint64, (uint256, uint256)), (uint256, uint256))",
+];
+
+function addressToBytes32(addr: string): string {
+  return ethers.zeroPadValue(ethers.getBytes(ethers.getAddress(addr)), 32);
+}
+
+// You will add functions here.
+
+async function main() {
+  const provider = new JsonRpcProvider(SEPOLIA_RPC_URL);
+  const wallet = new Wallet(PRIVATE_KEY, provider);
+
+  const usdt0 = new Contract(SEPOLIA_USDT0, ERC20_ABI, wallet);
+  const oftAdapter = new Contract(SEPOLIA_OFT_ADAPTER, OFT_ADAPTER_ABI, wallet);
+
+  const amount = ethers.parseEther("1"); // 1 USDT0 (18 decimals)
+
+  // You will add function calls here.
+}
+
+main().catch((err) => {
+  console.error(err.message);
+  process.exit(1);
+});
+```
+
+## 4. 在 Sepolia 上铸造测试 USDT0
+
+Sepolia 上的测试 USDT0 合约暴露了一个公开的 `mint` 函数。将以下函数添加到 `bridge.ts` 中 `main` 的上方：
+
+```ts
+async function mint(usdt0: Contract, receiver: string, amount: bigint) {
+  console.log(`Minting ${ethers.formatEther(amount)} USDT0 on Sepolia...`);
+  const tx = await usdt0.mint(receiver, amount);
+  await tx.wait();
+  console.log(`Mint tx: ${tx.hash}  confirmed`);
+
+  const balance = await usdt0.balanceOf(receiver);
+  console.log(`USDT0 balance: ${ethers.formatEther(balance)}`);
+}
+```
+
+然后从 `main` 中调用它：
+
+```ts
+  await mint(usdt0, wallet.address, amount);
+```
+
+运行脚本：
+
+```bash
+npx tsx --env-file=.env bridge.ts
+```
+
+---
+
+**检查点：** 铸造确认后，你应该会看到日志中记录了一个非零的 USDT0 余额。
+
+---
+
+## 5. 授权 OFT Adapter
+
+在 OFT Adapter 能够转移你的代币之前，它需要一个 ERC-20 授权额度。将此函数添加到 `main` 上方：
+
+```ts
+async function approve(usdt0: Contract, spender: string, owner: string, amount: bigint) {
+  console.log("Approving OFT Adapter...");
+  const tx = await usdt0.approve(spender, amount);
+  await tx.wait();
+  console.log(`Approve tx: ${tx.hash}  confirmed`);
+
+  const allowance = await usdt0.allowance(owner, spender);
+  console.log(`Allowance: ${ethers.formatEther(allowance)}`);
+}
+```
+
+在 `main` 中 `mint` 之后添加调用：
+
+```ts
+  // await mint(usdt0, wallet.address, amount);
+  await approve(usdt0, SEPOLIA_OFT_ADAPTER, wallet.address, amount);
+```
+
+运行脚本。如果你已经在上一次运行中获得了代币，可以注释掉 `await mint(...)` 调用。
+
+---
+
+**检查点：** 授权确认后，脚本应记录一个非零的授权额度。
+
+---
+
+## 6. 报价费用并发送桥接交易
+
+`quoteSend` 调用返回以 SepoliaETH 计价的 LayerZero 消息费用，你需要将其作为 `msg.value` 传递给 `send`。将此函数添加到 `main` 上方：
+
+```ts
+async function send(oftAdapter: Contract, receiver: string, amount: bigint) {
+  const options = Options.newOptions().addExecutorLzReceiveOption(0, 0).toBytes();
+
+  const sendParams = {
+    dstEid: STABLE_TESTNET_EID,
+    to: addressToBytes32(receiver),
+    amountLD: amount,
+    minAmountLD: amount,
+    extraOptions: options,
+    composeMsg: "0x",
+    oftCmd: "0x",
+  };
+
+  console.log("Quoting bridge fee...");
+  const feeResult = await oftAdapter.quoteSend(sendParams, false);
+  const fee = { nativeFee: feeResult.nativeFee, lzTokenFee: feeResult.lzTokenFee };
+  console.log(`Bridge fee: ${ethers.formatEther(fee.nativeFee)} ETH`);
+
+  console.log("Sending bridge transaction...");
+  const tx = await oftAdapter.send(sendParams, fee, receiver, {
+    value: fee.nativeFee,
+  });
+  await tx.wait();
+  console.log(`Bridge tx: ${tx.hash}  confirmed`);
+  console.log(`Sepolia Etherscan: https://sepolia.etherscan.io/tx/${tx.hash}`);
+  console.log(`LayerZero Scan: https://testnet.layerzeroscan.com/tx/${tx.hash}`);
+}
+```
+
+在 `main` 中 `approve` 之后添加调用：
+
+```ts
+  // await mint(usdt0, wallet.address, amount);
+  // await approve(usdt0, SEPOLIA_OFT_ADAPTER, wallet.address, amount);
+  await send(oftAdapter, wallet.address, amount);
+```
+
+## 7. 验证到达 Stable Testnet
+
+发送后，脚本可以轮询 Stable Testnet RPC，直到代币到达。将此函数添加到 `main` 上方：
+
+```ts
+async function verify(receiver: string) {
+  console.log("Waiting for DVN verification (~2 minutes)...");
+  const stableProvider = new JsonRpcProvider("https://rpc.testnet.stable.xyz");
+  const stableUsdt0 = new Contract(STABLE_USDT0,
+    ["function balanceOf(address) view returns (uint256)"], stableProvider);
+
+  const before: bigint = await stableUsdt0.balanceOf(receiver);
+  for (let i = 0; i < 24; i++) {
+    await new Promise((r) => setTimeout(r, 5000));
+    const current: bigint = await stableUsdt0.balanceOf(receiver);
+    if (current > before) {
+      console.log(`\nUSDT0 on Stable: ${ethers.formatEther(current)}`);
+      console.log(`Explorer: https://testnet.stablescan.xyz/address/${receiver}`);
+      return;
+    }
+    process.stdout.write(".");
+  }
+  console.log("\nTokens have not arrived yet. Check manually:");
+  console.log(`Explorer: https://testnet.stablescan.xyz/address/${receiver}`);
+}
+```
+
+在 `main` 中 `send` 之后添加调用：
+
+```ts
+  // await mint(usdt0, wallet.address, amount);
+  // await approve(usdt0, SEPOLIA_OFT_ADAPTER, wallet.address, amount);
+  // await send(oftAdapter, wallet.address, amount);
+  await verify(wallet.address);
+```
+
+## 8. 运行完整的桥接流程
+
+你的 `main` 函数现在应该如下所示：
+
+```ts
+async function main() {
+  const provider = new JsonRpcProvider(SEPOLIA_RPC_URL);
+  const wallet = new Wallet(PRIVATE_KEY, provider);
+
+  const usdt0 = new Contract(SEPOLIA_USDT0, ERC20_ABI, wallet);
+  const oftAdapter = new Contract(SEPOLIA_OFT_ADAPTER, OFT_ADAPTER_ABI, wallet);
+
+  const amount = ethers.parseEther("1"); // 1 USDT0 (18 decimals)
+
+  await mint(usdt0, wallet.address, amount);
+  await approve(usdt0, SEPOLIA_OFT_ADAPTER, wallet.address, amount);
+  await send(oftAdapter, wallet.address, amount);
+  await verify(wallet.address);
+}
+```
+
+运行它：
+
+```bash
+npx tsx --env-file=.env bridge.ts
+```
+
+---
+
+**检查点：** 你应该会看到类似这样的输出：
+
+```
+Minting 1.0 USDT0 on Sepolia...
+Mint tx: 0x3a1f...c9d2  confirmed
+USDT0 balance: 1.0
+Approving OFT Adapter...
+Approve tx: 0x7b2e...f401  confirmed
+Allowance: 1.0
+Quoting bridge fee...
+Bridge fee: 0.000101 ETH
+Sending bridge transaction...
+Bridge tx: 0xa94f...8c11  confirmed
+Sepolia Etherscan: https://sepolia.etherscan.io/tx/0xa94f...8c11
+LayerZero Scan: https://testnet.layerzeroscan.com/tx/0xa94f...8c11
+Waiting for DVN verification (~2 minutes)...
+......
+USDT0 on Stable: 1.0
+```
+
+你也可以在 [Stable Testnet 浏览器](https://testnet.stablescan.xyz)上搜索你的钱包地址，以确认铸造事件。
+
+---
+
+## 你所构建的内容
+
+你已将 USDT0 从 Ethereum Sepolia 桥接到了 Stable Testnet。现在你知道如何：
+
+- 使用合约的公开 `mint` 函数在 Sepolia 上铸造测试 USDT0
+- 授权 OFT Adapter 代表你花费 ERC-20 代币
+- 使用 32 字节地址编码和执行器选项构造 LayerZero `sendParams`
+- 在提交资金之前使用 `quoteSend` 报价跨链消息费用
+- 使用 `send` 执行跨链代币转移，并在目标链上确认送达
+- 使用 Stable 的 RPC（`https://rpc.testnet.stable.xyz`，chain ID `2201`）和 Stablescan 验证链上状态
+
+## 推荐的后续步骤
+
+- [**发送你的第一笔 USDT0**](/en/tutorial/send-usdt0) — 使用桥接得到的 USDT0 进行原生转账和 ERC-20 转账。
+- [**桥接到 Stable**](/en/explanation/usdt0-bridging) — 深入了解 OFT Mesh 与 Legacy Mesh 的机制。
+- [**测试网信息**](/en/reference/testnet-information) — 完整的网络参数、RPC 端点和水龙头详情。

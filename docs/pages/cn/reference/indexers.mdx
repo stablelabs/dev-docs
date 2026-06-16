@@ -1,0 +1,181 @@
+---
+source_path: reference/indexers.mdx
+source_sha: 1c58bfaa41b5ad47db75e7b0674d90cd5f095ccf
+title: "索引器"
+description: "Stable 的索引和分析服务提供商，包括 The Graph、Goldsky、Allium、Stablescan 和 CoinGecko。"
+diataxis: "reference"
+---
+
+# 索引器
+
+索引器和分析平台提供对链上数据的结构化访问，使开发者能够大规模查询交易、余额、日志、事件以及应用特定数据。Stable 兼容 EVM，因此标准的以太坊索引工具可无缝运行。
+
+本页列出了当前及即将上线的索引服务提供商，以及开发者可以期待的功能。
+
+## 概览表
+
+| **提供商**                                                                | **类别**                  | **文档 / 入门**                                                                                                              | **备注**                                                          |
+| :-------------------------------------------------------------------------- | :---------------------------- | :---------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------- |
+| [**Stablescan**](https://stablescan.xyz/)                               | 区块链浏览器           | [https://docs.etherscan.io/introduction](https://docs.etherscan.io/introduction)                                                     | 区块链浏览器；交易、区块和合约可视化。 |
+| [**The Graph**](https://thegraph.com/explorer/participants/indexers) | 索引器                       | [https://thegraph.com/docs/en/developing/creating-a-subgraph/](https://thegraph.com/docs/en/developing/creating-a-subgraph/) | 使用 GraphQL 构建、部署和查询子图。                  |
+| [**Goldsky**](https://goldsky.com/)                                  | 索引器                       | [https://docs.goldsky.com/introduction](https://docs.goldsky.com/introduction)                                               | 高性能索引和实时数据流。            |
+| [**Ormi Labs**](https://ormilabs.com/)                               | 索引器                       | [https://docs.ormilabs.com/subgraphs/quickstart](https://docs.ormilabs.com/subgraphs/quickstart)                             | 具备实时数据能力的新一代子图索引器。        |
+| [**Allium**](https://www.allium.so/)                                 | 分析 / 数据平台     | [https://docs.allium.so/](https://docs.allium.so/)                                                                           | 规范化的区块链数据集与分析工具。                |
+| [**CoinMarketCap**](https://coinmarketcap.com/api/)                  | 市场数据聚合器        | [https://coinmarketcap.com/api/documentation/v1/](https://coinmarketcap.com/api/documentation/v1/)                           | 市场价格、上市信息和追踪工具。                       |
+| [**CoinGecko**](https://www.coingecko.com/en/api)                    | 市场数据聚合器        | [https://docs.coingecko.com/](https://docs.coingecko.com/)                                                                   | 独立的市场数据及开发者 API。                       |
+| [**Dexscreener**](https://docs.dexscreener.com/)                     | DEX 分析                 | [https://docs.dexscreener.com/](https://docs.dexscreener.com/)                                                               | 实时 DEX 图表、流动性分析和仪表盘。         |
+| [**DeBank**](https://debank.com/)                                    | 投资组合 / 钱包分析  | [https://cloud.debank.com/](https://cloud.debank.com/)                                                                       | EVM 钱包追踪、交易和投资组合洞察。         |
+
+## 1. 索引器
+
+索引器将原始区块链数据转换为可搜索、可查询的格式。它们为仪表盘、分析工具、钱包、区块浏览器和应用后端提供支持。
+
+### The Graph
+
+为超过 75,000 个项目提供数据访问支持的去中心化索引协议。
+
+**功能**
+
+- 为 Stable 构建子图
+- 基于 GraphQL 的查询
+- 分布式索引网络
+
+**文档**
+
+按照此快速入门指南，在几分钟内创建、部署和查询子图：
+
+[https://thegraph.com/docs/en/developing/creating-a-subgraph/](https://thegraph.com/docs/en/developing/creating-a-subgraph/)
+
+### Ormi Labs
+
+Ormi 是新一代索引器，旨在大规模提供实时和历史区块链数据。
+
+**功能**
+
+- 链顶端索引
+- 亚秒级查询延迟
+- 无代码功能
+
+**文档**
+
+使用 Ormi 开始查询实时数据：
+
+[https://docs.ormilabs.com/subgraphs/quickstart](https://docs.ormilabs.com/subgraphs/quickstart)
+
+了解如何实时查询 Stable 上的 USDT0 数据：
+
+[https://docs.ormilabs.com/subgraphs/tutorials/query-usdt0](https://docs.ormilabs.com/subgraphs/tutorials/query-usdt0)
+
+### Goldsky
+
+具备即时子图和开发者工具的高性能索引平台。
+
+**功能**
+
+- 子图部署与管理
+- 创建 Webhook 实现实时事件流
+- 多子图同步到外部数据库
+
+**文档**
+
+[https://docs.goldsky.com/introduction](https://docs.goldsky.com/introduction)
+
+如需全天候支持，请联系 [support@goldsky.com](mailto:support@goldsky.com)。
+
+## 2. 分析服务提供商
+
+分析工具帮助团队追踪网络活动、真实世界支付、仪表盘、使用流程和合约交互。
+
+### Allium
+
+为整个区块链生态系统的工程师和分析师提供的基础数据平台。
+
+**功能**
+
+- 规范化的区块链数据集
+- 面向分析团队的查询工具
+- 企业级数据基础设施
+
+**文档**
+
+开始使用 Allium 的数据平台和 API 资源：
+
+[https://www.allium.so/](https://www.allium.so/)
+
+**入门**：在 [allium.so](https://www.allium.so/) 注册以获取 API 访问权限，然后使用 REST API 查询规范化的 Stable 链上数据集。
+
+### CoinMarketCap
+
+全球最大的加密资产市场追踪平台。
+
+**功能**
+
+- Stable 资产价格追踪
+- 投资组合工具
+- 市场数据 API
+
+**文档**
+
+探索 CMC API 和集成资源：
+
+[https://coinmarketcap.com/api/](https://coinmarketcap.com/api/)
+
+**入门**：在 [coinmarketcap.com/api](https://coinmarketcap.com/api/) 注册 API 密钥，并通过 REST API 查询 Stable 资产价格和市场数据。
+
+### CoinGecko
+
+世界上最大的独立加密数据聚合器。
+
+**功能**
+
+- 市场上市信息和价格数据
+- 历史分析
+- 面向开发者的 API 访问
+
+**文档**
+
+访问 CoinGecko 的 API 文档：
+
+[https://www.coingecko.com/en/api](https://www.coingecko.com/en/api)
+
+**入门**：从 [coingecko.com/en/api](https://www.coingecko.com/en/api) 获取免费或 Pro API 密钥，并通过 REST API 查询 Stable 代币价格和市场数据。
+
+### Dexscreener
+
+面向去中心化交易场所的实时图表和分析工具。
+
+**功能**
+
+- 实时 DEX 图表
+- 流动性和交易对分析
+- 交易仪表盘
+
+**文档**
+
+探索 Dexscreener 的 API 端点和开发者工具：
+
+[https://docs.dexscreener.com/](https://docs.dexscreener.com/)
+
+**入门**：浏览 [Dexscreener API 文档](https://docs.dexscreener.com/)，查询基于 Stable 的 DEX 资金池的实时交易对数据、流动性和交易活动。
+
+### DeBank
+
+面向以太坊和 EVM 生态系统的投资组合追踪器。
+
+**功能**
+
+- 钱包分析
+- 交易摘要
+- 跨链投资组合追踪
+
+**文档**
+
+阅读 DeBank 的 API 参考和集成文档：
+
+[https://docs.debank.com/](https://docs.debank.com/)
+
+**入门**：注册 [DeBank Cloud](https://cloud.debank.com/) 以获取 API 密钥，并查询 Stable 钱包余额、交易历史和投资组合数据。
+
+---
+
+有正在集成 Stable 的索引或分析平台吗？请通过 [bizdev@stable.xyz](mailto:bizdev@stable.xyz) 联系我们。

@@ -1,0 +1,38 @@
+---
+source_path: reference/agentic-wallets.mdx
+source_sha: b56b2c9e8c54b78ccf9500108123c7473ba26c74
+title: "지갑"
+description: "AI 에이전트가 Stable에서 자금을 보유하고 x402 결제에 서명할 수 있도록 지원하는 지갑 인프라입니다."
+diataxis: "reference"
+---
+
+# 지갑
+
+에이전트 지갑은 AI 에이전트와 자율 시스템에 자기수탁형 서명 기능을 제공하여, 사람이 직접 설정하지 않아도 x402 결제 흐름에 참여할 수 있도록 합니다.
+
+## 개요 표
+
+| **제공자** | **카테고리** | **문서 / 시작하기** | **비고** |
+| :--- | :--- | :--- | :--- |
+| [**Wallet Development Kit (WDK)**](https://docs.wallet.tether.io) | 에이전트 지갑 SDK | [https://docs.wallet.tether.io](https://docs.wallet.tether.io) | Tether의 오픈소스 SDK; `WalletAccountEvm`이 x402 클라이언트 서명자 인터페이스를 기본적으로 충족 |
+
+## Tether의 Wallet Development Kit (WDK)
+
+자기수탁형 AI 에이전트 지갑을 구축하기 위한 Tether의 오픈소스 SDK입니다. WDK는 에이전트가 클라우드 기반 KMS나 TEE 인프라에 의존하지 않고 로컬에서 개인 키를 생성하고 저장할 수 있도록 합니다.
+
+WDK의 `WalletAccountEvm` 인스턴스는 x402 SDK가 요구하는 클라이언트 서명자 인터페이스를 기본적으로 충족합니다. WDK와 Stable의 USDT0를 갖춘 에이전트는 402 HTTP 응답을 자동으로 가로채고, ERC-3009 권한을 서명하며, 요청을 재전송할 수 있습니다.
+
+**패키지:** `@tetherto/wdk`, `@tetherto/wdk-wallet-evm`
+
+**기능**
+
+- 자기수탁형 키 생성 및 로컬 저장
+- `WalletAccountEvm`을 통한 기본 x402 클라이언트 서명자 호환성
+- 402 응답 자동 가로채기 및 ERC-3009 서명
+- Stable을 포함한 멀티체인 지원
+
+**문서:** [https://docs.wallet.tether.io](https://docs.wallet.tether.io)
+
+---
+
+Stable과 에이전트 지갑을 통합하셨나요? [bizdev@stable.xyz](mailto:bizdev@stable.xyz)로 문의해 주세요.

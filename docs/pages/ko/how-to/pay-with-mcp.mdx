@@ -1,0 +1,250 @@
+---
+source_path: how-to/pay-with-mcp.mdx
+source_sha: 355c978d02f66d687a3bee1cb0f49dc3558381a9
+title: "MCP 서버로 결제하기"
+description: "x402가 활성화된 API를 MCP 서버를 통해 AI 클라이언트에 연결합니다. 사용자는 지갑이나 결제 흐름을 직접 관리하지 않고 프롬프트를 통해 API 호출 비용을 지불합니다."
+diataxis: "how-to"
+---
+
+# MCP 서버로 결제하기
+
+이 가이드는 x402가 활성화된 API를 [MCP](https://modelcontextprotocol.io) 도구에 연결하여 AI 클라이언트가 자연어 프롬프트를 통해 이를 호출하고 비용을 지불할 수 있도록 하는 방법을 보여줍니다. 이는 [호출당 결제 API 구축하기](/en/how-to/build-pay-per-call)의 서버를 기반으로 합니다.
+
+## 구축할 내용
+
+x402로 결제하는 엔드포인트를 도구로 감싸는 MCP 서버입니다. AI 클라이언트가 자연어 프롬프트를 입력하면 각 도구 호출이 x402 결제 요청을 트리거하고, 정산은 Stablescan에서 확인할 수 있습니다. 사용자는 지갑 프롬프트를 전혀 보지 않습니다.
+
+### 데모
+
+```text
+step 1. User in Claude: "Pull financials for ACME Corp and assess credit risk."
+
+step 2. Client calls get_company_financials("ACME")
+        → MCP handler: fetchWithPayment("/financials?ticker=ACME")
+        → 402 Payment Required → sign ERC-3009 → retry
+        → Facilitator settles $0.01 USDT0 on-chain
+        → tx: 0x8f3a...aaaa
+        → 200 OK { revenue, debt_ratio, cash_flow }
+
+step 3. Client calls assess_credit_risk(financials)
+        → MCP handler: fetchWithPayment("/credit-risk", POST)
+        → Facilitator settles $0.05 USDT0 on-chain
+        → tx: 0x9bc4...bbbb
+        → 200 OK { score: 72, rating: "moderate" }
+
+step 4. Claude responds:
+        "ACME Corp has a credit risk score of 72 (moderate). Revenue is stable
+        but debt-to-equity ratio is elevated at 1.8x..."
+```
+
+두 `tx` 값 모두 [https://stablescan.xyz](https://stablescan.xyz)에서 확인할 수 있습니다.
+
+:::note
+**에이전트 지갑 자금 충전**: MCP 서버는 사용자가 제어하는 시드 문구로 결제에 서명합니다. 서버를 시작하기 전에 해당 지갑에 메인넷의 USDT0를 충전하세요. `$0.10` 이상의 잔액이면 여러 번의 유료 호출을 처리할 수 있으며, `$1.00`면 확장 테스트에 충분합니다. 필요에 따라 지갑 주소로 표준 USDT0 전송을 사용해 충전하세요.
+:::
+
+## 개요
+
+**MCP 서버:**
+
+```typescript
+// --- MCP Server ---
+// Bridge x402-enabled APIs to MCP tools
+tools = {
+  "get_company_financials": {
+    handler: (ticker) =>
+      fetchWithPayment("https://api.example.com/financials?ticker=" + ticker),
+  },
+  "assess_credit_risk": {
+    handler: (financials) =>
+      fetchWithPayment("https://api.example.com/credit-risk", {
+        method: "POST",
+        body: JSON.stringify({ financials }),
+      }),
+  },
+}
+```
+
+**사용자 (AI 클라이언트를 통해):**
+
+```
+─── AI Client ───────────────────────────────────────
+User: "Pull financials for ACME Corp and assess their credit risk."
+
+Client calls get_company_financials tool
+  → MCP server sends x402 paid request
+  → Facilitator settles USDT0 on-chain
+  → API returns financial data
+
+Client calls assess_credit_risk tool with the result
+  → MCP server sends x402 paid request
+  → Facilitator settles USDT0 on-chain
+  → API returns risk assessment
+  → Client responds with the combined result
+```
+
+## 사전 준비
+
+- 실행 중인 x402 서버 ([호출당 결제 API 구축하기](/en/how-to/build-pay-per-call) 참고).
+- MCP 호환 AI 클라이언트 (Claude Desktop, Claude Code 등).
+
+## 1단계: MCP 서버 생성하기
+
+MCP 서버는 AI 클라이언트와 x402가 활성화된 API 사이의 브리지 역할을 합니다. 각 도구는 x402 클라이언트 SDK를 사용해 유료 요청을 보내고 결과를 반환합니다.
+
+```bash
+npm install @modelcontextprotocol/sdk @x402/fetch @x402/evm @tetherto/wdk-wallet-evm
+```
+
+```typescript
+// mcp-server.ts
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import WalletManagerEvm from "@tetherto/wdk-wallet-evm";
+import { x402Client, wrapFetchWithPayment } from "@x402/fetch";
+import { registerExactEvmScheme } from "@x402/evm/exact/client";
+import { z } from "zod";
+
+// --- Wallet and x402 client ---
+const account = await new WalletManagerEvm(process.env.SEED_PHRASE!, {
+  provider: "https://rpc.stable.xyz",
+}).getAccount(0);
+
+const client = new x402Client();
+registerExactEvmScheme(client, { signer: account });
+const fetchWithPayment = wrapFetchWithPayment(fetch, client);
+
+// --- x402 API base URL ---
+const API_BASE = process.env.API_BASE || "http://localhost:4021";
+
+// --- MCP server ---
+const server = new McpServer({
+  name: "x402-payments",
+  version: "1.0.0",
+});
+
+server.tool(
+  "get_company_financials",
+  "Get company financial data by ticker (paid endpoint, $0.01 per call)",
+  { ticker: z.string().describe("Company ticker symbol (e.g. ACME)") },
+  async ({ ticker }) => {
+    const response = await fetchWithPayment(`${API_BASE}/financials?ticker=${ticker}`);
+    const data = await response.json();
+    return { content: [{ type: "text", text: JSON.stringify(data) }] };
+  },
+);
+
+server.tool(
+  "assess_credit_risk",
+  "Assess credit risk from financial data (paid endpoint, $0.05 per call)",
+  { financials: z.string().describe("JSON string of company financial data") },
+  async ({ financials }) => {
+    const response = await fetchWithPayment(`${API_BASE}/credit-risk`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: financials,
+    });
+    const data = await response.json();
+    return { content: [{ type: "text", text: JSON.stringify(data) }] };
+  },
+);
+
+server.tool(
+  "check_balance",
+  "Check the USDT0 balance of the payment wallet",
+  {},
+  async () => {
+    const USDT0_STABLE = "0x779Ded0c9e1022225f8E0630b35a9b54bE713736";
+    const balance = await account.getTokenBalance(USDT0_STABLE);
+    const formatted = (Number(balance) / 1e6).toFixed(2);
+    return {
+      content: [{ type: "text", text: `Wallet balance: ${formatted} USDT0` }],
+    };
+  },
+);
+
+// --- Start ---
+const transport = new StdioServerTransport();
+await server.connect(transport);
+```
+
+각 도구 핸들러는 `fetchWithPayment`를 호출하며, 이는 전체 x402 결제 주기를 자동으로 처리합니다. AI 클라이언트는 도구 이름, 설명, 매개변수만 봅니다.
+
+## 2단계: AI 클라이언트 설정하기
+
+AI 클라이언트의 설정에 MCP 서버를 추가합니다.
+
+**Claude Desktop** (`claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "x402-payments": {
+      "command": "npx",
+      "args": ["tsx", "/path/to/mcp-server.ts"],
+      "env": {
+        "SEED_PHRASE": "your seed phrase here",
+        "API_BASE": "https://api.example.com"
+      }
+    }
+  }
+}
+```
+
+**Claude Code:**
+
+```bash
+claude mcp add x402-payments -- npx tsx /path/to/mcp-server.ts
+```
+
+설정 후 AI 클라이언트를 재시작하세요. 도구들이 사용 가능한 도구 목록에 나타나야 합니다.
+
+:::warning
+MCP 설정의 시드 문구는 실제 자금을 제어합니다. 평문 설정 파일에 저장하는 대신 OS 키체인이나 시크릿 매니저를 사용해 안전하게 보관하세요.
+:::
+
+## 3단계: 프롬프트 입력 및 사용하기
+
+설정이 완료되면 AI 클라이언트는 사용자의 프롬프트를 통해 유료 API를 호출할 수 있습니다:
+
+**사용자:** "ACME Corp의 재무 정보를 가져와서 신용 위험을 평가해줘."
+
+1. 클라이언트가 `get_company_financials("ACME")`를 호출: x402를 통해 $0.01 결제. 매출, 부채 비율, 현금 흐름 등을 반환합니다.
+2. 클라이언트가 `assess_credit_risk(financials)`를 호출: x402를 통해 $0.05 결제. 위험 점수, 등급, 핵심 요인을 반환합니다.
+3. 클라이언트 응답: "ACME Corp의 신용 위험 점수는 72점(중간)입니다. 매출은 안정적이지만 부채비율이 1.8배로 다소 높습니다..."
+
+개별 도구도 단독으로 작동합니다:
+
+- "ACME Corp의 재무 정보를 가져와줘"는 `get_company_financials`를 호출합니다 ($0.01).
+- "이 데이터의 신용 위험을 평가해줘"는 `assess_credit_risk`를 호출합니다 ($0.05).
+- "USDT0가 얼마나 남았어?"는 `check_balance`를 호출합니다.
+
+사용자는 지갑, 서명, 결제 흐름과 상호작용하지 않습니다. MCP 서버가 각 도구 호출에 대한 결제를 투명하게 처리합니다.
+
+## 지출 제어
+
+예기치 않은 지출을 방지하려면 MCP 서버에 제어 장치를 추가하는 것을 고려하세요.
+
+```typescript
+const MAX_PER_CALL = 100_000;   // $0.10 in base units
+const MAX_PER_SESSION = 5_000_000; // $5.00 in base units
+let sessionSpent = 0n;
+
+function checkSpendingLimit(amount: bigint) {
+  if (amount > BigInt(MAX_PER_CALL)) {
+    throw new Error(`Amount exceeds per-call limit of $${MAX_PER_CALL / 1e6}`);
+  }
+  if (sessionSpent + amount > BigInt(MAX_PER_SESSION)) {
+    throw new Error(`Session spending limit of $${MAX_PER_SESSION / 1e6} reached`);
+  }
+  sessionSpent += amount;
+}
+```
+
+이러한 제한은 서버 측에서 실행됩니다. AI 클라이언트는 이를 수정하거나 우회할 수 없습니다.
+
+## 다음 추천
+
+- [**호출당 결제 API 구축하기**](/en/how-to/build-pay-per-call) — 이 MCP 서버가 브리지하는 x402 서버를 설정합니다.
+- [**x402 개념**](/en/explanation/x402) — 이러한 결제 뒤에 있는 정산 프로토콜을 살펴봅니다.
+- [**AI로 개발하기**](/en/how-to/develop-with-ai) — Stable의 Docs 및 Runtime MCP 서버를 동일한 AI 클라이언트에 연결합니다.

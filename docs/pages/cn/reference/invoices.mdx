@@ -1,0 +1,52 @@
+---
+source_path: reference/invoices.mdx
+source_sha: 7e3a42da7db359e387c7b973b03c1248dde7baa2
+title: "结算发票"
+description: "在 Stable 上使用 ERC-3009，通过从发票元数据派生的确定性 nonce 结算发票，实现自动对账。"
+diataxis: "reference"
+---
+
+# 结算发票
+
+每张发票都映射到一个唯一的、确定性的 nonce，该 nonce 派生自发票元数据：发票编号、交易方、金额和到期日。此 nonce 通过 [ERC-3009](/en/explanation/erc-3009) 驱动结算，并创建一个不可变的收据，可与现有会计系统进行对账。
+
+## 工作原理
+
+买方和供应商各自独立地从相同的发票元数据计算出相同的 nonce。无需外部注册表来协调付款。
+
+nonce 是确定性派生的：
+
+```
+nonce = keccak256(invoiceNumber, vendor, buyer, amount, dueDate)
+```
+
+当买方使用此 nonce 签署 ERC-3009 授权时，链上结算事件即可作为防篡改的付款收据。
+
+### 结算流程
+
+1. **签发发票**：供应商创建一张具有唯一编号、金额和到期日的发票。
+2. **计算 nonce**：双方各自独立地从发票元数据派生出相同的 nonce。
+3. **买方签名**：买方使用确定性 nonce 在链下签署 ERC-3009 授权。`validBefore` 字段可设置为到期日加上一段宽限期。
+4. **结算**：买方或供应商在链上提交 `transferWithAuthorization`。结算在一秒内确认。
+5. **对账**：发出的 `AuthorizationUsed` 事件包含该 nonce，将链上结算与确切的发票关联起来。同一交易中的 `Transfer` 事件验证发送方、接收方和金额。
+
+### 防止重复付款
+
+nonce 在付款时于链上被消耗。同一张发票无法被结算两次；使用已使用过的 nonce 重新提交授权将会被回退。
+
+## 有何不同
+
+传统的 B2B 发票涉及银行电汇（1–5 个工作日）、人工对账，并且没有与发票本身绑定的加密付款凭证。借助确定性 nonce，链上付款是自我记录的：nonce 将结算与确切的发票关联起来，区块链事件日志提供了不可变的审计追踪。
+
+| **方面** | **传统方式（银行电汇）** | **Stable（ERC-3009）** |
+| :--- | :--- | :--- |
+| 结算 | 1–5 个工作日 | 1 秒以内 |
+| 对账 | 人工与银行对账单匹配 | `AuthorizationUsed` 事件将付款与发票 nonce 关联 |
+| 付款凭证 | 银行确认函 | 链上交易，以加密方式与发票关联 |
+| 中间方 | 代理银行 | 无 |
+| 手续费 | 电汇费用（$15–45）+ 外汇点差 | ~0.00021 USDT0（使用 Gas Waiver 时为 0） |
+
+**另请参阅：**
+
+- [ERC-3009（带授权转账）](/en/explanation/erc-3009)
+- [Gas Waiver](/en/how-to/integrate-gas-waiver)

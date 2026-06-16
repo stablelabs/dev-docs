@@ -1,0 +1,468 @@
+---
+source_path: how-to/build-mpp-endpoint.mdx
+source_sha: 6aff0597391159c025c805e5a95e17a1e9373acc
+title: "在 Stable 上构建 MPP 端点"
+description: "通过针对 viem 编写三个自定义方法钩子，在 Stable 上经由 MPP 的 HTTP 402 流程接受 USDT0 付款。"
+diataxis: "how-to"
+---
+
+# 在 Stable 上构建 MPP 端点
+
+本指南将逐步介绍如何为 Stable 上的 USDT0 编写自定义 [MPP](/en/explanation/mpp) 支付方法，并提供一个受 MPP 保护的端点。买方签署一个 [ERC-3009](/en/explanation/erc-3009) `transferWithAuthorization`，服务器通过 `mppx` 的 `verify()` 钩子对其进行验证，结算则在你控制的单独步骤中完成。
+
+:::note
+**概念：** 关于什么是 MPP 以及它与 x402 的关系，请参阅 [机器支付协议（MPP）](/en/explanation/mpp)。关于 x402 的等价实现，请参阅 [构建按次调用付费 API](/en/how-to/build-pay-per-call)。
+:::
+
+:::note
+该示例使用 Stable 主网。测试时请使用小额金额。
+:::
+
+## 你将构建的内容
+
+一个 HTTP 端点，它返回 `402 Payment Required` 以及一个 MPP `WWW-Authenticate` 挑战，接受 `Authorization` 标头中已签名的凭据，对其进行验证，在 USDT0 上结算 `transferWithAuthorization`，并返回带有 `Payment-Receipt` 标头的响应。
+
+```text
+step 1. Client: GET /weather (no Authorization header)
+        Server: 402 Payment Required
+                WWW-Authenticate: Payment realm="...", challenges="[...usdt0-stable charge for $0.001...]"
+
+step 2. Client signs an ERC-3009 authorization with their viem account
+
+step 3. Client: GET /weather + Authorization header containing the serialized credential
+        Server: verify() validates the EIP-712 signature
+        Server: settle() submits transferWithAuthorization on Stable
+                (~700ms block confirmation)
+        Server: 200 OK { weather: "sunny" }
+                Payment-Receipt: reference="0x8f3a...", status="success"
+
+step 4. Verify settlement on Stablescan
+        https://stablescan.xyz/tx/0x8f3a...
+```
+
+## 前提条件
+
+- 在 Stable 上有一个已注资的 USDT0 钱包。请参阅 [使用水龙头](/en/how-to/use-faucet) 或 [转移 USDT0](/en/tutorial/send-usdt0)。
+- 安装了 `mppx`、`viem` 和 `zod` 的 Node 20+。
+- 在 Stable 上有一个卖方账户（一个 EOA）。在默认结算路径下，卖方以 USDT0 支付 gas；[Gas Waiver](#alternative-settle-through-the-gas-waiver) 一节展示了零 gas 的变体。
+
+```bash
+npm install mppx viem zod express
+```
+
+## 1. 定义共享 schema
+
+`Method.from()` 声明意图以及请求（Challenge）和凭据载荷的 schema。客户端和服务器都导入此定义。
+
+```typescript
+// src/method.ts
+import { Method } from "mppx";
+import { z } from "zod";
+import { parseUnits } from "viem";
+
+export const USDT0_STABLE = "0x779Ded0c9e1022225f8E0630b35a9b54bE713736";
+export const CHAIN_ID = 988;
+
+// Request: the Challenge payload the server sends to the client.
+const zRequest = z.pipe(
+  z.object({
+    chainId: z.literal(CHAIN_ID),
+    asset: z.literal(USDT0_STABLE),
+    amount: z.string(),             // human-readable, e.g. "0.001"
+    decimals: z.literal(6),
+    payTo: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
+    validAfter: z.number().int().nonnegative(),
+    validBefore: z.number().int().positive(),
+    nonce: z.string().regex(/^0x[a-fA-F0-9]{64}$/),
+  }),
+  z.transform(({ amount, decimals, ...rest }) => ({
+    ...rest,
+    amount: parseUnits(amount, decimals).toString(),  // atomic units
+  })),
+);
+
+// Credential payload: what the client returns after signing.
+const zPayload = z.object({
+  from: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
+  signature: z.string().regex(/^0x[a-fA-F0-9]{130}$/), // 65-byte hex
+});
+
+export const usdt0Stable = Method.from({
+  intent: "charge",
+  name: "usdt0-stable",
+  schema: { request: zRequest, credential: { payload: zPayload } },
+});
+
+// EIP-712 domain + type, used by both client and server.
+export const EIP712_DOMAIN = {
+  name: "USDT0",
+  version: "1",
+  chainId: CHAIN_ID,
+  verifyingContract: USDT0_STABLE,
+} as const;
+
+export const TRANSFER_WITH_AUTHORIZATION_TYPES = {
+  TransferWithAuthorization: [
+    { name: "from", type: "address" },
+    { name: "to", type: "address" },
+    { name: "value", type: "uint256" },
+    { name: "validAfter", type: "uint256" },
+    { name: "validBefore", type: "uint256" },
+    { name: "nonce", type: "bytes32" },
+  ],
+} as const;
+```
+
+```text
+usdt0Stable.name === "usdt0-stable"
+usdt0Stable.intent === "charge"
+```
+
+## 2. 服务器：验证凭据
+
+`Method.toServer` 将 `verify()` 接入 `mppx`。该函数接收反序列化后的凭据（挑战 + 载荷），并且必须在证明无效时抛出异常，或者返回一个 `Receipt`。
+
+```typescript
+// src/server-method.ts
+import { Method, Receipt } from "mppx";
+import { verifyTypedData } from "viem";
+import {
+  usdt0Stable,
+  EIP712_DOMAIN,
+  TRANSFER_WITH_AUTHORIZATION_TYPES,
+} from "./method";
+
+export const usdt0StableServer = Method.toServer(usdt0Stable, {
+  async verify({ credential }) {
+    const { request } = credential.challenge;
+    const { from, signature } = credential.payload;
+
+    const valid = await verifyTypedData({
+      address: from as `0x${string}`,
+      domain: EIP712_DOMAIN,
+      types: TRANSFER_WITH_AUTHORIZATION_TYPES,
+      primaryType: "TransferWithAuthorization",
+      message: {
+        from: from as `0x${string}`,
+        to: request.payTo as `0x${string}`,
+        value: BigInt(request.amount),
+        validAfter: BigInt(request.validAfter),
+        validBefore: BigInt(request.validBefore),
+        nonce: request.nonce as `0x${string}`,
+      },
+      signature: signature as `0x${string}`,
+    });
+
+    if (!valid) throw new Error("Invalid ERC-3009 signature");
+
+    // The Receipt's reference is filled in with the tx hash after settle().
+    return Receipt.from({
+      method: usdt0Stable.name,
+      reference: "pending",
+      status: "success",
+      timestamp: new Date().toISOString(),
+    });
+  },
+});
+```
+
+```text
+{
+  method: "usdt0-stable",
+  reference: "pending",
+  status: "success",
+  timestamp: "2026-06-01T12:34:56.000Z"
+}
+```
+
+:::warning
+`verify()` 检查签名，但不检查 nonce 唯一性或授权是否已被花费。链在提交时强制执行这两者：`transferWithAuthorization` 在 nonce 已被使用时会回退。结算步骤会将这些回退转化为服务器可以向客户端展现的错误。
+:::
+
+## 3. 结算：提交 `transferWithAuthorization`
+
+结算被有意地与 `verify()` 分离。在 `verify()` 返回后，你通过适合你运维模型的任意路径将授权提交到链上。以下是三个选项，按推荐顺序排列。
+
+### 默认：服务器直接提交
+
+卖方的 EOA 将带有已签名授权的 `transferWithAuthorization` 提交到 USDT0。卖方以 USDT0（Stable 的原生 gas 代币）支付 gas，因此无需管理单独的 gas 代币余额。
+
+```typescript
+// src/settle.ts
+import { createWalletClient, http, parseSignature } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+import { stable } from "viem/chains";
+import { USDT0_STABLE } from "./method";
+
+const USDT0_ABI = [
+  {
+    name: "transferWithAuthorization",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "from", type: "address" },
+      { name: "to", type: "address" },
+      { name: "value", type: "uint256" },
+      { name: "validAfter", type: "uint256" },
+      { name: "validBefore", type: "uint256" },
+      { name: "nonce", type: "bytes32" },
+      { name: "v", type: "uint8" },
+      { name: "r", type: "bytes32" },
+      { name: "s", type: "bytes32" },
+    ],
+    outputs: [],
+  },
+] as const;
+
+const seller = privateKeyToAccount(process.env.SELLER_KEY as `0x${string}`);
+const wallet = createWalletClient({
+  account: seller,
+  chain: stable,
+  transport: http("https://rpc.stable.xyz"),
+});
+
+export async function settleDirect(credential: {
+  challenge: { request: any };
+  payload: { from: string; signature: string };
+}): Promise<{ txHash: `0x${string}` }> {
+  const { request } = credential.challenge;
+  const { v, r, s } = parseSignature(credential.payload.signature as `0x${string}`);
+
+  const txHash = await wallet.writeContract({
+    address: USDT0_STABLE,
+    abi: USDT0_ABI,
+    functionName: "transferWithAuthorization",
+    args: [
+      credential.payload.from as `0x${string}`,
+      request.payTo as `0x${string}`,
+      BigInt(request.amount),
+      BigInt(request.validAfter),
+      BigInt(request.validBefore),
+      request.nonce as `0x${string}`,
+      Number(v),
+      r as `0x${string}`,
+      s as `0x${string}`,
+    ],
+  });
+
+  return { txHash };
+}
+```
+
+```text
+{ txHash: "0x8f3a1b2c..." }
+```
+
+### 替代方案：通过 Gas Waiver 结算
+
+使用 Stable 的 [Gas Waiver](/en/how-to/integrate-gas-waiver) 以 `gasPrice = 0` 提交内层交易。卖方仍然签署包装交易，但不支付 gas。需要一个 Waiver Server API 密钥。
+
+```typescript
+// src/settle-waiver.ts
+import { encodeFunctionData } from "viem";
+import { USDT0_STABLE } from "./method";
+import { USDT0_ABI } from "./settle";
+
+const WAIVER_SERVER = "https://waiver.stable.xyz"; // mainnet endpoint
+
+export async function settleViaWaiver(
+  credential: { challenge: { request: any }; payload: { from: string; signature: string } },
+  signedInnerTxHex: `0x${string}`,
+): Promise<{ txHash: `0x${string}` }> {
+  const res = await fetch(`${WAIVER_SERVER}/v1/submit`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${process.env.WAIVER_API_KEY}`,
+    },
+    body: JSON.stringify({ transactions: [signedInnerTxHex] }),
+  });
+
+  const lines = (await res.text()).trim().split("\n");
+  const result = JSON.parse(lines[0]);
+  if (!result.success) throw new Error(`Settle failed: ${result.error?.message}`);
+  return { txHash: result.txHash };
+}
+```
+
+```text
+{ txHash: "0x8f3a1b2c..." }
+```
+
+关于如何在发布前构建已签名的内层交易（`gasPrice: 0`，已编码的 `transferWithAuthorization` 调用），请参阅 [Gas waiver 协议](/en/reference/gas-waiver-api)。
+
+### 替代方案：交给 x402 facilitator
+
+如果你已经运行了 x402 facilitator 集成（[Semantic Pay](https://docs.semanticpay.io) 或 [Heurist](https://docs.heurist.ai/x402-products/facilitator)），你可以将其复用为结算目标。向 `/settle` POST 一个 `paymentPayload`；facilitator 会提交链上调用。
+
+`paymentPayload` 的确切结构是 x402 中间件内部的，未在线路层面指定。最简单的路径是使用 facilitator 自己的 SDK 来构建载荷，或者坚持使用上面的直接提交路径。facilitator 不需要支持 MPP；它只看到 `transferWithAuthorization` 字段。
+
+## 4. 客户端：签署凭据
+
+`Method.toClient` 将 `createCredential()` 接入 `mppx`。客户端读取 Challenge，使用代理的 viem 账户签署 EIP-712 授权，并序列化凭据。
+
+```typescript
+// src/client-method.ts
+import { Credential, Method } from "mppx";
+import { hexToSignature, parseSignature } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+import {
+  usdt0Stable,
+  EIP712_DOMAIN,
+  TRANSFER_WITH_AUTHORIZATION_TYPES,
+} from "./method";
+
+export function createUsdt0StableClient(privateKey: `0x${string}`) {
+  const account = privateKeyToAccount(privateKey);
+
+  return Method.toClient(usdt0Stable, {
+    async createCredential({ challenge }) {
+      const { request } = challenge;
+
+      const signature = await account.signTypedData({
+        domain: EIP712_DOMAIN,
+        types: TRANSFER_WITH_AUTHORIZATION_TYPES,
+        primaryType: "TransferWithAuthorization",
+        message: {
+          from: account.address,
+          to: request.payTo as `0x${string}`,
+          value: BigInt(request.amount),
+          validAfter: BigInt(request.validAfter),
+          validBefore: BigInt(request.validBefore),
+          nonce: request.nonce as `0x${string}`,
+        },
+      });
+
+      return Credential.serialize({
+        challenge,
+        payload: { from: account.address, signature },
+      });
+    },
+  });
+}
+```
+
+```text
+"eyJjaGFsbGVuZ2UiOnsi..." // base64-serialized credential, ~600 bytes
+```
+
+## 5. 将服务器组装起来
+
+使用 `mppx` 的 Express 中间件来发出 Challenge、解析传入的 `Authorization` 标头、运行 `verify()`、调用你的结算函数，并发出 `Payment-Receipt` 标头。
+
+```typescript
+// src/server.ts
+import express from "express";
+import { Mppx } from "mppx/express";
+import { randomBytes } from "node:crypto";
+import { usdt0StableServer } from "./server-method";
+import { settleDirect } from "./settle";
+
+const PAY_TO = process.env.PAY_TO_ADDRESS as `0x${string}`;
+const PORT = Number(process.env.PORT ?? 4022);
+
+const mppx = Mppx.create({
+  secretKey: process.env.MPP_SECRET_KEY!,
+  methods: [usdt0StableServer],
+  onVerified: async ({ credential, receipt }) => {
+    const { txHash } = await settleDirect(credential);
+    return { ...receipt, reference: txHash };
+  },
+});
+
+const app = express();
+
+app.get(
+  "/weather",
+  mppx.charge({
+    amount: "0.001",
+    method: "usdt0-stable",
+    request: {
+      chainId: 988,
+      asset: "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
+      decimals: 6,
+      payTo: PAY_TO,
+      validAfter: 0,
+      validBefore: Math.floor(Date.now() / 1000) + 300,
+      nonce: `0x${randomBytes(32).toString("hex")}`,
+    },
+  })((_req, res) => {
+    res.json({ weather: "sunny", temperature: 70 });
+  }),
+);
+
+app.listen(PORT, () => {
+  console.log(`MPP server listening on http://localhost:${PORT}`);
+});
+```
+
+```text
+MPP server listening on http://localhost:4022
+```
+
+## 6. 端到端运行整个流程
+
+启动服务器，确认 Challenge，运行客户端，并确认结算。
+
+:::warning
+下一步将在 Stable 主网上结算一笔真实的 USDT0 付款。请使用专用钱包和小额金额。
+:::
+
+### 确认 Challenge
+
+```bash
+curl -i http://localhost:4022/weather
+```
+
+```text
+HTTP/1.1 402 Payment Required
+WWW-Authenticate: Payment realm="...", challenges="[{\"method\":\"usdt0-stable\",\"request\":{...}}]"
+Content-Type: application/json
+
+{"error":"Payment required"}
+```
+
+### 发送一个付费请求
+
+```typescript
+// src/client.ts
+import { Mppx } from "mppx/client";
+import { createUsdt0StableClient } from "./client-method";
+
+const client = Mppx.create({
+  methods: [createUsdt0StableClient(process.env.BUYER_KEY as `0x${string}`)],
+});
+
+const res = await fetch("http://localhost:4022/weather", {
+  // mppx wraps fetch with the 402 retry loop:
+  ...client.fetchOptions(),
+});
+
+console.log(res.status, await res.json());
+console.log("Payment-Receipt:", res.headers.get("Payment-Receipt"));
+```
+
+```bash
+npx tsx src/client.ts
+```
+
+```text
+200 { weather: "sunny", temperature: 70 }
+Payment-Receipt: reference="0x8f3a1b2c...", status="success", timestamp="2026-06-01T12:34:56.000Z"
+```
+
+### 在 Stablescan 上验证
+
+打开 `https://stablescan.xyz/tx/0x8f3a1b2c...`，确认 `transferWithAuthorization` 已结算到你的 `PAY_TO` 地址。
+
+## 你刚刚完成的内容
+
+- 以 USDT0 付款，以美元计价，买方一侧无需管理 gas 代币余额。
+- 在客户端到服务器的跳转上使用了 MPP 的 `WWW-Authenticate` / `Authorization` / `Payment-Receipt` 线路格式。
+- 在同一个 HTTP 请求生命周期内（约 700 毫秒的出块时间）使用 `transferWithAuthorization` 在 Stable 上完成了结算。
+
+## 推荐的后续内容
+
+- [**MPP 概念**](/en/explanation/mpp) — 了解 MPP 如何与 x402 关联，以及其他意图是什么样的。
+- [**MPP 会话**](/en/explanation/mpp-sessions) — 当按请求结算成本过高时，使用链下凭证流式传输微支付。
+- [**Facilitators**](/en/reference/agentic-facilitators) — 使用 Semantic Pay 或 Heurist 作为结算目标，而不是直接提交。

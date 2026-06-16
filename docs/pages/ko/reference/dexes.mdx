@@ -1,0 +1,84 @@
+---
+source_path: reference/dexes.mdx
+source_sha: 924240ead7ffcb4e6e647b050bbf3fd81fde830a
+title: "DEX"
+description: "표준 Uniswap v3 배포 및 해당 컨트랙트 주소를 포함하여 Stable에서 운영되는 탈중앙화 거래소입니다."
+diataxis: "reference"
+---
+
+# DEX
+
+현물 거래, 유동성 공급 및 온체인 라우팅을 위한 Stable의 DEX 배포입니다. Stable은 [공식 Uniswap v3 배포 목록](https://gov.uniswap.org/t/official-uniswap-v3-deployments-list/24323/13#p-58106-stable-4)에 등재되어 있습니다. Stable의 Uniswap v3 컨트랙트는 거버넌스에서 표준으로 인정받았으며 기본 프론트엔드인 [Stable Swap](https://swap.stable.xyz)을 통해 라우팅됩니다.
+
+## 개요 표
+
+| **제공자** | **카테고리** | **상태** | **문서 / 시작하기** | **참고** |
+| :--- | :--- | :--- | :--- | :--- |
+| [**Uniswap v3**](https://swap.stable.xyz) | 집중 유동성 AMM | 표준 (메인넷에서 운영 중) | [docs.uniswap.org](https://docs.uniswap.org/contracts/v3/overview) | 2026년 5월 12일 공식 Uniswap v3 배포 목록에 등재됨. 프론트엔드: Stable Swap. 배포자: Protofire. |
+
+## Uniswap v3
+
+집중 유동성 풀과 표준 수수료 등급을 갖춘 Stable의 표준 Uniswap v3 배포입니다. Stable Swap은 활발하게 유지 관리되는 기본 프론트엔드이며, 거래는 아래의 컨트랙트를 통해 라우팅됩니다. 크로스체인 유동성은 LayerZero를 통해 유입됩니다.
+
+**기능**
+
+- v3 포지션 NFT를 사용하는 집중 유동성 AMM
+- 표준 `SwapRouter02`, `Quoter V2` 및 `Universal Router` 통합 경로
+- 가스 없는 승인을 위한 `Permit2` 지원
+- 레거시 라우팅을 위한 v2 스타일 정량곱 풀도 배포됨
+
+### 메인넷 컨트랙트 주소
+
+출처: [RFC: Stable Application for Canonical Uniswap v3 Deployment](https://gov.uniswap.org/t/rfc-stable-application-for-canonical-uniswap-v3-deployment/26080) 및 [공식 Uniswap v3 배포 목록](https://gov.uniswap.org/t/official-uniswap-v3-deployments-list/24323/13#p-58106-stable-4).
+
+| **컨트랙트** | **주소** |
+| :--- | :--- |
+| **v3 Core Factory** | [0x88F0a512eF09175D456bc9547f914f48C013E4aA](https://stablescan.xyz/address/0x88F0a512eF09175D456bc9547f914f48C013E4aA) |
+| **Universal Router** | [0x5Be52b52f3d1dbC324d2959637471a4208626144](https://stablescan.xyz/address/0x5Be52b52f3d1dbC324d2959637471a4208626144) |
+| **Swap Router02** | [0x32eaf9B5d5F2CD7361c5012890C943D7de84C22a](https://stablescan.xyz/address/0x32eaf9B5d5F2CD7361c5012890C943D7de84C22a) |
+| **Quoter V2** | [0xb070179E7032CdA868b53e6C1742F80c9e940d1A](https://stablescan.xyz/address/0xb070179E7032CdA868b53e6C1742F80c9e940d1A) |
+| **Nonfungible Token Position Manager** | [0x3BdC3437405f7D801b6036532713fc1F179136a6](https://stablescan.xyz/address/0x3BdC3437405f7D801b6036532713fc1F179136a6) |
+| **Nonfungible Token Position Descriptor V1.3.0** | [0x7Cf5987951E48ADf235cc9194bCdc708Eb692D82](https://stablescan.xyz/address/0x7Cf5987951E48ADf235cc9194bCdc708Eb692D82) |
+| **NFT Descriptor Library V1.3.0** | [0xF7815833076D83161414A46c4E993dC8f22A7ADd](https://stablescan.xyz/address/0xF7815833076D83161414A46c4E993dC8f22A7ADd) |
+| **Descriptor Proxy** | [0xcd2cD0E139eC5581138E18C6DBB189c53efBAE95](https://stablescan.xyz/address/0xcd2cD0E139eC5581138E18C6DBB189c53efBAE95) |
+| **Proxy Admin** | [0x51D1E70B8cAbDF4F3aB056475802AB1687b3EA23](https://stablescan.xyz/address/0x51D1E70B8cAbDF4F3aB056475802AB1687b3EA23) |
+| **Tick Lens** | [0x8dF0D1614aae99352045c62d24d54E72b38111ec](https://stablescan.xyz/address/0x8dF0D1614aae99352045c62d24d54E72b38111ec) |
+| **v3 Migrator** | [0x2C5f4275F1a278BF328D56CB9db304e915DE3082](https://stablescan.xyz/address/0x2C5f4275F1a278BF328D56CB9db304e915DE3082) |
+| **v3 Staker** | [0xA32e3E127FF46db40ab3c4775be97ED760AD7178](https://stablescan.xyz/address/0xA32e3E127FF46db40ab3c4775be97ED760AD7178) |
+| **Permit2** | [0x000000000022D473030F116dDEE9F6B43aC78BA3](https://stablescan.xyz/address/0x000000000022D473030F116dDEE9F6B43aC78BA3) |
+| **Multicall 2** | [0x208099D6E8a107aD485CD1374A6EC5Abd98c7F11](https://stablescan.xyz/address/0x208099D6E8a107aD485CD1374A6EC5Abd98c7F11) |
+| **V2 Core Factory** | [0x25D2d657F539F2bB16eC82773cBE5ee49ddD3c69](https://stablescan.xyz/address/0x25D2d657F539F2bB16eC82773cBE5ee49ddD3c69) |
+| **Uniswap V2 Router02** | [0xa571dc7c4f2369F1cA24D3a7E8a35c07Ff52bfC0](https://stablescan.xyz/address/0xa571dc7c4f2369F1cA24D3a7E8a35c07Ff52bfC0) |
+
+:::note
+Stable은 2026년 4월 UAC 거버넌스 절차를 완료한 후 2026년 5월 12일부로 Uniswap v3 배포 목록에 인정되었습니다. 이 배포는 Protofire가 유지 관리하며 LayerZero를 통한 브리지 연결을 제공합니다.
+:::
+
+### 스왑 견적 받기
+
+`Quoter V2`는 거래를 실행하지 않고도 주어진 입력에 대한 예상 출력을 반환합니다. Stable의 RPC를 가리키는 모든 EVM 도구에서 사용할 수 있습니다.
+
+```bash
+cast call 0xb070179E7032CdA868b53e6C1742F80c9e940d1A \
+  "quoteExactInputSingle((address,address,uint256,uint24,uint160))(uint256,uint160,uint32,uint256)" \
+  "(<TOKEN_IN>,<TOKEN_OUT>,<AMOUNT_IN>,<FEE>,0)" \
+  --rpc-url https://rpc.stable.xyz
+```
+
+```text
+(amountOut, sqrtPriceX96After, initializedTicksCrossed, gasEstimate)
+```
+
+`<TOKEN_IN>`, `<TOKEN_OUT>`, `<AMOUNT_IN>` 및 `<FEE>`(`100`, `500`, `3000`, `10000` 중 하나)를 견적을 받으려는 풀의 값으로 바꾸세요. 애플리케이션 통합의 경우, 위 주소를 가리키는 [Uniswap v3 SDK](https://docs.uniswap.org/sdk/v3/overview) 또는 [Universal Router](https://docs.uniswap.org/contracts/universal-router/overview)를 사용하는 것이 좋습니다.
+
+---
+
+## Stable을 통합하는 DEX가 있으신가요?
+
+이 페이지에 등재되려면 [bizdev@stable.xyz](mailto:bizdev@stable.xyz)로 팀에 문의하세요.
+
+## 다음 추천 항목
+
+- [Stable에 연결](/en/reference/connect): 메인넷 및 테스트넷의 체인 ID, RPC 엔드포인트 및 블록 익스플로러.
+- [브리지](/en/reference/bridges): USDT0 및 기타 자산을 Stable로 이동하여 유동성을 공급하거나 거래를 라우팅하세요.
+- [오라클](/en/reference/oracles): 가격 책정 및 청산을 위해 스왑 견적과 함께 사용할 수 있는 가격 피드.

@@ -1,0 +1,209 @@
+---
+source_path: how-to/zero-gas-transactions.mdx
+source_sha: 169da924be4764e0ff38c2b0af2e580ed4508070
+title: "가스리스 트랜잭션"
+description: "Stable의 Gas Waiver를 사용하여 사용자에게 가스 비용이 들지 않는 USDT0 전송을 보내고, 영수증에 수수료가 0으로 표시되는지 확인합니다."
+diataxis: "how-to"
+---
+
+# 가스리스 트랜잭션
+
+Gas Waiver를 사용하면 애플리케이션이 사용자를 대신해 가스를 부담할 수 있습니다. 사용자는 `gasPrice = 0`으로 트랜잭션에 서명하고, 거버넌스에 등록된 waiver가 이를 감싸며, 검증자는 사용자에게 비용이 들지 않게 호출을 실행합니다. 이 가이드는 조건을 충족하는 전송 과정을 살펴보고, 가스가 면제되었는지 확인하는 방법을 보여주며, waiver가 무엇을 다루고 다루지 않는지 설명합니다.
+
+:::note
+**개념**: 래퍼 트랜잭션 메커니즘, 권한 모델, 보안 보장에 대해서는 [Gas waiver](/en/explanation/gas-waiver)와 [Gas waiver 프로토콜 레퍼런스](/en/reference/gas-waiver-api)를 참조하세요.
+:::
+
+## 무엇을 만들 것인가
+
+호스팅된 Waiver 서버를 통해 USDT0 전송을 제출하고, 영수증을 가져온 다음, `gasPrice = 0`을 확인하는 두 개의 스크립트 흐름입니다.
+
+### 데모
+
+```text
+step 1. Connect wallet, balance displayed as 0.01 USDT0
+
+step 2. Send transaction via Gas Waiver → [Run]
+
+step 3. Result
+        tx:                   0x8f3a...2d41
+        Gas fee paid by you:  0.000000 USDT0
+        Balance after:        0.01 USDT0
+```
+
+## waiver가 적용되는 경우
+
+다음 조건이 모두 충족되면 트랜잭션이 자격을 갖춥니다:
+
+- 사용자가 `gasPrice = 0`으로 내부 트랜잭션에 서명합니다.
+- 제출자가 거버넌스에 등록된 waiver 주소입니다.
+- 대상 `to` 주소와 메서드 셀렉터가 waiver의 `AllowedTarget` 정책에 있습니다.
+- 래퍼가 `value = 0` 및 `gasPrice = 0`으로 마커 주소 `0x000000000000000000000000000000000000f333`에 전송됩니다.
+
+이 중 하나라도 실패하면, 검증자는 내부 호출을 실행하지 않고 래퍼를 거부합니다. `AllowedTarget`에 등록되지 않은 컨트랙트 호출은 다루지 않습니다. 임의의 셀프 서비스 waiver는 불가능하며, 모든 waiver는 검증자 거버넌스를 통해 등록되어야 합니다.
+
+## 사전 요구 사항
+
+- Stable 팀이 발급한 Waiver 서버용 API 키.
+- waiver의 `AllowedTarget` 정책에 등록된 대상 컨트랙트 주소와 메서드 셀렉터.
+- 가스용 USDT0가 필요 없는 테스트넷의 사용자 지갑.
+
+## 1단계: 자격을 갖춘 InnerTx 서명하기
+
+사용자는 `gasPrice = 0`으로 표준 트랜잭션에 서명합니다. 이 예제에서 호출은 USDT0 `transfer`이며, 이는 애플리케이션이 가스를 부담하는 흐름에서 흔히 사용되는 `AllowedTarget`입니다.
+
+```typescript
+// config.ts
+import { ethers } from "ethers";
+import "dotenv/config";
+
+export const CONFIG = {
+  RPC_URL: "https://rpc.testnet.stable.xyz",
+  CHAIN_ID: 2201, // 988 for mainnet
+  WAIVER_SERVER: "https://waiver.testnet.stable.xyz",
+  USDT0_ADDRESS: "0x78Cf24370174180738C5B8E352B6D14c83a6c9A9",
+};
+
+export const provider = new ethers.JsonRpcProvider(CONFIG.RPC_URL);
+export const userWallet = new ethers.Wallet(process.env.USER_PRIVATE_KEY!, provider);
+```
+
+```typescript
+// signInner.ts
+import { ethers } from "ethers";
+import { CONFIG, provider, userWallet } from "./config";
+
+const usdt0 = new ethers.Contract(CONFIG.USDT0_ADDRESS, [
+  "function transfer(address to, uint256 amount) returns (bool)"
+], provider);
+
+const callData = usdt0.interface.encodeFunctionData("transfer", [
+  "0xRecipientAddress",
+  ethers.parseUnits("0.001", 18),
+]);
+
+const gasLimit = await provider.estimateGas({
+  from: userWallet.address,
+  to: CONFIG.USDT0_ADDRESS,
+  data: callData,
+});
+
+const nonce = await provider.getTransactionCount(userWallet.address);
+
+const innerTx = {
+  to: CONFIG.USDT0_ADDRESS,
+  data: callData,
+  value: 0,
+  gasPrice: 0,
+  gasLimit,
+  nonce,
+  chainId: CONFIG.CHAIN_ID,
+};
+
+export const signedInnerTx = await userWallet.signTransaction(innerTx);
+console.log("Signed InnerTx:", signedInnerTx);
+```
+
+```bash
+npx tsx signInner.ts
+```
+
+```text
+Signed InnerTx: 0xf8a8...c1
+```
+
+:::warning
+`gasPrice`는 반드시 `0`이어야 합니다. 0이 아닌 값은 waiver 서버가 제출을 거부하고 검증자가 래퍼를 거부하게 만듭니다.
+:::
+
+## 2단계: Waiver 서버를 통해 제출하기
+
+Waiver 서버는 서명된 내부 트랜잭션을 감싸서 브로드캐스트합니다. 서버에서 발급한 API 키가 필요합니다.
+
+```typescript
+// submit.ts
+import { CONFIG } from "./config";
+import { signedInnerTx } from "./signInner";
+
+const response = await fetch(`${CONFIG.WAIVER_SERVER}/v1/submit`, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${process.env.WAIVER_API_KEY}`,
+  },
+  body: JSON.stringify({ transactions: [signedInnerTx] }),
+});
+
+const reader = response.body!.getReader();
+const decoder = new TextDecoder();
+let txHash = "";
+
+while (true) {
+  const { done, value } = await reader.read();
+  if (done) break;
+  for (const line of decoder.decode(value).trim().split("\n")) {
+    const result = JSON.parse(line);
+    if (result.success) {
+      txHash = result.txHash;
+      console.log(`tx confirmed: ${txHash}`);
+    } else {
+      console.error(`tx failed: ${result.error.message}`);
+    }
+  }
+}
+export { txHash };
+```
+
+```bash
+npx tsx submit.ts
+```
+
+```text
+tx confirmed: 0x8f3a...2d41
+```
+
+## 3단계: 영수증에 가스가 0으로 표시되는지 확인하기
+
+영수증을 가져와 `effectiveGasPrice`가 0인지 확인합니다. 이것이 사용자가 가스를 지불하지 않았다는 암호학적 증거입니다.
+
+```typescript
+// verify.ts
+import { provider } from "./config";
+import { txHash } from "./submit";
+
+const receipt = await provider.getTransactionReceipt(txHash);
+
+const gasUsed = receipt!.gasUsed;
+const effectiveGasPrice = receipt!.gasPrice;
+const totalFee = gasUsed * effectiveGasPrice;
+
+console.log("Gas used:           ", gasUsed.toString());
+console.log("Effective gas price:", effectiveGasPrice.toString());
+console.log("Gas fee paid:       ", `${totalFee.toString()} USDT0 (wei-equivalent)`);
+```
+
+```bash
+npx tsx verify.ts
+```
+
+```text
+Gas used:            21000
+Effective gas price: 0
+Gas fee paid:        0 USDT0 (wei-equivalent)
+```
+
+`effectiveGasPrice`가 `0`이면 트랜잭션이 등록된 waiver 하에서 실행되었으며 사용자에게 요금이 부과되지 않았음을 확인할 수 있습니다.
+
+## Gas Waiver가 다루지 않는 것
+
+- **`AllowedTarget` 외부의 컨트랙트**: 임의의 컨트랙트 호출은 다루지 않습니다. 모든 대상은 거버넌스를 통해 waiver별로 범위가 지정됩니다.
+- **사용자가 제출한 래퍼**: 사용자가 `0x...f333`에 직접 제출하면 실패합니다. 등록된 waiver 주소만 래핑할 수 있습니다.
+- **수수료 추출**: 검증자는 내부 또는 래퍼 트랜잭션 어느 쪽에서도 0이 아닌 `gasPrice`를 허용하지 않습니다.
+
+전체 정책 모델과 waiver별 범위 규칙은 [Gas waiver 프로토콜](/en/reference/gas-waiver-api)을 참조하세요.
+
+## 다음 추천 사항
+
+- [**Waiver 서버 통합하기**](/en/how-to/integrate-gas-waiver) — 전체 API 레퍼런스, 배치 제출, 오류 코드, NDJSON 스트리밍.
+- [**셀프 호스팅 Gas Waiver**](/en/how-to/self-hosted-gas-waiver) — 자체 waiver 주소를 등록하고 호스팅된 API 없이 래퍼를 브로드캐스트합니다.
+- [**Gas waiver 프로토콜**](/en/reference/gas-waiver-api) — 전체 명세를 읽어보세요: 마커 라우팅, 래퍼 형식, 거버넌스 제어.

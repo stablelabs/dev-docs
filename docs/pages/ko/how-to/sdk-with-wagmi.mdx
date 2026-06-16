@@ -1,0 +1,133 @@
+---
+source_path: how-to/sdk-with-wagmi.mdx
+source_sha: d3266e146435bf079104ad0d84f274096f220701
+title: "wagmi와 함께 SDK 사용하기"
+description: "wagmi의 useWalletClient, useAccount, useChainId 훅을 사용하여 @stablechain/sdk를 React 앱에 연결합니다."
+diataxis: "how-to"
+---
+
+# wagmi와 함께 SDK 사용하기
+
+`createStable`은 viem `WalletClient`를 받는데, 이는 wagmi의 `useWalletClient`가 반환하는 것과 정확히 일치합니다. 평소처럼 wagmi를 통해 지갑을 연결한 다음, 지갑 클라이언트가 변경될 때마다 `StableClient`를 메모이즈합니다.
+
+이 가이드는 wagmi v2와 `@tanstack/react-query`를 전제로 합니다.
+
+## 1. wagmi 구성하기
+
+wagmi 설정에 Stable을 추가합니다. viem은 두 네트워크 모두에 대한 체인 정의를 제공합니다.
+
+```ts
+import { http, createConfig } from "wagmi";
+import { stable as stableMainnet, stableTestnet } from "viem/chains";
+import { injected } from "wagmi/connectors";
+
+export const wagmiConfig = createConfig({
+  chains: [stableMainnet, stableTestnet],
+  connectors: [injected()],
+  transports: {
+    [stableMainnet.id]: http(),
+    [stableTestnet.id]: http(),
+  },
+});
+```
+
+```text
+WagmiConfig { chains: [988, 2201], connectors: [injected] }
+```
+
+## 2. `StableClient`를 반환하는 훅 만들기
+
+현재 `WalletClient`에 대해 `StableClient`를 메모이즈합니다. 지갑 클라이언트의 식별자가 변경되면 다시 생성합니다.
+
+```tsx
+import { useMemo } from "react";
+import { useWalletClient } from "wagmi";
+import { createStable, Network, type StableClient } from "@stablechain/sdk";
+
+export function useStable(network: Network = Network.Mainnet): StableClient | null {
+  const { data: walletClient } = useWalletClient();
+
+  return useMemo(() => {
+    if (!walletClient) return null;
+    return createStable({ network, walletClient });
+  }, [walletClient, network]);
+}
+```
+
+:::warning
+`useWalletClient()`는 사용자가 연결하기 전에는 `undefined`를 반환합니다. SDK 메서드를 호출하기 전에 항상 가드를 두어야 합니다. 그렇지 않으면 구조 분해된 `walletClient`가 falsy가 되어 `createStable`이 서명자를 갖지 못합니다.
+:::
+
+## 3. 컴포넌트에서 사용하기
+
+```tsx
+import { useAccount, useChainId } from "wagmi";
+import { Network } from "@stablechain/sdk";
+import { useStable } from "./useStable";
+
+export function PayButton() {
+  const { address } = useAccount();
+  const chainId = useChainId();
+  const stable = useStable(Network.Mainnet);
+
+  async function onClick() {
+    if (!stable || !address) return;
+    const { txHash } = await stable.transfer({
+      from: address,
+      to: "0xRecipient",
+      amount: 1,
+    });
+    console.log("Sent:", txHash);
+  }
+
+  return (
+    <button disabled={!stable} onClick={onClick}>
+      Pay 1 USDT0 (chain {chainId})
+    </button>
+  );
+}
+```
+
+```text
+Sent: 0x8f3a...2d41
+```
+
+## 4. React에서 브리지와 스왑하기
+
+동일한 `stable` 인스턴스가 브리지와 스왑을 처리합니다. effect나 `useQuery`에서 견적을 가져온 다음, 클릭 시 실행합니다.
+
+```tsx
+const stable = useStable(Network.Mainnet);
+
+const onSwap = async () => {
+  if (!stable) return;
+  const quote = await stable.quoteSwap({
+    fromToken: "0x8a2B28364102Bea189D99A475C494330Ef2bDD0B",
+    toToken: "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
+    amount: 100,
+    fromDecimals: 6,
+  });
+  const { txHash, toAmount } = await stable.swap({
+    fromToken: quote.fromToken,
+    toToken: "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
+    amount: 100,
+    fromDecimals: 6,
+    quote,
+  });
+  console.log({ txHash, toAmount });
+};
+```
+
+```text
+{ txHash: "0xabcd...", toAmount: 99.81 }
+```
+
+:::note
+`useQuery`로 견적을 캐싱하는 것이 잘 작동합니다. `quoteSwap` / `quoteBridge`를 쿼리 함수로 전달하고 캐시된 `quote`를 `swap` / `bridge`로 전달하세요. SDK는 견적이 제공되면 내부 견적 호출을 건너뜁니다.
+:::
+
+## 다음 권장 사항
+
+- [**SDK 레퍼런스**](/en/reference/sdk) — 모든 메서드, 설정 필드, 오류 클래스.
+- [**viem과 함께 사용하기**](/en/how-to/sdk-with-viem) — 세 가지 서명 모드를 나란히 비교합니다.
+- [**SDK 빠른 시작**](/en/tutorial/sdk-quickstart) — 테스트넷에서 첫 전송, 브리지, 스왑을 실행해 보세요.

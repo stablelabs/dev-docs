@@ -1,0 +1,60 @@
+---
+source_path: how-to/use-faucet.mdx
+source_sha: 65aeda2c0e68c6665a8e6c3b88186eda9e2cde05
+title: 如何为您的 Stable 测试网钱包充值
+description: "通过水龙头或从以太坊 Sepolia 跨链为 Stable 测试网钱包充值 USDT0 的方法。"
+---
+
+# 如何为您的 Stable 测试网钱包充值
+
+Stable 使用 USDT0作为燃料代币，因此您需要在钱包中有 USDT0 才能与链进行交互。首先，您需要使用水龙头为您的账户充值 USDT0。
+
+1. 访问 https://faucet.stable.xyz
+2. 点击"Get USDT0"按钮，1 USDT0 将被投放到您的钱包中。
+
+如果您想要更多 USDT0，您可以从以太坊 Sepolia 将测试 USDT 桥接到 Stable 测试网。
+
+1. 访问 https://sepolia.etherscan.io/token/0xc4DCC311c028e341fd8602D8eB89c5de94625927#writeContract，通过调用 `_mint` 函数将所需数量的测试 Tether USD 铸造到您的账户中。
+2. 向以太坊 Sepolia 上的 LayerZero 桥接合约发送以下交易，将测试 USDT 桥接到 Stable 测试网：
+    
+    ```jsx
+    export function addrTo32Bytes(addr: string): Buffer {
+      const hex20 = ethers.utils.getAddress(addr).slice(2);
+      const padded = hex20.padStart(64, "0");      // 32 bytes ⇒ 64 hex
+      return Buffer.from(padded, "hex");           // length === 32
+    }
+    
+    async function main() {
+      const [owner] = await ethers.getSigners();
+    
+      const SEPOLIA_USDT0 = "0xc4DCC311c028e341fd8602D8eB89c5de94625927";
+      const SEPOLIA_USDT0_OAPP = "0xc099cD946d5efCC35A99D64E808c1430cEf08126"
+      const RECEIVER_EID = 40374;
+    
+      const usdt0 = await ethers.getContractAt("ERC20", SEPOLIA_USDT0);
+      await usdt0.approve(SEPOLIA_USDT0_OAPP, ethers.utils.parseEther("1"));
+    
+      const options = Options.newOptions().addExecutorLzReceiveOption(0, 0).toBytes();
+      const amount = ethers.utils.parseEther("1"); // 将此更改为您所需的数量
+      const OFTAdapter = await ethers.getContractAt("OFTAdapter", SEPOLIA_USDT0_OAPP);
+    
+      const sendParams = {
+        dstEid: RECEIVER_EID,
+        to: addrTo32Bytes(owner.address),
+        amountLD: amount,
+        minAmountLD: amount,
+        extraOptions: options,
+        composeMsg: Buffer.from(""),
+        oftCmd: Buffer.from(""),
+      };
+      const fee = await OFTAdapter.quoteSend(sendParams, false);
+      await OFTAdapter.send(
+        sendParams,
+        fee,
+        owner.address,
+        {
+          value: fee.nativeFee,
+        }
+      )
+    }
+    ```

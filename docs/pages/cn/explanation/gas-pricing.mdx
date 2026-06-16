@@ -1,0 +1,25 @@
+---
+source_path: explanation/gas-pricing.mdx
+source_sha: 2df550135708d69fa3d4b68bf1579652c4fff68d
+title: Gas 定价机制
+description: "以 USDT0 支付、无优先费的 Stable 单一组件 Gas 定价模型。"
+---
+
+# Gas 定价机制
+
+Stable 采用单一组成部分的 Gas 费模型：
+
+- **不支持优先费用（ 禁用maxPriorityFeePerGas）**
+- 费用仅基于基础的执行成本
+- 以 **USDT0** 支付
+
+设计理由：
+
+- 消除 Gas 波动，保证支付可预测性
+- 简化用户体验，避免通过支付额外报酬使验证节点优先处理交易
+
+开发者注意：
+
+- 不支持指定优先费用以加速交易
+- 钱包应隐藏或禁用优先费用的设置
+- Gas 预估需基于 Stable RPC 的定价预测

@@ -1,0 +1,306 @@
+---
+source_path: reference/bank-module-api.mdx
+source_sha: 11f910679971e60d245d94af0e500a40af501789
+title: "Bank 预编译合约参考"
+description: "Bank 预编译合约参考：ERC-20 方法、铸造/销毁授权以及事件签名。"
+diataxis: "reference"
+---
+
+# Bank 预编译合约参考
+
+:::note
+**概念：** 关于 bank 模块的功能及其使用场景，请参阅 [Bank 模块](/en/explanation/bank-module)。
+:::
+
+## 摘要
+
+Stable SDK 中的 `x/bank` 模块仅提供基本的代币管理功能。
+你可以不受限制地向任何账户转移任何代币，但无法委托其他账户来转移你的代币。
+出于这些原因，`bank` 预编译合约在 Stable SDK 现有的 `x/bank` 模块基础上提供了额外的授权和委托功能。
+
+## 目录
+
+1. **[概念](#concepts)**
+2. **[配置](#configuration)**
+3. **[方法](#methods)**
+4. **[事件](#events)**
+
+## 概念
+
+该预编译合约提供 ERC-20 标准方法——例如用于转账的 `transfer` 和 `balanceOf`，以及用于委托的 `transferFrom`、`approve` 和 `allowance`。你可以直接调用这些方法，无需注册合约地址。
+
+但是，在使用 `mint` 和 `burn` 方法之前，`x/precompile` 模块必须将合约地址加入白名单并进行注册。
+
+```go
+func (p *Precompile) mint(
+  ctx sdk.Context,
+  contract *vm.Contract,
+  denom string,
+  method *abi.Method,
+  stateDB vm.StateDB,
+  args []interface{},
+) ([]byte, error) {
+  // ...
+
+  // mint method is only allowed for the registered caller contract
+  if _, err := precompilecommon.CheckPermissions(ctx, p.precompileKeeper, contract.CallerAddress, CallerPermissions); err != nil {
+    return nil, err
+  }
+```
+
+这一额外的验证流程保证了调用该预编译合约的代币合约是经过授权的。
+
+要在 `x/precompile` 模块白名单中注册代币合约地址及其 denom，你必须提交一个治理提案。
+
+## 配置
+
+合约地址和 gas 费用是预定义的。
+
+### 合约地址
+
+- `0x0000000000000000000000000000000000001003` 用于 STABLE（治理代币）
+
+## 方法
+
+### `mint`
+
+铸造请求数量的新代币并转移到该账户。
+要铸造的代币数量必须大于零。
+
+当代币成功铸造并转移到账户时，将发出 `PrecompiledBankMint` 事件。
+
+注意：
+
+- 禁止铸造治理代币。
+- 调用 mint 方法的调用方合约必须在 x/precompile 模块中注册。
+
+#### 输入
+
+|名称|类型|描述|
+|---|---|---|
+|to|address|接收铸造代币的地址|
+|amount|uint256|要铸造的代币数量|
+
+#### 输出
+
+|名称|类型|描述|
+|---|---|---|
+|success|bool|如果代币成功铸造并转移到账户，则为 true|
+
+### `burn`
+
+从账户中销毁请求数量的代币。
+要销毁的代币数量必须大于零。
+
+当代币成功销毁时，将发出 `PrecompiledBankBurn` 事件。
+
+注意：
+
+- 禁止销毁治理代币。
+- 调用 burn 方法的调用方合约必须在 x/precompile 模块中注册。
+
+#### 输入
+
+|名称|类型|描述|
+|---|---|---|
+|from|address|要销毁代币的地址|
+|amount|uint256|要销毁的代币数量|
+
+#### 输出
+
+|名称|类型|描述|
+|---|---|---|
+|success|bool|如果代币成功销毁，则为 true|
+
+### `transfer`
+
+将请求数量的代币从发送方转移给接收方。
+代币必须被设置为可发送。要转移的代币数量必须大于零。
+
+当代币成功转移时，将发出 `PrecompiledBankTransfer` 事件。
+
+#### 输入
+
+|名称|类型|描述|
+|---|---|---|
+|to|address|接收代币的地址|
+|amount|uint256|要转移的代币数量|
+
+#### 输出
+
+|名称|类型|描述|
+|---|---|---|
+|success|bool|如果代币成功转移，则为 true|
+
+### `transferFrom`
+
+由授权的支出方在授权额度范围内将请求数量的代币从所有者转移给接收方。
+代币必须被设置为可发送。
+要转移的代币数量必须大于零，且小于或等于当前授权额度。
+
+当代币成功转移时，将发出 `PrecompiledBankTransfer` 事件。
+
+#### 输入
+
+|名称|类型|描述|
+|---|---|---|
+|from|address|转出代币的地址|
+|to|address|接收代币的地址|
+|amount|uint256|要转移的代币数量|
+
+#### 输出
+
+|名称|类型|描述|
+|---|---|---|
+|success|bool|如果代币成功转移，则为 true|
+
+### `multiTransfer`
+
+将代币从单个账户转移到多个账户。
+代币必须被设置为可发送。
+转移给每个接收方的代币数量必须大于零。
+
+当代币成功转移时，将为每个接收方发出 `PrecompiledBankTransfer` 事件。
+
+#### 输入
+
+|名称|类型|描述|
+|---|---|---|
+|to|address[]|接收转移代币的地址|
+|amount|uint256[]|转移给每个接收方的代币数量|
+
+#### 输出
+
+|名称|类型|描述|
+|---|---|---|
+|success|bool|如果代币成功转移给每个接收方，则为 true|
+
+### `approve`
+
+授权支出方从所有者的账户转移代币。
+要授权的代币数量必须大于零。
+
+当授权成功设置时，将发出 `PrecompiledBankApproval` 事件。
+
+#### 输入
+
+|名称|类型|描述|
+|---|---|---|
+|spender|address|要授权的地址|
+|value|uint256|要授权的代币数量|
+
+#### 输出
+
+|名称|类型|描述|
+|---|---|---|
+|success|bool|如果授权成功设置，则为 true|
+
+### `revoke`
+
+撤销支出方从所有者转移代币的授权。
+
+当授权成功撤销时，将发出 `PrecompiledBankRevoke` 事件。
+
+#### 输入
+
+|名称|类型|描述|
+|---|---|---|
+|spender|address|要撤销的地址|
+
+#### 输出
+
+|名称|类型|描述|
+|---|---|---|
+|success|bool|如果授权成功撤销，则为 true|
+
+### `balanceOf`
+
+返回账户中的代币余额。
+
+#### 输入
+
+|名称|类型|描述|
+|---|---|---|
+|account|address|获取代币余额的地址|
+
+#### 输出
+
+|名称|类型|描述|
+|---|---|---|
+|balance|uint256|账户中的代币数量|
+
+### `totalSupply`
+
+返回代币的总供应量。
+
+#### 输入
+
+无
+
+#### 输出
+
+|名称|类型|描述|
+|---|---|---|
+|totalSupply|uint256|代币总量|
+
+### `allowance`
+
+返回支出方仍被允许从所有者处提取的代币数量。
+
+#### 输入
+
+|名称|类型|描述|
+|---|---|---|
+|owner|address|所有者的地址|
+|spender|address|支出方的地址|
+
+#### 输出
+
+|名称|类型|描述|
+|---|---|---|
+|amount|uint256|已授权的代币数量|
+
+## 事件
+
+该预编译合约发出的所有事件都以 `PrecompiledBank` 为前缀。
+为避免歧义，调用该预编译合约的代币合约应避免使用具有相同前缀的事件名称。
+
+### PrecompiledBankMint
+
+|名称|类型|是否索引|描述|
+|---|---|---|---|
+|from|address|Y|铸造代币的地址|
+|to|address|Y|接收铸造代币的地址|
+|amount|uint256|N|铸造的代币数量|
+
+### PrecompiledBankBurn
+
+|名称|类型|是否索引|描述|
+|---|---|---|---|
+|from|address|Y|销毁代币的地址|
+|to|address|Y|此方法中未使用|
+|amount|uint256|N|销毁的代币数量|
+
+### PrecompiledBankTransfer
+
+|名称|类型|是否索引|描述|
+|---|---|---|---|
+|from|address|Y|转移代币的地址|
+|to|address|Y|接收转移代币的地址|
+|amount|uint256|N|转移的代币数量|
+
+### PrecompiledBankApproval
+
+|名称|类型|是否索引|描述|
+|---|---|---|---|
+|owner|address|Y|授权代币的地址|
+|spender|address|Y|要授权的地址|
+|value|uint256|N|已授权的代币数量|
+
+### PrecompiledBankRevoke
+
+|名称|类型|是否索引|描述|
+|---|---|---|---|
+|owner|address|Y|撤销代币的地址|
+|spender|address|Y|要撤销的地址|
+|value|uint256|N|已授权的代币数量|

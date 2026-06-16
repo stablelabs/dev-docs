@@ -1,0 +1,466 @@
+---
+source_path: how-to/troubleshoot-node.mdx
+source_sha: f4b7701fdfef056c1aa8bd46ae494c7f6d73d775
+title: 문제 해결 가이드
+description: "일반적인 Stable 노드 연결, 동기화 및 성능 문제에 대한 진단 및 해결 방법."
+---
+
+이 종합 가이드는 Stable 노드의 일반적인 문제를 진단하고 해결하는 데 도움을 줍니다.
+
+## 빠른 진단
+
+### 노드 상태 확인 스크립트
+
+```bash
+#!/bin/bash
+# quick-diagnosis.sh
+
+# Set service name (default: stable)
+export SERVICE_NAME=stable
+
+echo "=== Stable Node Diagnostics ==="
+echo "Timestamp: $(date)"
+echo ""
+
+# 1. Service Status
+echo "1. SERVICE STATUS:"
+systemctl status ${SERVICE_NAME} --no-pager | head -10
+
+# 2. Sync Status
+echo -e "\n2. SYNC STATUS:"
+curl -s localhost:26657/status | jq '.result.sync_info' 2>/dev/null || echo "RPC not responding"
+
+# 3. Peer Connections
+echo -e "\n3. PEER COUNT:"
+curl -s localhost:26657/net_info | jq '.result.n_peers' 2>/dev/null || echo "Cannot get peer info"
+
+# 4. Recent Errors
+echo -e "\n4. RECENT ERRORS (last 20):"
+sudo journalctl -u ${SERVICE_NAME} --since "1 hour ago" | grep -i error | tail -20
+
+# 5. System Resources
+echo -e "\n5. SYSTEM RESOURCES:"
+df -h / | grep -v Filesystem
+free -h | grep Mem
+top -bn1 | grep "load average"
+
+# 6. Port Status
+echo -e "\n6. PORT STATUS:"
+ss -tulpn | grep ${SERVICE_NAME} || echo "No ${SERVICE_NAME} ports found"
+
+echo -e "\n=== Diagnostics Complete ==="
+```
+
+## 일반적인 문제 및 해결 방법
+
+### 노드가 시작되지 않음
+
+#### 문제: 바이너리를 찾을 수 없음
+
+**오류 메시지:**
+```
+stabled: command not found
+```
+
+**해결 방법:**
+```bash
+# Check if binary exists
+ls -la /usr/bin/stabled
+
+# If missing, reinstall (use arm64 if needed)
+wget https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/binary/stabled-0.7.2-linux-amd64-testnet.tar.gz
+tar -xvzf stabled-0.7.2-linux-amd64-testnet.tar.gz
+sudo mv stabled /usr/bin/
+sudo chmod +x /usr/bin/stabled
+```
+
+#### 문제: 권한 거부됨
+
+**오류 메시지:**
+```
+Error: open /home/user/.stabled/config/config.toml: permission denied
+```
+
+**해결 방법:**
+```bash
+# Fix ownership
+sudo chown -R $USER:$USER ~/.stabled/
+
+# Fix permissions
+chmod 700 ~/.stabled/
+chmod 600 ~/.stabled/config/*.json
+chmod 644 ~/.stabled/config/*.toml
+```
+
+#### 문제: 주소가 이미 사용 중
+
+**오류 메시지:**
+```
+Error: listen tcp 0.0.0.0:26657: bind: address already in use
+```
+
+**해결 방법:**
+```bash
+# Find process using port
+sudo lsof -i :26657
+
+# Kill the process
+sudo kill -9 <PID>
+
+# Or change port in config
+sed -i 's/laddr = "tcp:\/\/0.0.0.0:26657"/laddr = "tcp:\/\/0.0.0.0:26658"/' ~/.stabled/config/config.toml
+```
+
+### 동기화 문제
+
+#### 문제: 노드가 특정 높이에서 멈춤
+
+**증상:**
+- 블록 높이가 증가하지 않음
+- 1분 이상 새 블록이 없음
+
+**해결 방법:**
+```bash
+# 1. Check peers
+curl localhost:26657/net_info | jq '.result.n_peers'
+
+# If no peers, add persistent peers
+echo "persistent_peers = \"5ed0f977a26ccf290e184e364fb04e268ef16430@37.187.147.27:26656,128accd3e8ee379bfdf54560c21345451c7048c7@37.187.147.22:26656\"" >> ~/.stabled/config/config.toml
+
+# 2. Reset and resync
+sudo systemctl stop ${SERVICE_NAME}
+stabled comet unsafe-reset-all --keep-addr-book
+sudo systemctl start ${SERVICE_NAME}
+
+# 3. Use snapshot (see Snapshots guide)
+```
+
+#### 문제: "wrong Block.Header.AppHash" 오류
+
+**오류 메시지:**
+```
+panic: Wrong Block.Header.AppHash. Expected XXXX, got YYYY
+```
+
+**해결 방법:**
+```bash
+# This indicates state corruption - rollback to previous block
+sudo systemctl stop ${SERVICE_NAME}
+
+# Rollback one block
+stabled rollback
+
+# Restart node
+sudo systemctl start ${SERVICE_NAME}
+
+# If rollback doesn't work, restore from snapshot
+# Backup important files
+cp ~/.stabled/config/priv_validator_key.json ~/backup/
+cp ~/.stabled/config/node_key.json ~/backup/
+
+# Reset state
+stabled comet unsafe-reset-all
+
+# Restore from snapshot
+wget https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/snapshots/snapshot.tar.lz4
+tar -I lz4 -xf snapshot.tar.lz4 -C ~/.stabled/
+
+sudo systemctl start ${SERVICE_NAME}
+```
+
+#### 문제: 느린 동기화 속도
+
+**증상:**
+- 분당 100블록 미만
+- 높은 CPU/디스크 사용량
+
+**해결 방법:**
+```bash
+# 1. Check disk I/O
+iostat -x 1 5
+
+# 2. Optimize configuration
+cat >> ~/.stabled/config/config.toml <<EOF
+[mempool]
+size = 10000
+cache_size = 20000
+
+[p2p]
+send_rate = 10240000
+recv_rate = 10240000
+EOF
+
+# 3. Increase file descriptors
+echo "* soft nofile 65535" | sudo tee -a /etc/security/limits.conf
+echo "* hard nofile 65535" | sudo tee -a /etc/security/limits.conf
+
+# 4. Restart node
+sudo systemctl restart ${SERVICE_NAME}
+```
+
+### 피어 연결 문제
+
+#### 문제: 피어가 연결되지 않음
+
+**증상:**
+```
+"n_peers": 0
+```
+
+**해결 방법:**
+```bash
+# 1. Check firewall
+sudo ufw status
+sudo ufw allow 26656/tcp
+
+# 2. Check external IP
+curl ifconfig.me
+
+# 3. Update external address
+sed -i "s/external_address = .*/external_address = \"$(curl -s ifconfig.me):26656\"/" ~/.stabled/config/config.toml
+
+# 4. Add seed nodes
+cat >> ~/.stabled/config/config.toml <<EOF
+seeds = "seed1@seed1.stable.network:26656,seed2@seed2.stable.network:26656"
+EOF
+
+# 5. Enable PEX
+sed -i 's/pex = false/pex = true/' ~/.stabled/config/config.toml
+
+sudo systemctl restart ${SERVICE_NAME}
+```
+
+### 합의 문제
+
+#### 문제: 업그레이드 후 "AppHash mismatch"
+
+**오류 메시지:**
+```
+panic: AppHash mismatch
+```
+
+**해결 방법:**
+```bash
+# This usually happens after failed upgrade
+# Must restore from backup or snapshot
+
+# 1. Stop node
+sudo systemctl stop ${SERVICE_NAME}
+
+# 2. Restore from pre-upgrade backup
+rm -rf ~/.stabled/data
+cp -r ~/stable-backup/data ~/.stabled/
+
+# 3. Ensure correct binary version
+stabled version
+
+# 4. Start node
+sudo systemctl start ${SERVICE_NAME}
+```
+
+### 데이터베이스 문제
+
+#### 문제: "database corruption"
+
+**오류 메시지:**
+```
+Error initializing database: resource temporarily unavailable
+```
+
+**해결 방법:**
+```bash
+# 1. Stop node
+sudo systemctl stop ${SERVICE_NAME}
+
+# 2. Check disk space
+df -h ~/.stabled
+
+# 3. Repair database
+stabled debug kill-db ~/.stabled/data
+stabled debug dump-db ~/.stabled/data > db_dump.txt
+
+# 4. If repair fails, resync
+rm -rf ~/.stabled/data
+# Restore from snapshot
+
+# 5. Start node
+sudo systemctl start ${SERVICE_NAME}
+```
+
+#### 문제: "Too many open files"
+
+**오류 메시지:**
+```
+accept: too many open files
+```
+
+**해결 방법:**
+```bash
+# 1. Check current limits
+ulimit -n
+
+# 2. Increase limits
+echo "* soft nofile 65535" | sudo tee -a /etc/security/limits.conf
+echo "* hard nofile 65535" | sudo tee -a /etc/security/limits.conf
+
+# 3. Update systemd service
+sudo sed -i '/\[Service\]/a LimitNOFILE=65535' /etc/systemd/system/stabled.service
+
+# 4. Reload and restart
+sudo systemctl daemon-reload
+sudo systemctl restart ${SERVICE_NAME}
+```
+
+### 메모리 문제
+
+#### 문제: 메모리 부족(OOM)으로 종료됨
+
+**증상:**
+```
+stabled.service: Main process exited, code=killed, status=9/KILL
+```
+
+**해결 방법:**
+```bash
+# 1. Check memory usage
+free -h
+dmesg | grep -i "killed process"
+
+# 2. Add swap space
+sudo fallocate -l 8G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+
+# 3. Optimize memory usage
+cat >> ~/.stabled/config/app.toml <<EOF
+iavl-cache-size = 781250  # Reduce if low memory
+inter-block-cache = false  # Disable if low memory
+EOF
+
+# 4. Set memory limits
+sudo systemctl edit stabled
+# Add:
+# [Service]
+# MemoryMax=8G
+# MemorySwapMax=2G
+```
+
+### 디스크 공간 문제
+
+#### 문제: 디바이스에 남은 공간이 없음
+
+**오류 메시지:**
+```
+Error: write ~/.stabled/data/blockstore.db/001234.log: no space left on device
+```
+
+**해결 방법:**
+```bash
+# 1. Check disk usage
+df -h
+du -sh ~/.stabled/*
+
+# 2. Clean up logs
+sudo journalctl --vacuum-time=7d
+sudo journalctl --vacuum-size=500M
+
+# 3. Prune blockchain data
+sudo systemctl stop ${SERVICE_NAME}
+stabled prune
+
+# 4. Remove old snapshots
+rm -rf ~/.stabled/data/snapshots/
+
+# 5. Move to larger disk
+# See migration section below
+```
+
+## 고급 문제 해결
+
+### 디버그 모드
+
+```bash
+# Run node in debug mode
+stabled start --log_level debug
+
+# Enable debug API
+sed -i 's/enable = false/enable = true/' ~/.stabled/config/app.toml
+sed -i 's/unsafe = false/unsafe = true/' ~/.stabled/config/config.toml
+```
+
+### 프로파일링
+
+```bash
+# Enable profiling
+sed -i 's/prof_laddr = ""/prof_laddr = "localhost:6060"/' ~/.stabled/config/config.toml
+
+# Collect CPU profile
+go tool pprof http://localhost:6060/debug/pprof/profile?seconds=30
+
+# Memory profile
+go tool pprof http://localhost:6060/debug/pprof/heap
+
+# Goroutine profile
+curl http://localhost:6060/debug/pprof/goroutine?debug=1
+```
+
+## 오류 메시지 참조
+
+| 오류 | 원인 | 해결 방법 |
+|-------|-------|----------|
+| `wrong Block.Header.AppHash` | 상태 손상 | 스냅샷에서 재동기화 |
+| `validator set is nil` | 제네시스 불일치 | 올바른 제네시스 다운로드 |
+| `connection refused` | 서비스가 실행되지 않음 | 서비스 시작 |
+| `timeout waiting for tx to be included` | 네트워크 혼잡 | 가스 가격 증가 |
+| `account sequence mismatch` | Nonce 오류 | 현재 nonce 조회 |
+| `insufficient fees` | 가스 가격이 너무 낮음 | 가스 가격 증가 |
+| `signature verification failed` | 키 불일치 | 키 구성 확인 |
+| `module account has not been set` | 초기화 오류 | 노드 재초기화 |
+
+## 도움받기
+
+### 디버그 정보 수집
+
+```bash
+#!/bin/bash
+# collect-debug-info.sh
+
+# Set service name (default: stable)
+export SERVICE_NAME=stable
+
+OUTPUT_DIR="stable-debug-$(date +%Y%m%d-%H%M%S)"
+mkdir -p $OUTPUT_DIR
+
+echo "Collecting debug information..."
+
+# System info
+uname -a > $OUTPUT_DIR/system.txt
+df -h >> $OUTPUT_DIR/system.txt
+free -h >> $OUTPUT_DIR/system.txt
+
+# Service status
+systemctl status ${SERVICE_NAME} --no-pager > $OUTPUT_DIR/service-status.txt
+
+# Recent logs
+sudo journalctl -u ${SERVICE_NAME} --since "1 hour ago" > $OUTPUT_DIR/recent-logs.txt
+
+# Config files (remove sensitive data)
+grep -v "priv" ~/.stabled/config/config.toml > $OUTPUT_DIR/config.toml
+grep -v "priv" ~/.stabled/config/app.toml > $OUTPUT_DIR/app.toml
+
+# Node status
+curl -s localhost:26657/status > $OUTPUT_DIR/node-status.json 2>/dev/null
+
+# Create archive
+tar -czf $OUTPUT_DIR.tar.gz $OUTPUT_DIR/
+
+echo "Debug info collected: $OUTPUT_DIR.tar.gz"
+echo "Share this file when requesting support"
+```
+
+## 다음 단계
+
+- 문제를 예방하기 위해 [모니터링 설정](./monitoring)을 검토하세요
+- 버전별 문제는 [업그레이드 가이드](./upgrades)를 확인하세요

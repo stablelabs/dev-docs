@@ -1,0 +1,22 @@
+---
+source_path: explanation/core-optimization-overview.mdx
+source_sha: 64589b294e0b6057b4feb1811f4e81864d52dab7
+title: "概览"
+description: "涵盖共识、执行、数据库与 RPC 各层的 Stable 全栈优化方案概述。"
+---
+
+# 概览
+
+## 全流程核心优化
+
+<img
+  className="block"
+  src="/images/transaction-lifecycle.png"
+  alt="区块链交易生命周期"
+/>
+
+一笔区块链交易从提交到最终确认，需要经历多个紧密相连的阶段。交易首先通过 **RPC** 提交，进入 **内存池（mempool）**，被打包进区块后通过 **共识机制** 验证，再由 **状态机（state machine）** 执行，最终写入 **数据库** 进行持久化。只有在完成整个流程后，用户才能收到确认结果。
+
+仅优化某一个阶段是远远不够的。任何环节的低效都会影响系统整体性能。因此，Stable 致力于从上到下全面优化。
+
+请查看以下页面，了解 Stable 如何从共识层、执行层、数据库层到 RPC 层，对各个架构模块进行系统性升级优化，以确保交易能稳定地以高性能处理。

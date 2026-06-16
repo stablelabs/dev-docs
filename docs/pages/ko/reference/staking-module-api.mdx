@@ -1,0 +1,419 @@
+---
+source_path: reference/staking-module-api.mdx
+source_sha: e2001be61af5b5ab7a98db813dae22b5c82134dd
+title: "스테이킹 프리컴파일 레퍼런스"
+description: "스테이킹 프리컴파일 레퍼런스: 위임, 위임 해제, 검증자 관리 및 쿼리 메서드."
+diataxis: "reference"
+---
+
+# 스테이킹 프리컴파일 레퍼런스
+
+:::note
+**개념:** 스테이킹 모듈이 무엇을 하는지와 언제 사용하는지는 [스테이킹 모듈](/en/explanation/staking-module)을 참고하세요.
+:::
+
+## 개요
+
+`staking` 프리컴파일 컨트랙트는 EVM 환경에서 Stable SDK의 `x/staking` 모듈 기능을 사용할 수 있게 해주는 브리지 역할을 합니다.
+
+## 목차
+
+1. **[개념](#concepts)**
+2. **[구성](#configuration)**
+3. **[메서드](#methods)**
+4. **[이벤트](#events)**
+
+## 개념
+
+Stable SDK의 `x/staking` 모듈에서는 스테이킹을 위해 체인 초기화 중에 본드 denom을 등록해야 합니다.
+검증자와 위임자는 본드 denom 스테이킹 토큰만 사용할 수 있습니다.
+`staking` 프리컴파일 컨트랙트는 검증자 또는 위임자가 호출자인지 확인하기 위한 추가 검사를 수행합니다.
+
+## 구성
+
+컨트랙트 주소와 가스 비용은 미리 정의되어 있습니다.
+
+### 컨트랙트 주소
+
+- `0x0000000000000000000000000000000000000800`
+
+## 메서드
+
+### `createValidator`
+
+검증자를 생성합니다.
+검증자는 운영자의 초기 위임으로 생성되어야 합니다.
+잠재적 위임자를 위해 검증자는 수수료율에 대한 정보와 계획을 제공해야 합니다.
+위임자는 공개된 정보를 바탕으로 토큰을 위임할 검증자를 선택할 수 있으며, 시장 메커니즘에 의한 자연스러운 규제가 이루어집니다.
+
+`CreateValidator`는 검증자가 성공적으로 등록될 때 발생합니다.
+
+#### 입력
+
+|이름|타입|설명|
+|---|---|---|
+|description|Description|검증자의 정보|
+|commissionRates|CommissionRates|검증자가 보상받는 스테이킹 토큰의 수수료율|
+|minSelfDelegation|uint256|검증자의 최소 자기 위임 금액|
+|validatorAddress|address|검증자의 주소|
+|pubkey|string|검증자의 공개 키|
+|value|uint256|검증자에게 초기에 자기 위임된 스테이킹 토큰의 양|
+
+`Description`은 다음 필드를 가진 구조체입니다:
+
+|이름|타입|설명|
+|---|---|---|
+|moniker|string|검증자의 이름|
+|identity|string|검증자의 신원|
+|website|string|검증자 웹사이트의 url|
+|securityContact|string|보안 연락처 정보|
+|details|string|검증자에 대한 추가 설명|
+
+`CommissionRates`는 다음 필드를 가진 구조체입니다:
+
+|이름|타입|설명|
+|---|---|---|
+|rate|uint256|검증자가 받는 현재 수수료율|
+|maxRate|uint256|최대 수수료율(이보다 높게 설정할 수 없음)|
+|maxChangeRate|uint256|검증자가 하루에 변경할 수 있는 최대 수수료율|
+
+`rate`는 시장이 수용할 수 있는 적절한 값으로 설정해야 합니다.
+
+- 검증자의 수수료율이 높을수록 위임자의 이익은 낮아집니다.
+- 검증자의 수수료율이 낮을수록 검증자의 이익이 낮아지고 운영이 어려워집니다.
+
+높은 `maxRate`는 위임자가 검증자의 예상치 못한 높은 수수료율을 우려하게 만들 수 있으므로 `maxRate`는 신중하게 설정해야 합니다. `maxChangeRate`는 초기화된 후에는 변경할 수 없습니다.
+
+#### 출력
+
+|이름|타입|설명|
+|---|---|---|
+|success|bool|검증자가 성공적으로 등록되면 true|
+
+### `editValidator`
+
+검증자가 자신의 정보를 업데이트합니다.
+검증자는 `CommissionRates` 구조체의 `maxRate`와 `maxChangeRate` 같은 변경 불가능한 필드를 제외한 정보만 업데이트할 수 있습니다.
+
+`EditValidator`는 검증자가 성공적으로 업데이트될 때 발생합니다.
+
+#### 입력
+
+|이름|타입|설명|
+|---|---|---|
+|description|Description|검증자의 정보|
+|validatorAddress|address|검증자의 주소|
+|commissionRate|int256|검증자가 보상받는 스테이킹 토큰의 수수료율|
+|minSelfDelegation|int256|검증자의 최소 자기 위임 금액|
+
+#### 출력
+
+|이름|타입|설명|
+|---|---|---|
+|success|bool|검증자가 성공적으로 업데이트되면 true|
+
+### `delegate`
+
+위임자가 검증자에게 위임할 토큰의 양을 설정합니다.
+
+`Delegate`는 위임이 성공적으로 완료될 때 발생합니다.
+
+#### 입력
+
+|이름|타입|설명|
+|---|---|---|
+|delegatorAddress|address|위임자의 주소|
+|validatorAddress|address|검증자의 주소|
+|amount|uint256|검증자에게 위임된 스테이킹 토큰의 양|
+
+#### 출력
+
+|이름|타입|설명|
+|---|---|---|
+|success|bool|위임이 성공적으로 완료되면 true|
+
+#### 이벤트
+
+`newShares`는 위임자의 소유 비율을 나타냅니다.
+동일한 양의 토큰이 위임되더라도 시점에 따라 계산된 share가 달라질 수 있습니다.
+
+### `undelegate`
+
+위임자가 검증자에게 위임한 토큰의 양을 출금합니다.
+
+`Unbond`는 위임 해제가 성공적으로 완료될 때 발생합니다.
+
+#### 입력
+
+|이름|타입|설명|
+|---|---|---|
+|delegatorAddress|address|위임자의 주소|
+|validatorAddress|address|검증자의 주소|
+|amount|uint256|검증자로부터 위임 해제하려는 스테이킹 토큰의 양|
+
+#### 출력
+
+|이름|타입|설명|
+|---|---|---|
+|success|bool|위임 해제가 성공적으로 완료되면 true|
+
+### `redelegate`
+
+위임자가 검증자에게 위임한 토큰의 양을 다른 검증자로 재위임합니다.
+
+`Redelegate`는 재위임이 성공적으로 완료될 때 발생합니다.
+
+#### 입력
+
+|이름|타입|설명|
+|---|---|---|
+|delegatorAddress|address|위임자의 주소|
+|validatorSrc|string|출발 검증자의 주소|
+|validatorDst|string|도착 검증자의 주소|
+|amount|uint256|재위임할 스테이킹 토큰의 양|
+
+#### 출력
+
+|이름|타입|설명|
+|---|---|---|
+|success|bool|재위임이 성공적으로 완료되면 true|
+
+### `delegation`
+
+위임자와 검증자 간의 위임 정보를 반환합니다.
+위임이 발견되지 않으면 `shares`와 `balance`는 `0`이 됩니다.
+
+#### 입력
+
+|이름|타입|설명|
+|---|---|---|
+|delegatorAddress|address|위임자의 주소|
+|validatorAddress|address|검증자의 주소|
+
+#### 출력
+
+|이름|타입|설명|
+|---|---|---|
+|shares|uint256|위임된 share|
+|balance|Coin|위임된 토큰의 양과 denom|
+
+`Coin`은 다음 필드를 가진 구조체입니다:
+
+|이름|타입|설명|
+|---|---|---|
+|denom|string|보상의 denom|
+|amount|uint256|보상의 양|
+
+### `unbondingDelegation`
+
+위임자와 검증자 간의 위임 해제 정보를 반환합니다.
+위임 해제가 발견되지 않으면 빈 `UnbondingDelegationOutput`이 반환됩니다.
+
+#### 입력
+
+|이름|타입|설명|
+|---|---|---|
+|delegatorAddress|address|위임자의 주소|
+|validatorAddress|address|검증자의 주소|
+
+#### 출력
+
+|이름|타입|설명|
+|---|---|---|
+|unbondingDelegation|UnbondingDelegationOutput|위임 해제의 정보|
+
+`UnbondingDelegationOutput`은 다음 필드를 가진 구조체입니다:
+
+|이름|타입|설명|
+|---|---|---|
+|validatorAddress|address|검증자의 주소|
+|delegatorAddress|address|위임자의 주소|
+|entries|UnbondingDelegationEntry[]|위임 해제의 엔트리|
+
+`UnbondingDelegationEntry`는 다음 필드를 가진 구조체입니다:
+
+|이름|타입|설명|
+|---|---|---|
+|creationHeight|uint64|엔트리의 생성 높이|
+|completionTime|uint64|엔트리의 완료 시간|
+|initialBalance|Coin|엔트리의 초기 잔액|
+|balance|Coin|엔트리의 잔액|
+
+### `validator`
+
+검증자 정보를 반환합니다.
+검증자가 발견되지 않으면 빈 `ValidatorOutput`이 반환됩니다.
+
+#### 입력
+
+|이름|타입|설명|
+|---|---|---|
+|validatorAddress|address|검증자의 주소|
+
+#### 출력
+
+|이름|타입|설명|
+|---|---|---|
+|validator|Validator|검증자의 정보|
+
+`Validator`는 다음 필드를 가진 구조체입니다:
+
+|이름|타입|설명|
+|---|---|---|
+|operatorAddress|address|검증자의 주소|
+|consensusPubkey|string|검증자의 공개 키|
+|jailed|bool|검증자가 jail 상태인지 여부|
+|status|int32|검증자의 상태|
+|tokens|uint256|검증자에게 위임된 스테이킹 토큰의 양|
+|delegatorShares|uint256|위임 share의 양|
+|description|string|검증자의 설명|
+|unbondingHeight|int64|검증자가 위임 해제되는 높이|
+|unbondingTime|int64|검증자가 위임 해제되는 시간|
+|commission|uint256|검증자가 보상받는 스테이킹 토큰의 수수료율|
+|minSelfDelegation|uint256|검증자의 최소 자기 위임 금액|
+
+### `validators`
+
+상태와 일치하는 모든 검증자를 반환합니다.
+검증자가 발견되지 않으면 빈 `ValidatorsOutput`이 반환됩니다.
+
+`x/staking` 모듈에 선언된 상태는 다음 중 하나일 수 있습니다:
+
+- 0 : "BOND_STATUS_UNSPECIFIED", 지정되지 않은 상태
+- 1 : "BOND_STATUS_UNBONDING", 검증자가 위임 해제 중
+- 2 : "BOND_STATUS_UNBONDED", 검증자가 위임 해제됨
+- 3 : "BOND_STATUS_BONDED", 검증자가 본딩됨
+
+#### 입력
+
+|이름|타입|설명|
+|---|---|---|
+|status|string|검증자의 상태|
+|pageRequest|PageReq|페이지네이션 요청|
+
+`PageReq`는 다음 필드를 가진 구조체입니다:
+
+|이름|타입|설명|
+|---|---|---|
+|key|bytes|페이지의 키|
+|offset|int64|페이지의 오프셋|
+|limit|int64|페이지의 한도|
+|countTotal|bool|전체 결과 수를 셀지 여부|
+|reverse|bool|결과를 역순으로 할지 여부|
+
+#### 출력
+
+|이름|타입|설명|
+|---|---|---|
+|validators|Validator[]|검증자의 배열|
+|pageResponse|PageResp|페이지네이션 응답
+
+`PageResp`는 다음 필드를 가진 구조체입니다:
+
+|이름|타입|설명|
+|---|---|---|
+|nextKey|bytes|페이지의 다음 키|
+|total|uint64|전체 결과 수|
+
+### `redelegation`
+
+위임자, 출발 검증자, 도착 검증자의 재위임 정보를 반환합니다.
+재위임이 발견되지 않으면 빈 `RedelegationOutput`이 반환됩니다.
+
+#### 입력
+
+|이름|타입|설명|
+|---|---|---|
+|delegatorAddress|address|위임자의 주소|
+|srcValidatorAddress|address|출발 검증자의 주소|
+|dstValidatorAddress|address|도착 검증자의 주소|
+
+#### 출력
+
+|이름|타입|설명|
+|---|---|---|
+|redelegation|RedelegationOutput|재위임의 정보|
+
+`RedelegationOutput`은 다음 필드를 가진 구조체입니다:
+
+|이름|타입|설명|
+|---|---|---|
+|delegatorAddress|address|위임자의 주소|
+|validatorSrcAddress|address|출발 검증자의 주소|
+|validatorDstAddress|address|도착 검증자의 주소|
+|entries|RedelegationEntry[]|재위임의 엔트리|
+
+`RedelegationEntry`는 다음 필드를 가진 구조체입니다:
+
+|이름|타입|설명|
+|---|---|---|
+|creationHeight|uint64|엔트리의 생성 높이|
+|completionTime|uint64|엔트리의 완료 시간|
+|initialBalance|Coin|엔트리의 초기 잔액|
+|balance|Coin|엔트리의 잔액|
+
+### `redelegations`
+
+위임자, 출발 검증자, 도착 검증자의 모든 재위임을 반환합니다.
+재위임이 발견되지 않으면 빈 `RedelegationResponse`와 `PageResp`가 반환됩니다.
+
+#### 입력
+
+|이름|타입|설명|
+|---|---|---|
+|delegatorAddress|address|위임자의 주소|
+|srcValidatorAddress|address|출발 검증자의 주소|
+|dstValidatorAddress|address|도착 검증자의 주소|
+|pageRequest|PageReq|페이지네이션 요청|
+
+#### 출력
+
+|이름|타입|설명|
+|---|---|---|
+|response|RedelegationResponse[]|재위임의 정보|
+|pageResponse|PageResp|페이지네이션 응답|
+
+## 이벤트
+
+### CreateValidator
+
+|이름|타입|인덱싱됨|설명|
+|---|---|---|---|
+|valiAddr|address|Y|검증자의 주소|
+|value|uint256|N|검증자에게 초기에 자기 위임된 스테이킹 토큰의 양|
+
+### EditValidator
+
+|이름|타입|인덱싱됨|설명|
+|---|---|---|---|
+|valiAddr|address|Y|검증자의 주소|
+|commissionRate|int256|N|검증자가 보상받는 스테이킹 토큰의 업데이트된 수수료율|
+|minSelfDelegation|int256|N|검증자의 업데이트된 최소 자기 위임 금액|
+
+### Delegate
+
+|이름|타입|인덱싱됨|설명|
+|---|---|---|---|
+|delegatorAddr|address|Y|위임자의 주소|
+|validatorAddr|string|Y|검증자의 주소|
+|amount|uint256|N|검증자에게 위임된 스테이킹 토큰의 양|
+|newShares|uint256|N|위임 후 위임 share의 양|
+
+### Unbond
+
+|이름|타입|인덱싱됨|설명|
+|---|---|---|---|
+|delegatorAddr|address|Y|위임자의 주소|
+|validatorAddr|string|Y|검증자의 주소|
+|amount|uint256|N|검증자로부터 위임 해제된 스테이킹 토큰의 양|
+|completionTime|uint256|N|위임 해제의 완료 시간|
+
+### Redelegate
+
+|이름|타입|인덱싱됨|설명|
+|---|---|---|---|
+|delegatorAddr|address|Y|위임자의 주소|
+|validatorSrcAddress|address|Y|출발 검증자의 주소|
+|validatorDstAddress|address|Y|도착 검증자의 주소|
+|amount|uint256|N|재위임할 스테이킹 토큰의 양|
+|completionTime|uint256|N|재위임의 완료 시간|

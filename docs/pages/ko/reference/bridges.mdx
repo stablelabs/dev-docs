@@ -1,0 +1,159 @@
+---
+source_path: reference/bridges.mdx
+source_sha: 6b4214bb3c756c74d1cfdd7cc0e6afaf29ef9bec
+title: "브리지"
+description: "Stable로 USDT0를 송수신하기 위한 브리지 제공자, 컨트랙트 주소, 수수료 구조."
+diataxis: "reference"
+---
+
+# 브리지
+
+Stable로 USDT0를 송수신하는 것을 지원하는 브리지 제공자입니다. 크로스체인 USDT0 이동이 어떻게 작동하는지는 [Stable로 브리징하기](/en/explanation/usdt0-bridging)를 참조하세요. 실습 가이드는 [USDT0를 Stable 테스트넷으로 브리징하기](/en/tutorial/bridge-usdt0) 튜토리얼을 참조하세요.
+
+---
+
+## 지원되는 소스 체인
+
+USDT0가 있는 모든 체인은 OFT 메시를 통해 Stable로 브리징할 수 있습니다. 네이티브 USDT가 있는 모든 체인은 Arbitrum 허브를 통해 레거시 메시로 라우팅할 수 있습니다. 현재 참여 체인:
+
+| 경로 | 예시 체인 | 메커니즘 | 수수료 |
+| :--- | :--- | :--- | :--- |
+| **OFT 메시** | Arbitrum, Bera, Conflux, Ethereum, Flare, Hedera, Hyperliquid, Ink, Mantle, MegaETH, Monad, Morph, MP1, Optimism, Plasma, Polygon, Rootstock, Sei, Tempo, Unichain, X Layer | 소스에서 소각, Stable에서 발행 | 소스 체인 가스 비용만 |
+| **레거시 메시** | Tron, TON | 네이티브 USDT 잠금 → Arbitrum 허브 → Stable에서 USDT0 발행 | 0.03% + 소스 체인 가스 비용 |
+
+Ethereum과 Arbitrum은 두 경로를 모두 지원합니다. 네이티브 USDT를 보유한 사용자는 레거시 메시를 사용할 수 있고, USDT0를 보유한 사용자는 OFT 메시를 직접 사용할 수 있습니다.
+
+---
+
+## 컨트랙트 주소
+
+| | 테스트넷 (chain ID 2201) | 메인넷 (chain ID 988) |
+| :--- | :--- | :--- |
+| **LayerZero EID** | `40374` | [LayerZero 배포된 컨트랙트](https://docs.layerzero.network/v2/deployments/deployed-contracts?chains=stable) 참조 |
+| **LayerZero Endpoint V2** | `0x3aCAAf60502791D199a5a5F0B173D78229eBFe32` | LayerZero 문서 참조 |
+| **USDT0 토큰** | `0x78Cf24370174180738C5B8E352B6D14c83a6c9A9` | `0x779Ded0c9e1022225f8E0630b35a9b54bE713736` |
+| **USDT0 OApp (Stable에서)** | N/A | `0xedaba024be4d87974d5aB11C6Dd586963CcCB027` |
+| **소스 USDT0 (Sepolia)** | `0xc4DCC311c028e341fd8602D8eB89c5de94625927` | 소스 체인에서 메인넷 USDT0 사용 |
+| **소스 OApp (Sepolia)** | `0xc099cD946d5efCC35A99D64E808c1430cEf08126` | 소스 체인에서 메인넷 OApp 사용 |
+| **LiFi Diamond (Stable 메인넷)** | N/A | `0x026F252016A7C47CDEf1F05a3Fc9E20C92a49C37` |
+
+전체 테스트넷 컨트랙트 목록(LayerZero 엔드포인트, DVN, executor)은 [테스트넷 에코시스템 컨트랙트](/en/reference/testnet-ecosystem)를 참조하세요.
+
+---
+
+## STABLE OFT 컨트랙트
+
+STABLE 토큰은 LayerZero OFT 표준을 사용하여 다른 체인으로 브리징됩니다. Stable의 어댑터는 아웃바운드 전송을 위해 STABLE을 잠그고, 각 원격 체인의 업그레이드 가능한 프록시는 래핑된 공급량을 발행하고 소각합니다. 보안 모델과 각 컨트랙트의 역할에 대한 설명은 [브리지 보안 및 DVN](/en/explanation/bridge-security)을 참조하세요.
+
+| 체인 | 컨트랙트 | 주소 |
+| :--- | :--- | :--- |
+| **Stable** | `StableOFTAdapter` | `0x386f92606b2D5E0A992ECc3704c31eF39Ff56392` |
+| **BSC** | `StableOFTUpgradeable` (proxy) | `0x011EBe7d75E2C9D1E0bD0be0bEf5C36f0A90075F` |
+| **HyperEVM** | `StableOFTUpgradeable` (proxy) | `0xa51dC81944a15623874981181a99D6c56B20ED56` |
+
+:::note
+원격 체인 주소는 둘 다 EVM 호환임에도 불구하고 다릅니다. HyperCore에서 대상 주소를 활성화하려면 트랜잭션이 필요하며, 이는 배포 nonce를 증가시켜 BSC와는 다른 결정론적 주소를 생성합니다. 표준 설정은 [stablelabs/chain-oft](https://github.com/stablelabs/chain-oft)를 참조하세요.
+:::
+
+---
+
+## Stable의 DVN 운영자
+
+Stable의 브리지는 3/3 필수 DVN 구성으로 실행됩니다. 세 개의 독립적인 운영자가 각각 모든 크로스체인 메시지를 서명한 후에야 메시지가 수락됩니다. 선택적 풀은 없습니다. 세 개의 필수 서명자와 해당 DVN 컨트랙트 주소:
+
+| 운영자 | DVN 주소 |
+| :--- | :--- |
+| **LayerZero Labs** | `0x9c061c9a4782294eef65ef28cb88233a987f4bdd` |
+| **Canary** | `0x8d6cc20d84fbeb5733c60436ceb8957da2ac02c8` |
+| **Horizen** | `0x965a80dc87cec5848310e612dead84b543aef874` |
+
+경로별 온체인 설정은 [LayerZero 배포된 컨트랙트](https://docs.layerzero.network/v2/deployments/deployed-contracts?chains=stable)를 참조하세요. 보안 근거는 [브리지 보안 및 DVN](/en/explanation/bridge-security)을 참조하세요.
+
+---
+
+## 브리지 제공자
+
+| 제공자 | 유형 | 상태 | 설명 | 문서 |
+| :--- | :--- | :--- | :--- | :--- |
+| **[LayerZero](https://docs.layerzero.network/v2)** | 크로스체인 메시징 (OFT) | 운영 중 | USDT0 OFT 소각/발행 전송 지원; 이중 DVN 검증 | [docs.layerzero.network/v2](https://docs.layerzero.network/v2) |
+| **[Stargate](https://docs.stargate.finance/introduction/overview)** | 직접 브리지 (유동성 풀) | 운영 중 | 통합 유동성 풀; 스테이블코인 최적화 라우팅 | [docs.stargate.finance](https://docs.stargate.finance/introduction/overview) |
+| **[Gas.Zip](https://dev.gas.zip/overview)** | 직접 브리지 (유동성 라우팅) | 운영 중 | 350개 이상 체인에 걸친 유동성 라우팅; 빠른 완결성 | [dev.gas.zip](https://dev.gas.zip/overview) |
+| **[LiFi](https://docs.li.fi/api-reference/introduction)** | 브리지 애그리게이터 | 운영 중 | 여러 브리지와 DEX 스왑에 걸쳐 라우팅; SDK + REST API | [docs.li.fi](https://docs.li.fi/api-reference/introduction) |
+| **[Polymer](https://docs.polymerlabs.org/docs/build/start/)** | 크로스체인 상호운용성 (IBC) | 통합 진행 중 | Ethereum 네이티브 체인을 위한 IBC 기반 메시징 | [docs.polymerlabs.org](https://docs.polymerlabs.org/docs/build/start/) |
+| **[Relay](https://docs.relay.link/what-is-relay)** | 인텐트 기반 브리지 | 통합 진행 중 | 솔버 네트워크를 통한 가스리스 실행 | [docs.relay.link](https://docs.relay.link/what-is-relay) |
+
+### LayerZero
+
+이중 DVN 검증을 통해 USDT0 OFT 소각/발행 전송을 지원하는 크로스체인 메시징 프로토콜입니다.
+
+**기능**
+
+- OFT 표준 소스 소각, 대상 발행 전송
+- 이중 DVN(분산 검증자 네트워크) 메시지 검증
+- OFT 메시와 레거시 메시 경로 모두 지원
+
+### Stargate
+
+스테이블코인 라우팅에 최적화된 유동성 풀 기반 브리지입니다.
+
+**기능**
+
+- 체인 전반의 통합 유동성 풀
+- 스테이블코인 최적화 라우팅
+- 즉각적이고 보장된 완결성
+
+### Gas.Zip
+
+350개 이상의 체인에 걸쳐 빠른 전송을 지원하는 유동성 라우팅 프로토콜입니다.
+
+**기능**
+
+- 크로스체인 유동성 라우팅
+- 빠른 완결성
+- 넓은 체인 커버리지(350개 이상 체인)
+
+### LiFi
+
+여러 브리지와 DEX 스왑에 걸쳐 전송을 라우팅하는 브리지 애그리게이터입니다.
+
+**기능**
+
+- 멀티 브리지 경로 최적화
+- SDK 및 REST API 통합
+- DEX 스왑 애그리게이션
+
+### Polymer
+
+Ethereum 네이티브 체인을 위한 IBC 기반 크로스체인 메시징입니다. 통합 진행 중입니다.
+
+**기능**
+
+- Ethereum에서의 IBC 프로토콜 메시징
+- 외부 검증자 없는 네이티브 상호운용성
+
+### Relay
+
+솔버 네트워크를 통한 가스리스 실행을 제공하는 인텐트 기반 브리지입니다. 통합 진행 중입니다.
+
+**기능**
+
+- 인텐트 기반 브리징
+- 사용자를 위한 가스리스 실행
+- 솔버 네트워크 정산
+
+---
+
+## 수수료 구조
+
+| 제공자 | 수수료 모델 |
+| :--- | :--- |
+| **LayerZero (OFT 메시)** | 소스 체인 가스 비용만 (프로토콜 수수료 없음) |
+| **LayerZero (레거시 메시)** | 전송 금액의 0.03% (USDT0 팀이 부과) + 소스 체인 가스 비용 |
+| **Stargate** | 유동성 풀 수수료 적용; [Stargate 문서](https://docs.stargate.finance/introduction/overview) 참조 |
+| **LiFi** | 경로에 따라 애그리게이터 라우팅 수수료가 적용될 수 있음 |
+| **Gas.Zip** | 현재 수수료 일정은 [Gas.Zip 문서](https://dev.gas.zip/overview) 참조 |
+| **Relay** | 솔버 수수료; [Relay 문서](https://docs.relay.link/what-is-relay) 참조 |
+
+---
+
+Stable을 통합하는 브리지가 있으신가요? [bizdev@stable.xyz](mailto:bizdev@stable.xyz)로 문의하세요.

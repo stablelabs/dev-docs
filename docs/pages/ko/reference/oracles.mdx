@@ -1,0 +1,128 @@
+---
+source_path: reference/oracles.mdx
+source_sha: a8b69a212813ce80e6bb9ed34fc5c11471d77c76
+title: "오라클"
+description: "컨트랙트 주소, 지원 페어, 통합 예제를 포함한 Stable의 오라클 가격 피드 제공자."
+diataxis: "reference"
+---
+
+# 오라클
+
+오라클은 자산 가격과 같은 오프체인 데이터를 스마트 컨트랙트에 제공합니다. RedStone은 Stable에서 가격 피드를 운영합니다.
+
+## 개요 표
+
+| **제공자** | **카테고리** | **지원 페어** | **문서 / 시작하기** | **비고** |
+| :--- | :--- | :--- | :--- | :--- |
+| [**RedStone**](https://www.redstone.finance/) | 오라클 가격 피드 | BTC, ETH, USDT, USDC, PYUSD, XAUt, frxUSD, FXS, LBTC, sfrxETH/ETH, sfrxUSD, SolvBTC, sthUSD, thBILL, weETH | [https://docs.redstone.finance/docs/dapps/redstone-push/](https://docs.redstone.finance/docs/dapps/redstone-push/) | 메인넷 가동 중 |
+
+## RedStone
+
+RedStone은 [Push 모델](https://docs.redstone.finance/docs/dapps/redstone-push/)을 통해 Stable에서 오라클 가격 피드를 제공합니다. 피드 컨트랙트는 Chainlink 호환 `AggregatorV3Interface`를 노출합니다.
+
+**기능**
+
+- 구성 가능한 편차 임계값 및 하트비트 간격을 갖춘 Push 기반 가격 피드
+- `latestRoundData()`, `decimals()`, `description()`을 갖춘 Chainlink 호환 `AggregatorV3Interface`
+- 블루칩 자산, 스테이블코인, LST, LRT, 이자 발생 / 펀더멘털 가격 자산에 대한 커버리지
+
+### 메인넷 가격 피드 주소
+
+출처: [RedStone push 피드 대시보드](https://app.redstone.finance/push-feeds?networks=stable&testnets=true)
+
+| **가격 피드** | **컨트랙트 주소** | **편차** | **하트비트** |
+| :--- | :--- | :--- | :--- |
+| **BTC / USD** | [0x687103bA8CC2f66C94696182Ef410400Da45fb24](https://stablescan.xyz/address/0x687103bA8CC2f66C94696182Ef410400Da45fb24) | 0.5% | 6h |
+| **ETH / USD** | [0x457BE3C697c644bF329C2C3ea79EbF1D254d603a](https://stablescan.xyz/address/0x457BE3C697c644bF329C2C3ea79EbF1D254d603a) | 0.5% | 6h |
+| **USDT / USD** | [0x58264801fadCd8598D3EE993572ADe9cA27F42c8](https://stablescan.xyz/address/0x58264801fadCd8598D3EE993572ADe9cA27F42c8) | 0.5% | 6h |
+| **USDC / USD** | [0x8ea3C667C264BbdaA1dA7638904b8671F451c7F9](https://stablescan.xyz/address/0x8ea3C667C264BbdaA1dA7638904b8671F451c7F9) | 0.5% | 6h |
+| **PYUSD / USD** | [0x1c30dA143E97c228102A5cAe3960dBBB41321604](https://stablescan.xyz/address/0x1c30dA143E97c228102A5cAe3960dBBB41321604) | 0.5% | 6h |
+| **XAUt / USD** | [0xd5E244accc514b56DCAD89897DD44499E7C35a05](https://stablescan.xyz/address/0xd5E244accc514b56DCAD89897DD44499E7C35a05) | 0.5% | 6h |
+| **frxUSD / USD** | [0xB5197ca89507FE045e8ce9996593D35071915EB7](https://stablescan.xyz/address/0xB5197ca89507FE045e8ce9996593D35071915EB7) | 0.5% | 6h |
+| **FXS / USD** | [0xC3b182aee94AECeCa39b072942f3Ce4B87465517](https://stablescan.xyz/address/0xC3b182aee94AECeCa39b072942f3Ce4B87465517) | 0.5% | 6h |
+| **LBTC / USD** | [0x80295Cf12E28f3F943304BFd6C2A2C044e731aaB](https://stablescan.xyz/address/0x80295Cf12E28f3F943304BFd6C2A2C044e731aaB) | 0.5% | 6h |
+| **sfrxETH / ETH** | [0x29533E113D803ab1967F6CB9495B95DC8C1EA594](https://stablescan.xyz/address/0x29533E113D803ab1967F6CB9495B95DC8C1EA594) | 0.5% | 6h |
+| **sfrxUSD / FUNDAMENTAL** | [0x71784611831b9566df7301A78bC1B3d29a8737bF](https://stablescan.xyz/address/0x71784611831b9566df7301A78bC1B3d29a8737bF) | 0.5% | 6h |
+| **SolvBTC / FUNDAMENTAL** | [0x58fa68A373956285dDfb340EDf755246f8DfCA16](https://stablescan.xyz/address/0x58fa68A373956285dDfb340EDf755246f8DfCA16) | 0.01% | 24h |
+| **sthUSD / FUNDAMENTAL** | [0xb81131B6368b3F0a83af09dB4E39Ac23DA96C2Db](https://stablescan.xyz/address/0xb81131B6368b3F0a83af09dB4E39Ac23DA96C2Db) | 0.5% | 12h |
+| **thBILL / FUNDAMENTAL / USD** | [0x7532df197a36587aeD2B9A59785c8BeD182FA62D](https://stablescan.xyz/address/0x7532df197a36587aeD2B9A59785c8BeD182FA62D) | 0.5% | 6h |
+| **weETH / FUNDAMENTAL** | [0xD57b79401956BE4872D3d03F0C920639335e350F](https://stablescan.xyz/address/0xD57b79401956BE4872D3d03F0C920639335e350F) | 0.5% | 6h |
+
+## 가격 피드 읽기
+
+피드 컨트랙트는 Chainlink 호환 [`AggregatorV3Interface`](https://docs.redstone.finance/docs/dapps/redstone-push/)를 구현합니다. 모든 Chainlink 스타일 가격 피드에 사용되는 동일한 컨슈머 패턴이 적용됩니다.
+
+```solidity
+pragma solidity ^0.8.25;
+
+interface AggregatorV3Interface {
+    function latestRoundData()
+        external
+        view
+        returns (
+            uint80 roundId,
+            int256 answer,
+            uint256 startedAt,
+            uint256 updatedAt,
+            uint80 answeredInRound
+        );
+    function decimals() external view returns (uint8);
+    function description() external view returns (string memory);
+}
+
+contract OracleConsumer {
+    AggregatorV3Interface public oracle;
+
+    constructor(address oracleAddress) {
+        oracle = AggregatorV3Interface(oracleAddress);
+    }
+
+    function getLatestPriceData()
+        external
+        view
+        returns (
+            uint80 roundId,
+            int256 answer,
+            uint256 updatedAt
+        )
+    {
+        (roundId, answer, , updatedAt, ) = oracle.latestRoundData();
+        return (roundId, answer, updatedAt);
+    }
+}
+```
+
+:::note
+Stable의 RedStone push 피드는 현재 메인넷에서만 사용할 수 있습니다. 가격을 사용하기 전에 항상 온체인 `updatedAt`을 애플리케이션의 신선도 허용 범위와 비교하여 검증하세요.
+:::
+
+### 피드 직접 읽기
+
+컨슈머 컨트랙트를 배포하지 않고도 모든 RedStone 피드를 읽을 수 있습니다. 다음 호출은 ETH/USD 피드를 읽습니다.
+
+```bash
+cast call 0x457BE3C697c644bF329C2C3ea79EbF1D254d603a "latestRoundData()(uint80,int256,uint256,uint256,uint80)" --rpc-url https://rpc.stable.xyz
+```
+
+### Stable 메인넷에 컨슈머 배포하기
+
+이 과정은 Foundry가 설치되어 있고 자금이 들어 있는 지갑이 있다고 가정합니다. 전체 설정 안내는 [스마트 컨트랙트 배포](/en/tutorial/smart-contract) 튜토리얼을 참조하세요.
+
+1. 위 컨트랙트를 Foundry 프로젝트의 `src/OracleConsumer.sol`에 저장합니다.
+
+2. BTC/USD 메인넷 피드 주소로 배포합니다.
+
+```bash
+source .env ;
+forge create src/OracleConsumer.sol:OracleConsumer --broadcast --rpc-url $STABLE_MAINNET_RPC_URL --private-key $PRIVATE_KEY --constructor-args 0x687103bA8CC2f66C94696182Ef410400Da45fb24
+```
+
+3. 배포된 컨트랙트에서 최신 가격을 읽습니다.
+
+```bash
+cast call <DEPLOYED_ADDRESS> "getLatestPriceData()(uint80,int256,uint256)" --rpc-url $STABLE_MAINNET_RPC_URL
+```
+
+## Stable을 통합하는 오라클이 있으신가요?
+
+이 페이지에 등재되려면 [bizdev@stable.xyz](mailto:bizdev@stable.xyz)로 팀에 연락하세요.

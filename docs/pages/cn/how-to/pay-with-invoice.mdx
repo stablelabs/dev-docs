@@ -1,0 +1,416 @@
+---
+source_path: how-to/pay-with-invoice.mdx
+source_sha: 7c09e8018dbc151950875e9df186903fe8674032
+title: "使用发票付款"
+description: "在 Stable 上使用 ERC-3009 结算发票，nonce 由发票元数据确定性派生。通过链上事件进行对账。"
+diataxis: "how-to"
+---
+
+# 使用发票付款
+
+本指南演示如何使用 [ERC-3009](/en/explanation/erc-3009) 在链上结算发票，其中 nonce 由发票元数据确定性派生。该 nonce 将每笔付款与其发票关联起来，并防止重复付款。
+
+:::note
+**概念：** 关于发票结算模型以及与传统 B2B 开票方式的比较，请参阅[发票结算](/en/reference/invoices)。
+:::
+
+## 你将构建的内容
+
+一个完整的发票生命周期：买方在链下签署一个 ERC-3009 授权，供应商将其提交到链上，对账过程通过确定性 nonce 将产生的 `AuthorizationUsed` 事件匹配回发票。
+
+### 演示
+
+```text
+step 1. Invoice issued
+        number:  INV-2026-001234
+        amount:  5000 USDT0
+        dueDate: 2026-04-30
+
+step 2. Buyer signs authorization (off-chain, no gas)
+        nonce:     0xa1b2...c3d4 (from invoice metadata)
+        signature: 0xf0e9...1234
+
+step 3. Vendor submits transferWithAuthorization
+        tx:     0x8f3a...2d41
+        amount: 5000 USDT0 transferred to vendor
+
+step 4. Reconciliation
+        AuthorizationUsed(nonce=0xa1b2...) → invoice INV-2026-001234
+        Transfer event verified for correct amount and parties
+        ERP: marked PAID at block 1284371
+```
+
+## 概览
+
+**买方：**
+
+```
+─── Buyer ───────────────────────────────────────────
+nonce = getInvoiceNonce(invoice)
+authorization = { from: buyer, to: vendor, value: amount, nonce, ... }
+signature = signTypedData(authorization)
+
+// Option A: Buyer submits the transaction directly.
+usdt0.transferWithAuthorization(authorization, signature)
+
+// Option B: Buyer sends {authorization, signature} to the vendor.
+//           The vendor (or a facilitator) submits on the buyer's behalf.
+```
+
+**供应商：**
+
+```
+─── Vendor ──────────────────────────────────────────
+// If Option B: submit transferWithAuthorization using the buyer's signature
+
+// Reconcile via AuthorizationUsed event
+on AuthorizationUsed(authorizer, nonce):
+    invoice = nonceToInvoice.get(nonce)
+    transferLog = receipt.logs.find(Transfer matching invoice.buyer, invoice.vendor, invoice.amount)
+    if transferLog:
+        erpSystem.markPaid(invoice.id, txHash, settledAt)
+```
+
+## 配置
+
+```typescript
+// config.ts
+import { ethers } from "ethers";
+
+export const STABLE_TESTNET_RPC = "https://rpc.testnet.stable.xyz";
+export const CHAIN_ID = 2201;
+export const USDT0_ADDRESS = "0x78Cf24370174180738C5B8E352B6D14c83a6c9A9";
+
+export const provider = new ethers.JsonRpcProvider(STABLE_TESTNET_RPC);
+
+export const EIP712_DOMAIN = {
+  name: "USDT0",
+  version: "1",
+  chainId: CHAIN_ID,
+  verifyingContract: USDT0_ADDRESS,
+};
+
+export const TRANSFER_WITH_AUTHORIZATION_TYPE = {
+  TransferWithAuthorization: [
+    { name: "from", type: "address" },
+    { name: "to", type: "address" },
+    { name: "value", type: "uint256" },
+    { name: "validAfter", type: "uint256" },
+    { name: "validBefore", type: "uint256" },
+    { name: "nonce", type: "bytes32" },
+  ],
+};
+
+export interface Invoice {
+  number: string;   // e.g. "INV-2026-001234"
+  vendor: string;   // vendor wallet address
+  buyer: string;    // buyer wallet address
+  amount: bigint;   // amount in USDT0 atomic units (6 decimals)
+  dueDate: number;  // Unix timestamp
+}
+```
+
+## 步骤 1：生成确定性 nonce
+
+买方和供应商都可以根据发票元数据独立计算出相同的 nonce。无需外部注册表。
+
+```typescript
+// nonce.ts
+import { ethers } from "ethers";
+import { Invoice } from "./config";
+
+export function getInvoiceNonce(invoice: Invoice): string {
+  return ethers.solidityPackedKeccak256(
+    ["string", "address", "address", "uint256", "uint256"],
+    [
+      invoice.number,
+      invoice.vendor,
+      invoice.buyer,
+      invoice.amount,
+      invoice.dueDate,
+    ]
+  );
+}
+
+// Example
+const invoice: Invoice = {
+  number: "INV-2026-001234",
+  vendor: "0xVendorAddress",
+  buyer: "0xBuyerAddress",
+  amount: ethers.parseUnits("5000", 6), // 5,000 USDT0
+  dueDate: Math.floor(new Date("2026-04-30").getTime() / 1000),
+};
+
+const nonce = getInvoiceNonce(invoice);
+// Same input always produces the same nonce.
+// This nonce is consumed on-chain upon payment, preventing double payment.
+```
+
+## 步骤 2：签署授权（买方）
+
+买方使用步骤 1 中的确定性 nonce 签署一个 ERC-3009 的 `transferWithAuthorization`。
+
+```typescript
+// sign-invoice.ts
+import { ethers } from "ethers";
+import {
+  provider,
+  EIP712_DOMAIN,
+  TRANSFER_WITH_AUTHORIZATION_TYPE,
+  Invoice,
+} from "./config";
+import { getInvoiceNonce } from "./nonce";
+
+const buyerWallet = new ethers.Wallet(process.env.BUYER_KEY!, provider);
+
+async function signInvoiceAuthorization(invoice: Invoice) {
+  const nonce = getInvoiceNonce(invoice);
+  const gracePeriod = 30 * 24 * 60 * 60; // 30 days after due date
+
+  const authorization = {
+    from: invoice.buyer,
+    to: invoice.vendor,
+    value: invoice.amount,
+    validAfter: 0,
+    validBefore: invoice.dueDate + gracePeriod,
+    nonce,
+  };
+
+  const signature = await buyerWallet.signTypedData(
+    EIP712_DOMAIN,
+    TRANSFER_WITH_AUTHORIZATION_TYPE,
+    authorization
+  );
+
+  return { authorization, signature };
+}
+```
+
+## 步骤 3：提交交易
+
+根据由谁提交，有两种选择。
+
+### 选项 A：买方提交
+
+买方直接提交 `transferWithAuthorization` 交易并支付 gas。当买方需要控制付款执行的时间和方式时使用此选项，例如当买方的会计系统需要将 tx hash 与内部审批流程绑定时。
+
+```typescript
+// pay.ts
+import { ethers } from "ethers";
+import { provider, USDT0_ADDRESS } from "./config";
+
+const buyerWallet = new ethers.Wallet(process.env.BUYER_KEY!, provider);
+
+const usdt0 = new ethers.Contract(
+  USDT0_ADDRESS,
+  [
+    "function transferWithAuthorization(address from, address to, uint256 value, uint256 validAfter, uint256 validBefore, bytes32 nonce, uint8 v, bytes32 r, bytes32 s)",
+  ],
+  buyerWallet,
+);
+
+async function payInvoice(
+  authorization: { from: string; to: string; value: bigint; validAfter: number; validBefore: number; nonce: string },
+  signature: string,
+) {
+  const { v, r, s } = ethers.Signature.from(signature);
+
+  const tx = await usdt0.transferWithAuthorization(
+    authorization.from,
+    authorization.to,
+    authorization.value,
+    authorization.validAfter,
+    authorization.validBefore,
+    authorization.nonce,
+    v, r, s,
+  );
+
+  const receipt = await tx.wait(1);
+  console.log("Invoice paid, tx:", receipt.hash);
+  // The nonce is now consumed; the same invoice cannot be paid twice.
+  return { txHash: receipt.hash, blockNumber: receipt.blockNumber };
+}
+```
+
+### 选项 B：供应商提交
+
+买方通过 API、电子邮件或任何渠道将 `{authorization, signature}` 发送给供应商。供应商（或协助方）代表买方提交交易，因此买方无需管理 gas。当供应商需要在同一请求流程内获得同步确认时使用此选项。
+
+```typescript
+// settle.ts
+import { ethers } from "ethers";
+import { provider, USDT0_ADDRESS } from "./config";
+
+const vendorWallet = new ethers.Wallet(process.env.VENDOR_KEY!, provider);
+
+const usdt0 = new ethers.Contract(
+  USDT0_ADDRESS,
+  [
+    "function transferWithAuthorization(address from, address to, uint256 value, uint256 validAfter, uint256 validBefore, bytes32 nonce, uint8 v, bytes32 r, bytes32 s)",
+  ],
+  vendorWallet,
+);
+
+async function settleInvoice(
+  authorization: { from: string; to: string; value: bigint; validAfter: number; validBefore: number; nonce: string },
+  signature: string,
+) {
+  const { v, r, s } = ethers.Signature.from(signature);
+
+  const tx = await usdt0.transferWithAuthorization(
+    authorization.from,
+    authorization.to,
+    authorization.value,
+    authorization.validAfter,
+    authorization.validBefore,
+    authorization.nonce,
+    v, r, s,
+  );
+
+  const receipt = await tx.wait(1);
+  console.log("Invoice settled, tx:", receipt.hash);
+  return { txHash: receipt.hash, blockNumber: receipt.blockNumber };
+}
+```
+
+## 步骤 4：通过链上事件对账（供应商）
+
+无论由谁提交交易，每笔发票付款都会发出一个携带确定性 nonce 的 `AuthorizationUsed` 事件。供应商监听该事件并通过 nonce 将其匹配到待处理的发票。由于 nonce 是从发票元数据派生的，因此匹配是精确的。
+
+:::note
+通过 nonce 匹配可以识别哪张发票已付款，但供应商还应验证同一交易中的 `Transfer` 事件，以确认正确的金额已发送给正确的收款人。下面的代码包含了此项验证。
+:::
+
+```typescript
+// reconcile.ts
+import { ethers } from "ethers";
+import { provider, USDT0_ADDRESS, Invoice } from "./config";
+import { getInvoiceNonce } from "./nonce";
+
+const usdt0 = new ethers.Contract(
+  USDT0_ADDRESS,
+  [
+    "event AuthorizationUsed(address indexed authorizer, bytes32 indexed nonce)",
+    "event Transfer(address indexed from, address indexed to, uint256 value)",
+  ],
+  provider,
+);
+
+// Build a lookup map: nonce -> invoice.
+// In production, this comes from your invoice database.
+const invoices: Invoice[] = [
+  {
+    number: "INV-2026-001234",
+    vendor: "0xVendorAddress",
+    buyer: "0xBuyerAddress",
+    amount: ethers.parseUnits("5000", 6),
+    dueDate: Math.floor(new Date("2026-04-30").getTime() / 1000),
+  },
+];
+
+const nonceToInvoice = new Map<string, Invoice>();
+for (const inv of invoices) {
+  nonceToInvoice.set(getInvoiceNonce(inv), inv);
+}
+
+usdt0.on("AuthorizationUsed", async (authorizer: string, nonce: string, event: any) => {
+  const invoice = nonceToInvoice.get(nonce);
+  if (!invoice) return; // not one of our invoices
+
+  const receipt = await event.getTransactionReceipt();
+
+  const transferLog = receipt.logs
+    .map((log: any) => {
+      try { return usdt0.interface.parseLog(log); } catch { return null; }
+    })
+    .find(
+      (parsed: any) =>
+        parsed?.name === "Transfer" &&
+        parsed.args[0].toLowerCase() === invoice.buyer.toLowerCase() &&
+        parsed.args[1].toLowerCase() === invoice.vendor.toLowerCase() &&
+        parsed.args[2] === invoice.amount
+    );
+
+  if (!transferLog) {
+    console.error("No matching Transfer event for invoice:", invoice.number);
+    return;
+  }
+
+  // All checks passed
+  console.log(`Invoice ${invoice.number} PAID`);
+  console.log("  tx:", receipt.hash);
+  console.log("  settled at block:", receipt.blockNumber);
+
+  // In production: update your ERP/accounting system here
+  // erpSystem.markPaid(invoice.number, receipt.hash, receipt.blockNumber);
+});
+
+console.log("Listening for invoice settlements...");
+```
+
+```bash
+npx tsx reconcile.ts
+```
+
+```text
+Listening for invoice settlements...
+Invoice INV-2026-001234 PAID
+  tx: 0x8f3a...2d41
+  settled at block: 1284371
+```
+
+## 处理失败的付款
+
+已提交的 `transferWithAuthorization` 可能因多种原因而回滚。检测并向供应商或买方呈现每种原因，以便重试或关闭发票。
+
+| **回滚原因** | **起因** | **恢复方法** |
+| :--- | :--- | :--- |
+| `FiatTokenV2: invalid signature` | 签名与授权字段不匹配。 | 要求买方在发票数据不变的情况下重新签署。 |
+| `FiatTokenV2: authorization is used or canceled` | nonce 已被消耗（重复提交）或买方取消了该授权。 | 将发票标记为已付款；通过 nonce 查找原始交易。 |
+| `FiatTokenV2: authorization is not yet valid` | 在 `validAfter` 之前提交。 | 等待至 `validAfter` 或签发新的授权。 |
+| `FiatTokenV2: authorization is expired` | 在 `validBefore` 之后提交。 | 签发一个具有更长时间窗口的新授权。 |
+| `FiatTokenV2: transfer amount exceeds balance` | 买方的 USDT0 余额不足。 | 通知买方为钱包充值，然后用相同的签名重试。 |
+
+捕获回滚并在重试前对其分类。
+
+```typescript
+// retry.ts
+import { ethers } from "ethers";
+
+async function submitWithRetry(
+  submit: () => Promise<ethers.ContractTransactionResponse>,
+): Promise<string> {
+  try {
+    const tx = await submit();
+    const receipt = await tx.wait(1);
+    return receipt!.hash;
+  } catch (err: any) {
+    const reason = err?.info?.error?.message || err?.reason || err?.message || "";
+
+    if (reason.includes("authorization is used or canceled")) {
+      // Lookup the original tx by AuthorizationUsed event; mark invoice paid.
+      throw new Error("ALREADY_PAID");
+    }
+    if (reason.includes("authorization is expired")) {
+      throw new Error("AUTHORIZATION_EXPIRED");
+    }
+    if (reason.includes("invalid signature")) {
+      throw new Error("INVALID_SIGNATURE");
+    }
+    if (reason.includes("transfer amount exceeds balance")) {
+      throw new Error("INSUFFICIENT_BALANCE");
+    }
+    throw err;
+  }
+}
+```
+
+:::warning
+切勿在未对错误进行分类的情况下重试失败的提交。对已回滚的 transferWithAuthorization 进行盲目重试，可能会在买方充值后通过验证，而这可能与买方的最新意图不符。
+:::
+
+## 接下来推荐
+
+- [**发票结算概念**](/en/reference/invoices) — 了解确定性 nonce 的对账模型。
+- [**ERC-3009**](/en/explanation/erc-3009) — 回顾此流程背后的签名授权标准。
+- [**启用免 gas 交易**](/en/how-to/integrate-gas-waiver) — 与 Gas Waiver 结合，从结算路径中消除 gas。

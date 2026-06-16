@@ -1,0 +1,87 @@
+---
+source_path: how-to/verify-contract.mdx
+source_sha: 830fdc192d492e9e07e95fd6c0cf3bde9df9d2cd
+title: "스마트 컨트랙트 검증하기"
+description: "forge verify-contract로 Stablescan에서 Stable 컨트랙트 소스를 검증하여 사용자가 읽고 상호작용할 수 있도록 하세요."
+diataxis: "how-to"
+---
+
+# 스마트 컨트랙트 검증하기
+
+검증은 컨트랙트의 소스 코드를 블록 탐색기에 업로드하고 배포된 바이트코드로 컴파일됨을 증명합니다. 검증이 완료되면, 사용자는 코드를 재호스팅하지 않고도 Stablescan에서 상태를 읽고, 함수를 호출하고, 소스를 감사할 수 있습니다. 이 가이드는 Stable에서 Foundry로 배포된 컨트랙트를 검증하는 과정을 안내합니다.
+
+## 사전 준비
+
+- Stable 테스트넷 또는 메인넷에 이미 배포된 컨트랙트. 아직 배포하지 않았다면 [스마트 컨트랙트 배포하기](/en/tutorial/smart-contract)를 참조하세요.
+- Foundry 설치 (PATH에서 `forge` 사용 가능).
+- `forge create` 출력에서 얻은 배포된 컨트랙트 주소.
+
+## 1. 배포된 주소 확인
+
+이전 배포에서 얻은 `Deployed to` 주소가 있는지 확인하세요. [스마트 컨트랙트 배포하기](/en/tutorial/smart-contract) 흐름에서는 `forge create` 이후에 출력된 값입니다.
+
+```bash
+cast code 0xDeployedContractAddress --rpc-url https://rpc.testnet.stable.xyz | head -c 20
+```
+
+```text
+0x6080604052600436...
+```
+
+비어 있지 않은 바이트코드는 해당 주소에 컨트랙트가 배포되었음을 확인해 줍니다.
+
+## 2. forge verify-contract 실행
+
+Foundry의 검증 흐름은 소스를 Stablescan 검증기에 제출합니다.
+
+```bash
+forge verify-contract \
+  0xDeployedContractAddress \
+  src/Counter.sol:Counter \
+  --chain-id 2201 \
+  --verifier blockscout \
+  --verifier-url https://testnet.stablescan.xyz/api \
+  --watch
+```
+
+```text
+Start verifying contract `0xDeployedContractAddress` deployed on 2201
+
+Submitting verification of contract: Counter
+Submitted contract for verification:
+        Response: `OK`
+        GUID: `abc123...`
+        URL: https://testnet.stablescan.xyz/address/0xDeployedContractAddress
+Contract verification status:
+Response: `OK`
+Details: `Pass - Verified`
+Contract successfully verified
+```
+
+`--watch`는 검증이 완료될 때까지 차단하므로 폴링할 필요가 없습니다. 메인넷에서는 chain ID를 `988`로, 검증기 URL을 `https://stablescan.xyz/api`로 바꾸세요.
+
+:::note
+**생성자 인자**: 컨트랙트가 생성자 인자를 받는 경우, 명령어에 `--constructor-args $(cast abi-encode "constructor(uint256,address)" 42 0xSomeAddress)`를 추가하세요. 이 플래그가 없으면 비어 있지 않은 생성자를 가진 모든 컨트랙트의 검증이 실패합니다.
+:::
+
+## 3. Stablescan에서 검증 확인
+
+탐색기에서 컨트랙트 페이지를 엽니다.
+
+```text
+https://testnet.stablescan.xyz/address/0xDeployedContractAddress
+```
+
+이제 **Contract** 탭에 소스 코드, 녹색 "Verified" 배지, 그리고 전체 ABI가 표시되어야 합니다. 사용자는 **Read Contract**에서 상태를 읽고 **Write Contract**에서 트랜잭션을 보낼 수 있습니다.
+
+## 문제 해결
+
+- **"Bytecode does not match"**: 소스가 배포된 것과 다른 바이트코드로 컴파일됩니다. 대부분 일치하지 않는 Solidity 버전이나 옵티마이저 설정으로 인해 발생합니다. `foundry.toml`과 일치하도록 `--compiler-version`과 `--optimizer-runs`를 명시적으로 전달하세요.
+- **"GUID not found"**: 검증기가 아직 제출을 등록하지 않았습니다. `--watch`로 다시 실행하거나 응답에 출력된 URL을 수동으로 확인하세요.
+- **컨트랙트가 라이브러리를 사용하는 경우**: 링크된 각 라이브러리에 대해 `--libraries src/Lib.sol:Lib:0xDeployedLibAddress`를 추가하세요.
+
+## 다음 추천
+
+- [**컨트랙트 이벤트 인덱싱**](/en/how-to/index-contract) — ethers.js로 온체인 이벤트를 구독하고 실시간 이벤트 스트림을 구축하세요.
+- [**스마트 컨트랙트 배포하기**](/en/tutorial/smart-contract) — 새로운 Foundry 프로젝트를 구성하고 Stable 테스트넷에 배포하세요.
+- [**JSON-RPC 레퍼런스**](/en/reference/json-rpc-api) — Stable이 온체인 상호작용을 위해 지원하는 `eth_*` 메서드를 확인하세요.

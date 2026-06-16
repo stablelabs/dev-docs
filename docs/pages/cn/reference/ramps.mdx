@@ -1,0 +1,146 @@
+---
+source_path: reference/ramps.mdx
+source_sha: 0b725ece7c44bee7949850606795ecf389d6d1f7
+title: 出入金通道
+description: "用于在法定货币与 Stable 上的 USDT 之间进行兑换的出入金通道和支付网关服务商。"
+diataxis: "reference"
+---
+
+# 出入金通道
+
+出入金通道合作伙伴将 Stable 连接到全球法定货币系统，使用户和企业能够在 USDT、本地货币和支付通道之间进行转移。
+
+## 出入金通道概览表
+
+| **服务商**                                                                    | **类别**   | **文档 / 开始使用**                                                                                                | **备注**                       |
+| :------------------------------------------------------------------------------ | :------------- | :------------------------------------------------------------------------------------------------------------------ | :----------------------------------------- |
+| [**Onmeta**](https://onmeta.in/on-off-ramp)                              | 出入金通道    | [https://docs.onmeta.in/](https://docs.onmeta.in/)                                                           | 合规的法币兑 USDT + 跨境支付 |
+| [**Halliday**](https://halliday.xyz/)                                    | 出入金通道    | [https://docs.halliday.xyz/pages/home](https://docs.halliday.xyz/pages/home)                                 | CEX + Stripe 集成                   |
+| [**Alchemy Pay**](https://alchemypay.org/about)                          | 网关        | [https://alchemypay.readme.io/docs/alchemypay-on-ramp](https://alchemypay.readme.io/docs/alchemypay-on-ramp) | 300+ 种支付方式                       |
+| [**DFX**](https://www.dfx.swiss/)                                        | 出金外汇    | [https://docs.dfx.swiss/](https://docs.dfx.swiss/)                                                           | 受监管的稳定币兑法币               |
+| [**Onramp Money**](https://onramp.money/)                                | 出入金通道    | [https://docs.onramp.money/onramp/](https://docs.onramp.money/onramp/)                                       | 覆盖新兴市场                   |
+| [**MoonPay**](https://www.moonpay.com/business/onramps)                  | 通用通道 | [https://dev.moonpay.com/docs/on-ramp-overview](https://dev.moonpay.com/docs/on-ramp-overview)               | 全球银行卡 + 银行支持                 |
+| [**Transak**](https://transak.com/off-ramp)                              | 出入金通道    | [https://docs.transak.com/](https://docs.transak.com/)                                                       | 450+ 项集成                          |
+| [**Banxa**](https://banxa.com/solutions/by-use-case/on-and-off-ramping/) | 受监管通道 | [https://docs.banxa.com/docs/overview](https://docs.banxa.com/docs/overview)                                 | 覆盖 100+ 个国家的本地通道              |
+| [**Simplex by Nuvei**](https://www.simplex.com/)                         | 入金通道        | [https://buy.simplex.com](https://buy.simplex.com)                                                           | 在 245+ 个市场支持银行卡、Apple/Google Pay、SEPA、ACH；为包括 Atomic Wallet 在内的下游钱包提供支持 |
+
+## 类别指南
+
+- **出入金通道：** 在法定货币与 Stable 上的 USDT 之间实现直接兑换的平台。
+- **支付网关：** 将应用、商户或金融科技公司连接到全球法币通道以实现无缝交易的服务。
+- **外汇与出金网络：** 提供合规、大规模稳定币兑法币结算的受监管基础设施。
+
+## 出入金通道与支付网关
+
+### MoonPay
+
+全球范围内用于即时购买资产的通用加密货币出入金通道。
+
+**功能**
+
+- 银行卡 + 银行 + 本地支付通道
+- 快速的全球入驻
+- 多链支持
+
+**开始使用**：按照 [MoonPay 入金集成指南](https://dev.moonpay.com/docs/on-ramp-overview) 将 Stable 上的法币兑 USDT 购买功能嵌入到你的应用中。
+
+### Transak
+
+提供在 450+ 个应用中无障碍买入、卖出和转移加密货币方式的出入金通道。
+
+**功能**
+
+- 全球法币方式
+- 易于集成的 API
+- 国家级合规支持
+
+**开始使用**：查看 [Transak 集成文档](https://docs.transak.com/)，将 Stable 作为受支持的网络添加出入金通道小组件或 API。
+
+### Onmeta
+
+为 VDA 平台提供内置合规功能的出入金通道及跨境支付基础设施。
+
+**功能**
+
+- 法币 ↔ USDT 兑换
+- 合规就绪的流程
+- 跨境支付
+- 本地结算通道
+
+**开始使用**：参考 [Onmeta API 文档](https://docs.onmeta.in/)，在 Stable 上集成法币兑 USDT 兑换和跨境支付。
+
+### Halliday
+
+端到端支付套件，可实现与顶级 CEX 以及 Coinbase、Stripe 等支付平台的无缝出入金。
+
+**功能**
+
+- 直接连接主要 CEX
+- Stripe + 支付通道集成
+- 适合商户和应用的流程
+
+**开始使用**：阅读 [Halliday 集成文档](https://docs.halliday.xyz/pages/home)，在你的产品中将基于 CEX 和 Stripe 的支付流程连接到 Stable。
+
+### Alchemy Pay
+
+全球支付网关，通过 300+ 种支付方式连接传统金融与加密货币。
+
+**功能**
+
+- 全球法币出入金通道
+- 商户支付
+- 银行转账 + 银行卡 + 本地通道
+
+**开始使用**：使用 [Alchemy Pay 入金 API](https://alchemypay.readme.io/docs/alchemypay-on-ramp)，为在 Stable 上购买 USDT 添加 300+ 种支付方式。
+
+### DFX
+
+受瑞士监管的去中心化外汇与出金网络，交易量超过 1 亿笔。
+
+**功能**
+
+- 稳定币兑法币兑换
+- 受监管的外汇层
+- 深度的多币种支持
+
+**开始使用**：查阅 [DFX API 文档](https://docs.dfx.swiss/)，使用 Stable 作为源网络设置合规的稳定币兑法币出金流程。
+
+### Onramp Money
+
+专注于新兴市场的低成本法币兑加密货币网关。
+
+**功能**
+
+- 覆盖本地支付方式
+- 即时结算
+- 130 万+ 受支持用户
+
+**开始使用**：按照 [Onramp Money 开发者指南](https://docs.onramp.money/onramp/)，为 Stable 上的新兴市场用户集成法币兑加密货币流程。
+
+### Banxa
+
+受监管的出入金通道基础设施，通过 100+ 个国家的本地通道将用户连接到加密货币。
+
+**功能**
+
+- 受监管的法币网关
+- 广泛的全球覆盖
+- 银行和本地支付选项
+
+**开始使用**：阅读 [Banxa 集成概览](https://docs.banxa.com/docs/overview)，以 Stable 作为受支持的网络启用受监管的出入金通道流程。
+
+### Simplex by Nuvei
+
+来自 Nuvei 的法币兑加密货币入金通道，在 245+ 个市场支持银行卡、银行和本地支付方式。通过 Simplex 在 Stable 上购买 USDT 也可在任何集成了 Simplex 小组件的钱包或应用内使用，包括 [Atomic Wallet](/en/reference/wallets#atomic-wallet)。
+
+**功能**
+
+- 通过 Visa、Mastercard、Apple Pay、Google Pay、SEPA 和 ACH 在 Stable 上购买 USDT
+- 覆盖全球 245+ 个市场
+- 被下游钱包和应用使用的白标小组件（例如 Atomic Wallet）
+
+**开始使用**：前往 [https://buy.simplex.com](https://buy.simplex.com) 直接在 Stable 上购买 USDT，或集成 [Simplex 小组件](https://www.simplex.com/) 以在你自己的应用内提供入金购买服务。
+
+---
+
+有正在集成 Stable 的出入金通道吗？请通过 [bizdev@stable.xyz](mailto:bizdev@stable.xyz) 联系我们。

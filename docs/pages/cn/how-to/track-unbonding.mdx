@@ -1,0 +1,188 @@
+---
+source_path: how-to/track-unbonding.mdx
+source_sha: 33d66c8fbb264a445f511902164794ff3796e785
+title: "追踪解绑完成"
+description: "通过系统交易订阅 StableSystem 预编译合约发出的 UnbondingCompleted 事件。按用户或验证人筛选，查询历史事件。"
+diataxis: "how-to"
+---
+
+# 追踪解绑完成
+
+当解绑周期完成时，协议会通过系统交易，借助 `StableSystem` 预编译合约（`0x0000000000000000000000000000000000009999`）发出 `UnbondingCompleted` 事件。这使得 dApp 能够实时通知用户并更新余额，而无需运行自定义索引器或轮询 REST 端点。
+
+:::note
+**概念：** 关于系统交易如何将 SDK 层事件桥接到 EVM 以及其重要性，请参阅 [系统交易](/en/explanation/system-transactions)。
+:::
+
+## 前置条件
+
+- 了解 [系统交易](/en/explanation/system-transactions)。
+- 熟悉 [质押](/en/explanation/staking-module)，特别是 `undelegate` 和解绑流程。
+- 具备使用标准 web3 库（例如 [ethers.js](https://docs.ethers.org/) v6）订阅和筛选合约事件的经验。
+
+## 概述
+
+- **设置合约实例**：为 StableSystem 预编译合约创建一个合约实例。
+- **在应用中处理事件**：根据应用逻辑订阅实时事件或查询历史数据。
+- **处理连接问题**：为持久化的 WebSocket 订阅实现重连逻辑。
+
+## 步骤 1：设置合约实例
+
+使用 `UnbondingCompleted` 事件 ABI 为 `StableSystem` 预编译合约创建一个合约实例。
+
+```typescript
+// config.ts
+import { ethers } from "ethers";
+
+export const STABLE_SYSTEM_ADDRESS =
+  "0x0000000000000000000000000000000000009999";
+
+export const STABLE_SYSTEM_ABI = [
+  "event UnbondingCompleted(address indexed delegator, address indexed validator, uint256 amount)",
+];
+
+export const provider = new ethers.JsonRpcProvider("https://rpc.testnet.stable.xyz");
+export const stableSystem = new ethers.Contract(
+  STABLE_SYSTEM_ADDRESS,
+  STABLE_SYSTEM_ABI,
+  provider
+);
+```
+
+## 步骤 2：在应用中处理事件
+
+根据应用逻辑订阅实时事件、查询历史数据，或两者兼有。
+
+### 实时订阅
+
+订阅 `UnbondingCompleted` 事件，以便在任何解绑完成时获得实时通知。这对于触发余额更新、发送通知或刷新仪表盘统计数据很有用。
+
+```typescript
+// subscribeBasic.ts
+import { stableSystem } from "./config";
+
+stableSystem.on("UnbondingCompleted", (delegator, validator, amount, event) => {
+  console.log("Unbonding completed:");
+  console.log("  Delegator:", delegator);
+  console.log("  Validator:", validator);
+  console.log("  Amount:", ethers.formatEther(amount), "tokens");
+  console.log("  Block:", event.log.blockNumber);
+  console.log("  Tx Hash:", event.log.transactionHash);
+});
+```
+
+### 按用户筛选
+
+如果只想接收特定委托人地址的事件，请使用已索引的事件参数创建一个筛选器。
+
+```typescript
+// subscribeByUser.ts
+import { ethers } from "ethers";
+import { stableSystem } from "./config";
+
+const userAddress = "0xabcd...";
+const filter = stableSystem.filters.UnbondingCompleted(userAddress);
+
+stableSystem.on(filter, (delegator, validator, amount, event) => {
+  refreshUserBalance(userAddress);
+  showNotification(
+    `Your unbonding of ${ethers.formatEther(amount)} tokens completed!`
+  );
+});
+```
+
+### 按验证人筛选
+
+```typescript
+// subscribeByValidator.ts
+import { stableSystem } from "./config";
+
+const validatorAddress = "0x1234...";
+const validatorFilter = stableSystem.filters.UnbondingCompleted(
+  null,
+  validatorAddress
+);
+
+stableSystem.on(validatorFilter, (delegator, validator, amount) => {
+  updateValidatorStats(validator, amount);
+});
+```
+
+### 历史查询
+
+如果你的 dApp 需要展示过去解绑完成的历史记录，请使用带区块范围的事件筛选器查询历史事件。
+
+```typescript
+// queryHistory.ts
+import { ethers } from "ethers";
+import { provider, stableSystem } from "./config";
+
+async function getUnbondingHistory(
+  userAddress: string,
+  fromBlock: number,
+  toBlock: number
+) {
+  const filter = stableSystem.filters.UnbondingCompleted(userAddress);
+  const events = await stableSystem.queryFilter(filter, fromBlock, toBlock);
+
+  return events.map((event) => ({
+    delegator: event.args.delegator,
+    validator: event.args.validator,
+    amount: ethers.formatEther(event.args.amount),
+    blockNumber: event.blockNumber,
+    txHash: event.transactionHash,
+  }));
+}
+
+const currentBlock = await provider.getBlockNumber();
+const history = await getUnbondingHistory(
+  "0xabcd...",
+  currentBlock - 1000,
+  currentBlock
+);
+```
+
+## 步骤 3：处理连接问题
+
+事件订阅依赖于持久化的 WebSocket 连接。请为生产环境的 dApp 实现重连逻辑。
+
+```typescript
+// subscribeWithReconnection.ts
+import { ethers } from "ethers";
+import { STABLE_SYSTEM_ADDRESS, STABLE_SYSTEM_ABI } from "./config";
+
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 5;
+
+function handleUnbonding(delegator: string, validator: string, amount: bigint) {
+  console.log("Unbonding completed:", { delegator, validator, amount });
+}
+
+function setupEventListener() {
+  const wsProvider = new ethers.WebSocketProvider("wss://rpc.testnet.stable.xyz");
+
+  wsProvider.on("error", (error) => {
+    console.error("Provider error:", error);
+    if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+      reconnectAttempts++;
+      setTimeout(() => setupEventListener(), 5000);
+    }
+  });
+
+  const stableSystem = new ethers.Contract(
+    STABLE_SYSTEM_ADDRESS,
+    STABLE_SYSTEM_ABI,
+    wsProvider
+  );
+
+  stableSystem.on("UnbondingCompleted", handleUnbonding);
+}
+
+setupEventListener();
+```
+
+## 后续推荐
+
+- [**系统交易概念**](/en/explanation/system-transactions) — 了解协议层事件如何到达 EVM。
+- [**质押模块概念**](/en/explanation/staking-module) — 回顾委托和解绑流程。
+- [**质押预编译参考**](/en/reference/staking-module-api) — 查找触发此处所追踪事件的方法。

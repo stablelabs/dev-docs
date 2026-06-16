@@ -1,0 +1,294 @@
+---
+source_path: explanation/usdt-as-gas-token.mdx
+source_sha: b672e8cd0f0a20007892a2ef01a8ac79eda14c2d
+title: USDT as Gas
+description: "USDT0 作为 Stable 原生 Gas 代币的工作原理，实现可预测的交易费用。"
+---
+
+# USDT as Gas
+
+Stable 是围绕 USDT 稳定币构建的。USDT0 是 USDT 的原生跨链版本，是支撑 Stable 生态系统的核心资产。
+
+## 摘要
+
+Stable 是一个使用 USDT0 作为原生 Gas 代币的 EVM 兼容区块链。USDT0 同时作为 Gas 支付和价值转移的原生资产，以及支持 `approve`、`transfer`、`transferFrom` 和 `permit` 的 ERC20 代币。
+
+这种设计让交易成本可预测并以美元计价，简化了用户体验。然而，它引入了与以太坊不同的行为差异，影响余额语义、授权安全性和某些操作码假设。
+
+本文档指定了 Stable 的 USDT0 Gas 机制，描述了由此产生的行为差异，并定义了在 Stable 上部署的智能合约所需和推荐的开发模式。
+
+## 版本说明
+
+随着 Stable v1.2.0，USDT0 成为 Stable 上的原生 Gas 代币，取代了 gUSDT。作为此过渡的一部分：
+
+- gUSDT 即将下线。
+- 现有的 gUSDT 余额会自动转换为 USDT0。
+- 用户和应用程序不再需要封包和解包代币来支付费用或转移价值。
+
+在 v1.2.0 之后，USDT0 同时作为：
+
+- 网络费用资产（gas），以及
+- 具有 `approve`、`permit`、`transfer` 和 `transferFrom` 的标准 ERC20 代币。
+
+## 网络地址
+
+USDT0 代币合约地址：
+
+- 测试网：[0x78cf24370174180738c5b8e352b6d14c83a6c9a9](https://testnet.stablescan.xyz/token/0x78cf24370174180738c5b8e352b6d14c83a6c9a9)
+- 主网：[0x779ded0c9e1022225f8e0630b35a9b54be713736](https://stablescan.xyz/token/0x779ded0c9e1022225f8e0630b35a9b54be713736)
+
+## 术语
+
+- **Stable**：一个 EVM 兼容的区块链，其中 USDT0 是原生 Gas 代币。
+- **USDT0**：USDT 的原生跨链版本，同时作为：
+    - 用于 Gas 和价值转移的原生资产，以及
+    - 具有授权和许可语义的 ERC20 代币。
+- **原生余额**：由 `address(x).balance` 返回的余额，以 USDT0 计价。
+- **Gas 费**：在 EIP-1559 式费用市场下计算的以 USDT0 支付的交易费用。
+
+## 什么是 USDT0？
+
+USDT0 是使用 LayerZero 的全链可替代代币 (OFT) 标准的 USDT 的原生跨链版本。USDT0 与 USDT 1:1 锚定，旨在跨多个区块链移动，而无需传统的桥接工作流程或封包表示。
+
+在跨链转移 USDT0 时，代币在某些源链上被锁定（取决于链的原生 USDT 支持）或销毁，然后通过 LayerZero 的跨链消息在目标链上铸造。这保持了 1:1 锚定，同时将流动性整合到单个可互操作的资产中，而不是分散的链本地池。
+
+对于用户，这可以实现更快的入门、降低的操作复杂性和改进的流动性流动性。
+
+## USDT0 和 Stable
+
+USDT0 是支撑 Stable 链上经济和日常使用的核心资产。由于同一资产用于支付费用和转移价值，Stable 减少了以下方面的摩擦：
+
+- **普通用户**：更简单的入门和更少的代币概念
+- **开发人员**：更简单的费用和价值流
+- **企业**：简化的会计和财务运营
+
+Stable 还可以通过允许用户通过 LayerZero 从其他网络入门 USDT0 来从第一天开始访问深度 USDT 流动性。
+
+## 假设和先决条件
+
+对于以下内容，读者应该理解：
+
+- Solidity 执行语义和原生价值转移
+- ERC20 授权机制和许可流程
+- 标准智能合约安全模式，包括 Checks-Effects-Interactions
+
+## 1. Gas 和费用模型
+
+### 1.1 概述
+
+Stable 以 USDT0 计价所有交易费用。Gas 定价遵循 EIP-1559 式模型，具有动态调整的基础费用。
+
+交易费用定义为：
+
+```
+fee = gasUsed × baseFee
+```
+交易可以使用标准 EIP-1559 参数指定 `maxFeePerGas`。
+
+*注意：Stable 不支持优先小费。不要设置 `maxPriorityFeePerGas`，否则小费金额将丢失。*
+
+### 1.2 交易提交
+
+客户端应从最近的区块获取最新的基础费用，并在计算 `maxFeePerGas` 时包含安全边际。
+
+示例（说明性）：
+
+```javascript
+const block = await provider.getBlock("latest");
+const baseFee = block.baseFeePerGas;
+
+const maxPriorityFeePerGas = 1n;
+const maxFeePerGas = baseFee * 2n + maxPriorityFeePerGas;
+```
+
+### 1.3 获取 USDT0
+
+账户通过以下方式获取 USDT0：
+
+- 从其他支持的链桥接 USDT0
+- 从 Stable 上的其他账户接收转账
+
+## 2. Stable 如何启用 USDT0 作为 Gas 代币
+
+Stable 使用预扣费和退款结算模型在 USDT0 中收取 Gas 费。
+
+### 示例交易
+
+Alice 向 Bob 发送 100 USDT0。
+
+### 2.1 Ante-handler 阶段
+
+在 `MonoEVMAnteHandler` 中的交易验证期间：
+
+1. 读取 Alice 的 USDT0 余额。
+2. 协议验证 Alice 可以覆盖：
+    - 交易价值（100 USDT0），以及
+    - 最大可能的 Gas 费（`gasWanted × fee`）。
+3. 预先转移最大 Gas 费：
+    - `alice → fee_collector` 以 USDT0。
+
+### 2.2 执行阶段
+
+在 `ApplyTransaction` 期间：
+
+1. EVM 执行交易。
+2. 记录实际 Gas 消耗。
+3. 应用价值转移：
+    - `alice → bob` 转移 100 USDT0。
+
+### 2.3 结算阶段
+
+执行后：
+
+1. 协议计算预扣费的未使用部分：
+    ```
+    refund = (gasWanted − gasUsed) × baseFee
+    ```
+2. 退还未使用的费用：
+    - `fee_collector → alice` 以 USDT0。
+
+## 3. 余额语义和行为差异
+
+### 3.1 原生余额可变性
+
+在以太坊上，合约的原生余额通常仅因合约执行而改变。
+
+在 Stable 上，合约的原生 USDT0 余额也可能由于基于 ERC20 授权的操作而改变，包括 `transferFrom` 和 `permit`。这些操作可以在不调用任何合约代码的情况下减少合约的原生余额。
+
+因此，以下假设在 Stable 上无效：
+- 合约的原生余额只能在合约被调用时减少。
+
+## 4. 合约设计要求
+
+### 4.1 禁止模式：镜像余额会计
+
+合约不得依赖内部变量来镜像原生余额。
+
+不安全模式的示例：
+
+```solidity
+uint256 public deposited;
+
+function deposit() external payable {
+  deposited += msg.value;
+}
+```
+
+如果通过基于授权的转移耗尽 USDT0，此类变量可能与实际原生余额不同。
+
+### 4.2 必需模式：实际余额偿付能力检查
+
+所有原生价值转移必须在转移之前立即使用 `address(this).balance` 验证偿付能力。
+
+示例：
+
+```solidity
+require(address(this).balance >= amount, "insufficient balance");
+```
+
+提款必须遵循 Checks-Effects-Interactions 顺序：
+
+```solidity
+uint256 amount = credit[msg.sender];
+credit[msg.sender] = 0;
+
+require(address(this).balance >= amount);
+payable(msg.sender).call{value: amount}("");
+```
+
+### 4.3 状态进展必须独立于余额
+
+依赖进展、里程碑或完成条件的协议逻辑必须使用非余额状态变量（如计数器或纪元）显式跟踪这些内容。
+
+原生余额只能在支付时用于偿付能力验证。
+
+### 4.4 授权暴露
+
+托管用户资金的合约不应向外部地址授予 USDT0 授权。
+
+如果无法避免授权，合约应：
+
+- 仅批准确切金额
+- 使用后立即重置授权
+- 将余额排空风险视为已知限制
+
+## 5. 地址状态假设
+
+### 5.1 EXTCODEHASH
+
+合约不得依赖 `EXTCODEHASH(addr) == 0x0` 来推断地址从未被使用过。
+
+任何地址使用的概念都必须在合约状态中显式跟踪。
+
+示例：
+
+```solidity
+mapping(address => bool) public used;
+```
+
+## 6. 零地址处理
+
+在 Stable 上：
+
+- 向 `address(0)` 的原生 USDT0 转移会回滚。
+- 向 `address(0)` 的 ERC20 USDT0 转移也会回滚。
+
+没有通过转移到零地址来销毁 USDT0 的支持机制。
+
+合约必须：
+
+- 明确拒绝 `address(0)` 作为接收者
+- 重新设计任何假设零地址销毁的逻辑
+- 如果需要不可逆丢失语义，请使用显式接收合约
+
+## 7. 测试要求
+
+Stable 部署的测试套件应包括：
+
+- 基于授权的排空场景（`approve` + `transferFrom`）
+- 使用实际原生余额的偿付能力执行
+- 不依赖 `EXTCODEHASH` 的地址使用逻辑
+- 零地址转移的显式失败情况
+
+## 8. 迁移检查清单
+
+将合约从以太坊移植到 Stable 时：
+
+- 删除内部原生余额镜像
+- 用 `address(this).balance` 替换所有偿付能力检查
+- 删除所有到 `address(0)` 的原生或 ERC20 转移
+- 审计所有 USDT0 批准
+- 添加涵盖许可和基于授权流程的测试
+
+## 9. 总结
+
+Stable 使用 USDT0 作为 Gas 代币提供了可预测的费用和统一的价值会计，同时改变了关于原生余额行为的核心假设。
+
+Stable 上的正确合约设计需要：
+
+- 将 USDT0 视为双重角色资产
+- 针对实际余额执行偿付能力
+- 避免基于授权的余额排空
+- 消除对以太坊特有的余额及地址假设的依赖
+
+## 常见问题
+
+**我们现在使用 USDT0 作为封包的原生代币。升级后，哪个代币应该被视为封包的原生代币？**
+
+升级后，USDT0 既是原生代币又是 ERC-20 代币。您应该直接使用 USDT0，不再需要封包或解包。
+
+**原始的 USDT0 合约地址（`0x779Ded0c9e1022225f8E0630b35a9b54bE713736`）会发生什么变化？**
+
+没有任何变化。相同的地址仍然有效并继续代表 USDT0。
+
+**升级后，原生代币地址是 `0x779Ded0c9e1022225f8E0630b35a9b54bE713736`（而不是 `0x0000000000000000000000000000000000001000`）吗？**
+
+是的。升级后，原生代币标识符/地址是 `0x779Ded0c9e1022225f8E0630b35a9b54bE713736`。
+
+**那么 `0x0000000000000000000000000000000000001000` 呢？它还会作为 gUSDT 的代币地址使用吗，我们应该保留它吗？**
+
+不会。您可以删除它。升级后将不再使用它。
+
+**对于 DEX calldata，协议是否会停止使用 `0x0000000000000000000000000000000000001000` 作为"原生代币"标识符，而改用 `0x779Ded0c9e1022225f8E0630b35a9b54bE713736`？**
+
+正确。升级后，DEX 应使用 `0x779Ded0c9e1022225f8E0630b35a9b54bE713736` 作为原生代币标识符。

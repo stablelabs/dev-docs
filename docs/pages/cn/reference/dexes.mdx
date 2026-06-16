@@ -1,0 +1,84 @@
+---
+source_path: reference/dexes.mdx
+source_sha: 924240ead7ffcb4e6e647b050bbf3fd81fde830a
+title: "DEX（去中心化交易所）"
+description: "Stable 上运行的去中心化交易所，包括规范的 Uniswap v3 部署及其合约地址。"
+diataxis: "reference"
+---
+
+# DEX（去中心化交易所）
+
+Stable 上的 DEX 部署，用于现货交易、流动性提供和链上路由。Stable 已列入[官方 Uniswap v3 部署列表](https://gov.uniswap.org/t/official-uniswap-v3-deployments-list/24323/13#p-58106-stable-4)：Stable 上的 Uniswap v3 合约经治理认可为规范部署，并通过 [Stable Swap](https://swap.stable.xyz) 作为默认前端进行路由。
+
+## 概览表
+
+| **提供方** | **类别** | **状态** | **文档 / 入门** | **备注** |
+| :--- | :--- | :--- | :--- | :--- |
+| [**Uniswap v3**](https://swap.stable.xyz) | 集中流动性 AMM | 规范部署（主网已上线） | [docs.uniswap.org](https://docs.uniswap.org/contracts/v3/overview) | 于 2026 年 5 月 12 日被官方 Uniswap v3 部署列表认可。前端：Stable Swap。部署方：Protofire。 |
+
+## Uniswap v3
+
+Stable 上规范的 Uniswap v3 部署，具有集中流动性池和标准费率档位。Stable Swap 是持续维护的默认前端；交易通过下方的合约进行路由。跨链流动性通过 LayerZero 流入。
+
+**功能**
+
+- 带有 v3 头寸 NFT 的集中流动性 AMM
+- 标准 `SwapRouter02`、`Quoter V2` 和 `Universal Router` 集成路径
+- 支持 `Permit2` 实现无 gas 授权
+- 同时部署了 v2 风格的恒定乘积池以支持旧版路由
+
+### 主网合约地址
+
+来源：[RFC: Stable Application for Canonical Uniswap v3 Deployment](https://gov.uniswap.org/t/rfc-stable-application-for-canonical-uniswap-v3-deployment/26080) 和[官方 Uniswap v3 部署列表](https://gov.uniswap.org/t/official-uniswap-v3-deployments-list/24323/13#p-58106-stable-4)。
+
+| **合约** | **地址** |
+| :--- | :--- |
+| **v3 Core Factory** | [0x88F0a512eF09175D456bc9547f914f48C013E4aA](https://stablescan.xyz/address/0x88F0a512eF09175D456bc9547f914f48C013E4aA) |
+| **Universal Router** | [0x5Be52b52f3d1dbC324d2959637471a4208626144](https://stablescan.xyz/address/0x5Be52b52f3d1dbC324d2959637471a4208626144) |
+| **Swap Router02** | [0x32eaf9B5d5F2CD7361c5012890C943D7de84C22a](https://stablescan.xyz/address/0x32eaf9B5d5F2CD7361c5012890C943D7de84C22a) |
+| **Quoter V2** | [0xb070179E7032CdA868b53e6C1742F80c9e940d1A](https://stablescan.xyz/address/0xb070179E7032CdA868b53e6C1742F80c9e940d1A) |
+| **Nonfungible Token Position Manager** | [0x3BdC3437405f7D801b6036532713fc1F179136a6](https://stablescan.xyz/address/0x3BdC3437405f7D801b6036532713fc1F179136a6) |
+| **Nonfungible Token Position Descriptor V1.3.0** | [0x7Cf5987951E48ADf235cc9194bCdc708Eb692D82](https://stablescan.xyz/address/0x7Cf5987951E48ADf235cc9194bCdc708Eb692D82) |
+| **NFT Descriptor Library V1.3.0** | [0xF7815833076D83161414A46c4E993dC8f22A7ADd](https://stablescan.xyz/address/0xF7815833076D83161414A46c4E993dC8f22A7ADd) |
+| **Descriptor Proxy** | [0xcd2cD0E139eC5581138E18C6DBB189c53efBAE95](https://stablescan.xyz/address/0xcd2cD0E139eC5581138E18C6DBB189c53efBAE95) |
+| **Proxy Admin** | [0x51D1E70B8cAbDF4F3aB056475802AB1687b3EA23](https://stablescan.xyz/address/0x51D1E70B8cAbDF4F3aB056475802AB1687b3EA23) |
+| **Tick Lens** | [0x8dF0D1614aae99352045c62d24d54E72b38111ec](https://stablescan.xyz/address/0x8dF0D1614aae99352045c62d24d54E72b38111ec) |
+| **v3 Migrator** | [0x2C5f4275F1a278BF328D56CB9db304e915DE3082](https://stablescan.xyz/address/0x2C5f4275F1a278BF328D56CB9db304e915DE3082) |
+| **v3 Staker** | [0xA32e3E127FF46db40ab3c4775be97ED760AD7178](https://stablescan.xyz/address/0xA32e3E127FF46db40ab3c4775be97ED760AD7178) |
+| **Permit2** | [0x000000000022D473030F116dDEE9F6B43aC78BA3](https://stablescan.xyz/address/0x000000000022D473030F116dDEE9F6B43aC78BA3) |
+| **Multicall 2** | [0x208099D6E8a107aD485CD1374A6EC5Abd98c7F11](https://stablescan.xyz/address/0x208099D6E8a107aD485CD1374A6EC5Abd98c7F11) |
+| **V2 Core Factory** | [0x25D2d657F539F2bB16eC82773cBE5ee49ddD3c69](https://stablescan.xyz/address/0x25D2d657F539F2bB16eC82773cBE5ee49ddD3c69) |
+| **Uniswap V2 Router02** | [0xa571dc7c4f2369F1cA24D3a7E8a35c07Ff52bfC0](https://stablescan.xyz/address/0xa571dc7c4f2369F1cA24D3a7E8a35c07Ff52bfC0) |
+
+:::note
+截至 2026 年 5 月 12 日，在 2026 年 4 月完成 UAC 治理流程后，Stable 被 Uniswap v3 部署列表所认可。该部署由 Protofire 维护，并通过 LayerZero 实现桥接连接。
+:::
+
+### 获取交易报价
+
+`Quoter V2` 在不执行交易的情况下返回给定输入的预期输出。可从任何指向 Stable RPC 的 EVM 工具中使用它。
+
+```bash
+cast call 0xb070179E7032CdA868b53e6C1742F80c9e940d1A \
+  "quoteExactInputSingle((address,address,uint256,uint24,uint160))(uint256,uint160,uint32,uint256)" \
+  "(<TOKEN_IN>,<TOKEN_OUT>,<AMOUNT_IN>,<FEE>,0)" \
+  --rpc-url https://rpc.stable.xyz
+```
+
+```text
+(amountOut, sqrtPriceX96After, initializedTicksCrossed, gasEstimate)
+```
+
+将 `<TOKEN_IN>`、`<TOKEN_OUT>`、`<AMOUNT_IN>` 和 `<FEE>`（`100`、`500`、`3000`、`10000` 之一）替换为你要报价的池的值。对于应用集成，建议使用 [Uniswap v3 SDK](https://docs.uniswap.org/sdk/v3/overview) 或指向上述地址的 [Universal Router](https://docs.uniswap.org/contracts/universal-router/overview)。
+
+---
+
+## 有 DEX 要集成 Stable？
+
+请通过 [bizdev@stable.xyz](mailto:bizdev@stable.xyz) 联系团队，以便列入本页面。
+
+## 下一步推荐
+
+- [连接到 Stable](/en/reference/connect)：主网和测试网的链 ID、RPC 端点和区块浏览器。
+- [桥接](/en/reference/bridges)：将 USDT0 和其他资产转入 Stable 以提供流动性或路由交易。
+- [预言机](/en/reference/oracles)：可与交易报价配合使用的价格源，用于定价和清算。

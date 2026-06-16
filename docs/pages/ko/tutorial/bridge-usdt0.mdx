@@ -1,0 +1,338 @@
+---
+source_path: tutorial/bridge-usdt0.mdx
+source_sha: 401984b7572b9f0b7ee12064bf18768f17849e60
+title: "USDT0을 Stable로 브릿지하기"
+description: "LayerZero의 OFT 프로토콜을 사용하여 Ethereum Sepolia에서 Stable Testnet으로 USDT0를 브릿지하는 단계별 튜토리얼입니다."
+type: "tutorial"
+diataxis: "tutorial"
+---
+
+# USDT0을 Stable로 브릿지하기
+
+이 튜토리얼에서는 TypeScript와 ethers v6를 사용하여 Ethereum Sepolia에서 Stable Testnet으로 USDT0를 프로그래밍 방식으로 브릿지합니다. 단계마다 함수를 하나씩 추가하면서 스크립트를 점진적으로 구축합니다.
+
+이 튜토리얼은 OFT Mesh 경로를 사용합니다. Sepolia의 OFT Adapter가 토큰을 잠그고, LayerZero의 이중 DVN 검증이 메시지를 확인하며, Stable에서 USDT0가 발행됩니다. 작동 방식에 대한 전체 설명은 [Stable로 브릿지하기](/en/explanation/usdt0-bridging)를 참조하세요.
+
+:::note
+더 적은 코드 줄을 원하시나요? [Stable SDK](/en/explanation/sdk-overview)는 `quoteBridge`와 `bridge`를 제공하며 경로(LayerZero 또는 LI.FI)를 자동으로 선택합니다.
+:::
+
+## 사전 준비 사항
+
+- Node.js 18.0.0 이상 (`node --version`으로 확인)
+- 직접 제어할 수 있는 개인 키가 있는 Sepolia 지갑 (실제 자금을 보유한 키는 절대 사용하지 마세요)
+- 가스용 SepoliaETH ([sepoliafaucet.com](https://sepoliafaucet.com) 또는 [faucets.chain.link/sepolia](https://faucets.chain.link/sepolia)에서 받으세요)
+- 터미널에서 스크립트를 실행하는 기본적인 지식
+
+---
+
+## 1. 프로젝트 설정
+
+```bash
+mkdir stable-bridge && cd stable-bridge
+npm init -y
+npm install ethers@6 @layerzerolabs/lz-v2-utilities
+npm install -D tsx
+```
+
+`package.json`에는 다음 내용이 포함되어야 합니다:
+
+```json
+{
+  "name": "stable-bridge",
+  "version": "1.0.0",
+  "scripts": {
+    "bridge": "tsx --env-file=.env bridge.ts"
+  },
+  "dependencies": {
+    "@layerzerolabs/lz-v2-utilities": "^2.3.39",
+    "ethers": "^6.13.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0"
+  }
+}
+```
+
+## 2. 환경 구성
+
+자격 증명이 담긴 `.env` 파일을 생성하세요:
+
+```bash
+PRIVATE_KEY=0xYOUR_PRIVATE_KEY_HERE
+SEPOLIA_RPC_URL=https://rpc.sepolia.org
+```
+
+`SEPOLIA_RPC_URL`의 경우, 다음 중 어느 것이든 작동합니다:
+- 퍼블릭: `https://rpc.sepolia.org` 또는 `https://ethereum-sepolia-rpc.publicnode.com`
+- Alchemy: `https://eth-sepolia.g.alchemy.com/v2/YOUR_KEY`
+- Infura: `https://sepolia.infura.io/v3/YOUR_KEY`
+
+## 3. 스크립트 골격 작성
+
+임포트, 구성, 그리고 `main` 함수를 포함하는 `bridge.ts`를 생성하세요. 다음 단계에서 이 파일에 함수를 추가하고 `main`에서 호출하게 됩니다.
+
+```ts
+import { ethers, Contract, Wallet, JsonRpcProvider } from "ethers";
+import { Options } from "@layerzerolabs/lz-v2-utilities";
+
+const PRIVATE_KEY = process.env.PRIVATE_KEY!;
+const SEPOLIA_RPC_URL = process.env.SEPOLIA_RPC_URL || "https://rpc.sepolia.org";
+
+// Contract addresses
+const SEPOLIA_USDT0 = "0xc4DCC311c028e341fd8602D8eB89c5de94625927";
+const SEPOLIA_OFT_ADAPTER = "0xc099cD946d5efCC35A99D64E808c1430cEf08126";
+const STABLE_USDT0 = "0x78Cf24370174180738C5B8E352B6D14c83a6c9A9";
+
+// Destination: Stable Testnet
+const STABLE_TESTNET_EID = 40374;
+
+// Minimal ABIs — only the functions we call
+const ERC20_ABI = [
+  "function balanceOf(address) view returns (uint256)",
+  "function approve(address, uint256) returns (bool)",
+  "function allowance(address, address) view returns (uint256)",
+  "function mint(address, uint256)",
+];
+
+const OFT_ADAPTER_ABI = [
+  "function quoteSend((uint32 dstEid, bytes32 to, uint256 amountLD, uint256 minAmountLD, bytes extraOptions, bytes composeMsg, bytes oftCmd), bool) view returns ((uint256 nativeFee, uint256 lzTokenFee))",
+  "function send((uint32 dstEid, bytes32 to, uint256 amountLD, uint256 minAmountLD, bytes extraOptions, bytes composeMsg, bytes oftCmd), (uint256 nativeFee, uint256 lzTokenFee), address) payable returns ((bytes32, uint64, (uint256, uint256)), (uint256, uint256))",
+];
+
+function addressToBytes32(addr: string): string {
+  return ethers.zeroPadValue(ethers.getBytes(ethers.getAddress(addr)), 32);
+}
+
+// You will add functions here.
+
+async function main() {
+  const provider = new JsonRpcProvider(SEPOLIA_RPC_URL);
+  const wallet = new Wallet(PRIVATE_KEY, provider);
+
+  const usdt0 = new Contract(SEPOLIA_USDT0, ERC20_ABI, wallet);
+  const oftAdapter = new Contract(SEPOLIA_OFT_ADAPTER, OFT_ADAPTER_ABI, wallet);
+
+  const amount = ethers.parseEther("1"); // 1 USDT0 (18 decimals)
+
+  // You will add function calls here.
+}
+
+main().catch((err) => {
+  console.error(err.message);
+  process.exit(1);
+});
+```
+
+## 4. Sepolia에서 테스트 USDT0 발행하기
+
+Sepolia의 테스트 USDT0 컨트랙트는 퍼블릭 `mint` 함수를 노출합니다. `bridge.ts`의 `main` 위에 다음 함수를 추가하세요:
+
+```ts
+async function mint(usdt0: Contract, receiver: string, amount: bigint) {
+  console.log(`Minting ${ethers.formatEther(amount)} USDT0 on Sepolia...`);
+  const tx = await usdt0.mint(receiver, amount);
+  await tx.wait();
+  console.log(`Mint tx: ${tx.hash}  confirmed`);
+
+  const balance = await usdt0.balanceOf(receiver);
+  console.log(`USDT0 balance: ${ethers.formatEther(balance)}`);
+}
+```
+
+그런 다음 `main`에서 호출하세요:
+
+```ts
+  await mint(usdt0, wallet.address, amount);
+```
+
+스크립트를 실행하세요:
+
+```bash
+npx tsx --env-file=.env bridge.ts
+```
+
+---
+
+**체크포인트:** 발행이 확인된 후 0이 아닌 USDT0 잔액이 로그에 표시되어야 합니다.
+
+---
+
+## 5. OFT Adapter 승인하기
+
+OFT Adapter가 토큰을 이동시키려면 ERC-20 allowance가 필요합니다. `main` 위에 이 함수를 추가하세요:
+
+```ts
+async function approve(usdt0: Contract, spender: string, owner: string, amount: bigint) {
+  console.log("Approving OFT Adapter...");
+  const tx = await usdt0.approve(spender, amount);
+  await tx.wait();
+  console.log(`Approve tx: ${tx.hash}  confirmed`);
+
+  const allowance = await usdt0.allowance(owner, spender);
+  console.log(`Allowance: ${ethers.formatEther(allowance)}`);
+}
+```
+
+`main`에서 `mint` 다음에 호출을 추가하세요:
+
+```ts
+  // await mint(usdt0, wallet.address, amount);
+  await approve(usdt0, SEPOLIA_OFT_ADAPTER, wallet.address, amount);
+```
+
+스크립트를 실행하세요. 이전 실행에서 이미 토큰이 있다면 `await mint(...)` 호출을 주석 처리할 수 있습니다.
+
+---
+
+**체크포인트:** 승인이 확인된 후 스크립트가 0이 아닌 allowance를 로그에 표시해야 합니다.
+
+---
+
+## 6. 수수료 견적 및 브릿지 트랜잭션 전송
+
+`quoteSend` 호출은 LayerZero 메시징 수수료를 SepoliaETH로 반환하며, 이를 `send`에 `msg.value`로 전달합니다. `main` 위에 이 함수를 추가하세요:
+
+```ts
+async function send(oftAdapter: Contract, receiver: string, amount: bigint) {
+  const options = Options.newOptions().addExecutorLzReceiveOption(0, 0).toBytes();
+
+  const sendParams = {
+    dstEid: STABLE_TESTNET_EID,
+    to: addressToBytes32(receiver),
+    amountLD: amount,
+    minAmountLD: amount,
+    extraOptions: options,
+    composeMsg: "0x",
+    oftCmd: "0x",
+  };
+
+  console.log("Quoting bridge fee...");
+  const feeResult = await oftAdapter.quoteSend(sendParams, false);
+  const fee = { nativeFee: feeResult.nativeFee, lzTokenFee: feeResult.lzTokenFee };
+  console.log(`Bridge fee: ${ethers.formatEther(fee.nativeFee)} ETH`);
+
+  console.log("Sending bridge transaction...");
+  const tx = await oftAdapter.send(sendParams, fee, receiver, {
+    value: fee.nativeFee,
+  });
+  await tx.wait();
+  console.log(`Bridge tx: ${tx.hash}  confirmed`);
+  console.log(`Sepolia Etherscan: https://sepolia.etherscan.io/tx/${tx.hash}`);
+  console.log(`LayerZero Scan: https://testnet.layerzeroscan.com/tx/${tx.hash}`);
+}
+```
+
+`main`에서 `approve` 다음에 호출을 추가하세요:
+
+```ts
+  // await mint(usdt0, wallet.address, amount);
+  // await approve(usdt0, SEPOLIA_OFT_ADAPTER, wallet.address, amount);
+  await send(oftAdapter, wallet.address, amount);
+```
+
+## 7. Stable Testnet에서 도착 확인하기
+
+전송 후, 스크립트는 토큰이 도착할 때까지 Stable Testnet RPC를 폴링할 수 있습니다. `main` 위에 이 함수를 추가하세요:
+
+```ts
+async function verify(receiver: string) {
+  console.log("Waiting for DVN verification (~2 minutes)...");
+  const stableProvider = new JsonRpcProvider("https://rpc.testnet.stable.xyz");
+  const stableUsdt0 = new Contract(STABLE_USDT0,
+    ["function balanceOf(address) view returns (uint256)"], stableProvider);
+
+  const before: bigint = await stableUsdt0.balanceOf(receiver);
+  for (let i = 0; i < 24; i++) {
+    await new Promise((r) => setTimeout(r, 5000));
+    const current: bigint = await stableUsdt0.balanceOf(receiver);
+    if (current > before) {
+      console.log(`\nUSDT0 on Stable: ${ethers.formatEther(current)}`);
+      console.log(`Explorer: https://testnet.stablescan.xyz/address/${receiver}`);
+      return;
+    }
+    process.stdout.write(".");
+  }
+  console.log("\nTokens have not arrived yet. Check manually:");
+  console.log(`Explorer: https://testnet.stablescan.xyz/address/${receiver}`);
+}
+```
+
+`main`에서 `send` 다음에 호출을 추가하세요:
+
+```ts
+  // await mint(usdt0, wallet.address, amount);
+  // await approve(usdt0, SEPOLIA_OFT_ADAPTER, wallet.address, amount);
+  // await send(oftAdapter, wallet.address, amount);
+  await verify(wallet.address);
+```
+
+## 8. 전체 브릿지 실행하기
+
+이제 `main` 함수는 다음과 같아야 합니다:
+
+```ts
+async function main() {
+  const provider = new JsonRpcProvider(SEPOLIA_RPC_URL);
+  const wallet = new Wallet(PRIVATE_KEY, provider);
+
+  const usdt0 = new Contract(SEPOLIA_USDT0, ERC20_ABI, wallet);
+  const oftAdapter = new Contract(SEPOLIA_OFT_ADAPTER, OFT_ADAPTER_ABI, wallet);
+
+  const amount = ethers.parseEther("1"); // 1 USDT0 (18 decimals)
+
+  await mint(usdt0, wallet.address, amount);
+  await approve(usdt0, SEPOLIA_OFT_ADAPTER, wallet.address, amount);
+  await send(oftAdapter, wallet.address, amount);
+  await verify(wallet.address);
+}
+```
+
+실행하세요:
+
+```bash
+npx tsx --env-file=.env bridge.ts
+```
+
+---
+
+**체크포인트:** 다음과 같은 출력이 표시되어야 합니다:
+
+```
+Minting 1.0 USDT0 on Sepolia...
+Mint tx: 0x3a1f...c9d2  confirmed
+USDT0 balance: 1.0
+Approving OFT Adapter...
+Approve tx: 0x7b2e...f401  confirmed
+Allowance: 1.0
+Quoting bridge fee...
+Bridge fee: 0.000101 ETH
+Sending bridge transaction...
+Bridge tx: 0xa94f...8c11  confirmed
+Sepolia Etherscan: https://sepolia.etherscan.io/tx/0xa94f...8c11
+LayerZero Scan: https://testnet.layerzeroscan.com/tx/0xa94f...8c11
+Waiting for DVN verification (~2 minutes)...
+......
+USDT0 on Stable: 1.0
+```
+
+[Stable Testnet 익스플로러](https://testnet.stablescan.xyz)에서 지갑 주소를 검색하여 발행 이벤트를 확인할 수도 있습니다.
+
+---
+
+## 구축한 내용
+
+Ethereum Sepolia에서 Stable Testnet으로 USDT0를 브릿지했습니다. 이제 다음을 알게 되었습니다:
+
+- 컨트랙트의 퍼블릭 `mint` 함수를 사용하여 Sepolia에서 테스트 USDT0 발행하기
+- OFT Adapter가 사용자를 대신해 ERC-20 토큰을 사용하도록 승인하기
+- 32바이트 주소 인코딩과 executor 옵션으로 LayerZero `sendParams` 구성하기
+- 자금을 투입하기 전에 `quoteSend`로 크로스체인 메시징 수수료 견적 받기
+- `send`로 크로스체인 토큰 전송을 실행하고 목적지 체인에서 전달 확인하기
+- Stable의 RPC(`https://rpc.testnet.stable.xyz`, 체인 ID `2201`)와 Stablescan을 사용하여 온체인 상태 확인하기
+
+## 다음 추천
+
+- [**첫 USDT0 전송하기**](/en/tutorial/send-usdt0) — 브릿지된 USDT0를 네이티브 및 ERC-20 전송에 사용하세요.
+- [**Stable로 브릿지하기**](/en/explanation/usdt0-bridging) — OFT Mesh와 Legacy Mesh 메커니즘에 대한 심층 분석.
+- [**테스트넷 정보**](/en/reference/testnet-information) — 전체 네트워크 파라미터, RPC 엔드포인트, 그리고 faucet 세부 정보.

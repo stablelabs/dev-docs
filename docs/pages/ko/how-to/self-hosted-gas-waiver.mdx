@@ -1,0 +1,144 @@
+---
+source_path: how-to/self-hosted-gas-waiver.mdx
+source_sha: 60e5bccdb2641ffd0f4c1184d8dfb6e642990c73
+title: "자체 호스팅 가스 면제"
+description: "Stable에서 직접 가스 면제 인프라를 운영하세요. 거버넌스를 통해 면제 주소를 등록하고, 래퍼 트랜잭션을 구성하며, 호스팅된 Waiver Server API 없이 직접 브로드캐스트합니다."
+diataxis: "how-to"
+---
+
+# 자체 호스팅 가스 면제
+
+자체 호스팅 가스 면제를 사용하면 호스팅된 Waiver Server API 대신 직접 면제 인프라를 운영할 수 있습니다. 온체인 거버넌스를 통해 면제 주소를 등록한 다음, 래퍼 트랜잭션을 네트워크에 직접 브로드캐스트합니다.
+
+이 가이드에서는 면제 주소 등록, 서명된 사용자 트랜잭션 수집, 래퍼 트랜잭션 구성, 그리고 브로드캐스트 방법을 다룹니다.
+
+:::note
+**개념:** 가스 면제가 무엇이며 왜 존재하는지에 대해서는 [가스 면제](/en/explanation/gas-waiver)를 참조하세요. 전체 프로토콜 사양(래퍼 트랜잭션 메커니즘, 권한 부여, 정책 확인, 실행 의미론, 보안 모델)에 대해서는 [가스 면제 프로토콜](/en/reference/gas-waiver-api)을 참조하세요.
+:::
+
+호스팅된 Waiver Server API 통합 경로에 대해서는 [가스 비용 없는 트랜잭션 활성화](/en/how-to/integrate-gas-waiver)를 참조하세요.
+
+## 사전 요구사항
+
+- 검증자 거버넌스를 통해 온체인에 등록된 면제 주소.
+- 대상 컨트랙트에 대해 구성된 `AllowedTarget` 정책.
+
+## 개요
+
+자체 호스팅 흐름:
+
+1. `gasPrice = 0`인 **서명된 InnerTx를 사용자로부터 수집**합니다.
+2. **WrapperTx를 구성**합니다: InnerTx를 RLP 인코딩하고 마커 주소로 전송되는 트랜잭션으로 래핑합니다.
+3. `eth_sendRawTransaction`을 통해 WrapperTx를 **브로드캐스트**합니다.
+
+## 1단계: 사용자의 InnerTx 수집
+
+사용자는 `gasPrice = 0`으로 트랜잭션에 서명합니다. `to` 주소와 메서드 셀렉터는 면제의 `AllowedTarget` 정책과 일치해야 합니다.
+
+```typescript
+// config.ts
+export const CONFIG = {
+  RPC_URL: "https://rpc.testnet.stable.xyz",
+  CHAIN_ID: 2201, // 988 for mainnet
+  MARKER_ADDRESS: "0x000000000000000000000000000000000000f333",
+  USDT0_ADDRESS: "0x78Cf24370174180738C5B8E352B6D14c83a6c9A9",
+};
+```
+
+```typescript
+// collectInnerTx.ts
+import { ethers } from "ethers";
+import { CONFIG } from "./config";
+
+const provider = new ethers.JsonRpcProvider(CONFIG.RPC_URL);
+
+const usdt0 = new ethers.Contract(CONFIG.USDT0_ADDRESS, [
+  "function transfer(address to, uint256 amount) returns (bool)"
+], provider);
+
+const callData = usdt0.interface.encodeFunctionData("transfer", [
+  recipientAddress,
+  ethers.parseUnits("0.01", 18)
+]);
+
+const gasEstimate = await provider.estimateGas({
+  from: userWallet.address,
+  to: CONFIG.USDT0_ADDRESS,
+  data: callData,
+});
+
+const nonce = await provider.getTransactionCount(userWallet.address);
+
+const innerTx = {
+  to: CONFIG.USDT0_ADDRESS,
+  data: callData,
+  value: 0,
+  gasPrice: 0,
+  gasLimit: gasEstimate,
+  nonce: nonce,
+  chainId: CONFIG.CHAIN_ID,
+};
+
+const signedInnerTx = await userWallet.signTransaction(innerTx);
+```
+
+## 2단계: WrapperTx 구성
+
+서명된 InnerTx를 RLP 인코딩하고 마커 주소로 전송되는 트랜잭션으로 래핑합니다. `gasLimit`은 내부 실행과 래핑 오버헤드를 모두 충당해야 합니다.
+
+```typescript
+// constructWrapper.ts
+import { ethers } from "ethers";
+import { CONFIG } from "./config";
+
+const innerTxBytes = ethers.decodeRlp(signedInnerTx);
+const rlpEncoded = ethers.encodeRlp(innerTxBytes);
+
+const waiverNonce = await provider.getTransactionCount(waiverWallet.address);
+
+const wrapperTx = {
+  to: CONFIG.MARKER_ADDRESS,
+  data: rlpEncoded,
+  value: 0,
+  gasPrice: 0,
+  gasLimit: (gasEstimate * 12n / 10n) * 2n,  // ~2x inner gas for overhead
+  nonce: waiverNonce,
+  chainId: CONFIG.CHAIN_ID,
+};
+
+const signedWrapperTx = await waiverWallet.signTransaction(wrapperTx);
+```
+
+:::warning
+`InnerTx.gasPrice`와 `WrapperTx.gasPrice` 모두 `0`이어야 합니다. `WrapperTx.value` 또한 `0`이어야 합니다. 이러한 조건 중 하나라도 충족되지 않으면 검증자가 트랜잭션을 거부합니다.
+:::
+
+## 3단계: 브로드캐스트
+
+표준 JSON-RPC를 통해 서명된 WrapperTx를 제출합니다.
+
+```typescript
+// broadcast.ts
+const txHash = await provider.send("eth_sendRawTransaction", [signedWrapperTx]);
+console.log("Wrapper tx broadcast:", txHash);
+
+const receipt = await provider.waitForTransaction(txHash);
+console.log("Confirmed:", receipt.status === 1);
+```
+
+```text
+Wrapper tx broadcast: 0x...
+Confirmed: true
+```
+
+## 핵심 요점
+
+- 자체 호스팅 면제에는 온체인 검증자 거버넌스를 통해 등록된 면제 주소가 필요합니다.
+- WrapperTx는 RLP 인코딩된 InnerTx를 데이터로 하여 마커 주소(`0x...f333`)로 전송됩니다.
+- InnerTx와 WrapperTx 모두 `gasPrice = 0` 및 `value = 0`이어야 합니다.
+
+## 다음 추천
+
+- [**가스 면제 개념**](/en/explanation/gas-waiver) — 직접 운영하기 전에 메커니즘을 이해하세요.
+- [**가스 면제 프로토콜**](/en/reference/gas-waiver-api) — 마커 라우팅, 권한 부여, 실행 의미론에 대한 전체 프로토콜 사양을 참조하세요.
+- [**가스 비용 없는 트랜잭션 활성화**](/en/how-to/integrate-gas-waiver) — 자체 호스팅 대신 호스팅된 Waiver Server API를 사용하세요.

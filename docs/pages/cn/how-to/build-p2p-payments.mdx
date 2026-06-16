@@ -1,0 +1,308 @@
+---
+source_path: how-to/build-p2p-payments.mdx
+source_sha: cb21475c28be41c86374be5066e7b1c5c5261c56
+title: "学习 P2P 支付"
+description: "在 Stable 上构建 P2P 支付应用。创建钱包、查询余额、收发 USDT0,并查询交易历史。"
+diataxis: "how-to"
+---
+
+# 学习 P2P 支付
+
+本指南将带你在 Stable 上构建一个 P2P 支付应用。该应用处理完整的支付生命周期:发送方直接转账 USDT0,接收方实时检测到入账支付,双方都可以查询各自的交易历史。无论是移动应用、网页结账,还是后端服务,任何钱包或支付界面的架构都与此相同。
+
+无需中间件,无需中介。如需了解概念性概述,请参阅 [P2P 支付](/en/reference/p2p-payments)。如果想跳过 ABI 相关工作、用几行代码实现可用的 `transfer`,请使用 [Stable SDK](/en/explanation/sdk-overview)。
+
+## 你将构建的内容
+
+构成一个最小支付应用的五个脚本:
+
+- `wallet.ts` — 创建或恢复钱包。
+- `getBalance.ts` — 查询当前 USDT0 余额。
+- `send.ts` — 向另一个地址发送 USDT0。
+- `receive.ts` — 实时监听入账支付。
+- `history.ts` — 查询某个地址过去的 Transfer 事件。
+
+### 演示
+
+```text
+step 1. Alice creates wallet → address: 0xAlice...
+step 2. Alice's balance: 0.01 USDT0
+
+step 3. Alice sends 0.001 USDT0 to Bob
+        tx:             0x8f3a...2d41
+        gas fee:        0.000021 USDT0
+        Alice balance:  0.008979 USDT0
+
+step 4. Bob receives payment (real-time event)
+        from:   0xAlice...
+        amount: 0.001 USDT0
+        tx:     0x8f3a...2d41
+```
+
+## 前置条件
+
+- Node.js 20 或更高版本。
+- 一个拥有测试网 USDT0 的私钥(参见[快速开始](/en/tutorial/quick-start)为钱包注资)。
+
+## 项目设置
+
+```bash
+mkdir stable-p2p && cd stable-p2p
+npm init -y && npm install ethers dotenv
+```
+
+```text
+added 2 packages, audited 3 packages in 1s
+```
+
+创建一个被所有脚本共享的 `config.ts`:
+
+```typescript
+// config.ts
+import { ethers } from "ethers";
+import "dotenv/config";
+
+export const STABLE_RPC = "https://rpc.testnet.stable.xyz";
+export const STABLE_WS = "wss://rpc.testnet.stable.xyz";
+export const USDT0_ADDRESS = "0x78Cf24370174180738C5B8E352B6D14c83a6c9A9";
+
+export const provider = new ethers.JsonRpcProvider(STABLE_RPC);
+```
+
+## 1. 创建或恢复钱包
+
+钱包是从助记词派生出来的密钥对。为新用户生成一个钱包,并返回助记词以便他们备份。回访用户可以用相同的助记词恢复钱包。
+
+```typescript
+// wallet.ts
+import { ethers } from "ethers";
+import { provider } from "./config";
+
+/** Create a new wallet for a new user. */
+export function createWallet() {
+  const wallet = ethers.Wallet.createRandom(provider);
+  return {
+    wallet,
+    address: wallet.address,
+    seedPhrase: wallet.mnemonic!.phrase, // display to user for backup
+  };
+}
+
+/** Restore a wallet from a seed phrase (returning user). */
+export function restoreWallet(seedPhrase: string) {
+  const wallet = ethers.Wallet.fromPhrase(seedPhrase, provider);
+  return { wallet, address: wallet.address };
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const { address, seedPhrase } = createWallet();
+  console.log("Address:    ", address);
+  console.log("Seed phrase:", seedPhrase);
+}
+```
+
+```bash
+npx tsx wallet.ts
+```
+
+```text
+Address:     0xAlice...1234
+Seed phrase: liberty shoot ... (12 words)
+```
+
+## 2. 查询余额
+
+USDT0 是 Stable 上的原生资产,因此余额查询与以太坊上的 ETH 完全相同。原生余额为 18 位小数,使用 `formatEther` 进行显示。
+
+```typescript
+// getBalance.ts
+import { ethers } from "ethers";
+import { provider } from "./config";
+
+export async function getBalance(address: string) {
+  const balance = await provider.getBalance(address);
+  return ethers.formatEther(balance); // 18 decimals
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const address = process.argv[2];
+  const balance = await getBalance(address);
+  console.log("Balance:", balance, "USDT0");
+}
+```
+
+```bash
+npx tsx getBalance.ts 0xAlice...1234
+```
+
+```text
+Balance: 0.01 USDT0
+```
+
+## 3. 发送支付
+
+发送方直接签名并提交转账。在 Stable 上,USDT0 是原生资产,因此简单的价值转账是最便宜的方式(21,000 gas)。这与任何支付应用中的"发送"功能采用相同的代码路径。
+
+```typescript
+// send.ts
+import { ethers } from "ethers";
+import { provider } from "./config";
+
+export async function sendPayment(
+  senderKey: string,
+  recipient: string,
+  amount: string // e.g. "0.001" for 0.001 USDT0
+) {
+  const wallet = new ethers.Wallet(senderKey, provider);
+  const block = await provider.getBlock("latest");
+  const baseFee = block!.baseFeePerGas!;
+
+  const tx = await wallet.sendTransaction({
+    to: recipient,
+    value: ethers.parseEther(amount),
+    maxFeePerGas: baseFee * 2n,
+    maxPriorityFeePerGas: 0n, // always 0 on Stable
+  });
+
+  console.log("Payment sent:", tx.hash);
+
+  const receipt = await tx.wait(1);
+  if (receipt!.status === 1) console.log("Payment settled");
+  return tx.hash;
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const [, , recipient, amount] = process.argv;
+  await sendPayment(process.env.PRIVATE_KEY!, recipient, amount);
+}
+```
+
+```bash
+npx tsx send.ts 0xBob...5678 0.001
+```
+
+```text
+Payment sent: 0x8f3a...2d41
+Payment settled
+```
+
+## 4. 实时接收支付
+
+接收方监听入账的 `Transfer` 事件。这相当于传统支付应用中的推送通知。在 Stable 上,单槽最终性意味着接收方几乎可以即时看到支付。
+
+```typescript
+// receive.ts
+import { ethers } from "ethers";
+import { STABLE_WS, USDT0_ADDRESS } from "./config";
+
+const wsProvider = new ethers.WebSocketProvider(STABLE_WS);
+const usdt0 = new ethers.Contract(
+  USDT0_ADDRESS,
+  ["event Transfer(address indexed from, address indexed to, uint256 value)"],
+  wsProvider
+);
+
+export function watchIncomingPayments(address: string) {
+  const filter = usdt0.filters.Transfer(null, address);
+
+  usdt0.on(filter, (from: string, to: string, value: bigint, event: any) => {
+    console.log("Payment received:");
+    console.log("  from:  ", from);
+    console.log("  amount:", ethers.formatUnits(value, 6), "USDT0");
+    console.log("  tx:    ", event.log.transactionHash);
+  });
+
+  console.log("Watching for incoming payments to", address);
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  watchIncomingPayments(process.argv[2]);
+}
+```
+
+```bash
+npx tsx receive.ts 0xBob...5678
+```
+
+```text
+Watching for incoming payments to 0xBob...5678
+Payment received:
+  from:   0xAlice...1234
+  amount: 0.001 USDT0
+  tx:     0x8f3a...2d41
+```
+
+:::note
+原生转账(价值转账)同样会在 USDT0 ERC-20 合约上触发一个 `Transfer` 事件,因为在 Stable 上 USDT0 既是原生资产,也是一个 ERC-20 代币。单个事件监听器即可覆盖这两种转账方式。
+:::
+
+## 5. 查询交易历史
+
+查询过去的 `Transfer` 事件以构建交易历史视图,就像任何支付应用中的银行对账单或交易列表一样。
+
+```typescript
+// history.ts
+import { ethers } from "ethers";
+import { provider, USDT0_ADDRESS } from "./config";
+
+const usdt0 = new ethers.Contract(
+  USDT0_ADDRESS,
+  ["event Transfer(address indexed from, address indexed to, uint256 value)"],
+  provider
+);
+
+export async function getTransactionHistory(address: string, fromBlock?: number) {
+  if (fromBlock === undefined) {
+    const latest = await provider.getBlockNumber();
+    fromBlock = Math.max(0, latest - 10_000);
+  }
+
+  const [sentEvents, receivedEvents] = await Promise.all([
+    usdt0.queryFilter(usdt0.filters.Transfer(address, null), fromBlock),
+    usdt0.queryFilter(usdt0.filters.Transfer(null, address), fromBlock),
+  ]);
+
+  return [
+    ...sentEvents.map((e: any) => ({
+      type: "sent" as const,
+      counterparty: e.args[1],
+      amount: ethers.formatUnits(e.args[2], 6),
+      txHash: e.transactionHash,
+      block: e.blockNumber,
+    })),
+    ...receivedEvents.map((e: any) => ({
+      type: "received" as const,
+      counterparty: e.args[0],
+      amount: ethers.formatUnits(e.args[2], 6),
+      txHash: e.transactionHash,
+      block: e.blockNumber,
+    })),
+  ].sort((a, b) => b.block - a.block);
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const history = await getTransactionHistory(process.argv[2]);
+  for (const tx of history) {
+    console.log(`${tx.type}  ${tx.amount} USDT0  ${tx.counterparty}  ${tx.txHash}`);
+  }
+}
+```
+
+```bash
+npx tsx history.ts 0xAlice...1234
+```
+
+```text
+sent      0.001 USDT0  0xBob...5678    0x8f3a...2d41
+received  0.01  USDT0  0xFaucet...     0x22b1...3f09
+```
+
+:::warning
+扫描大范围的区块(数百万个区块)可能会超时并超过 RPC 速率限制。在生产环境中,请使用 [Stablescan 的 Etherscan 兼容 API](https://stablescan.xyz) 进行分页历史查询——每一笔交易都已被索引。
+:::
+
+## 推荐后续阅读
+
+- [**订阅与收款**](/en/how-to/subscribe-and-collect) — 基于拉取的周期性订阅,使用 EIP-7702 委托。
+- [**使用发票付款**](/en/how-to/pay-with-invoice) — 使用 ERC-3009 和确定性 nonce 结算发票。
+- [**发送你的第一笔 USDT0**](/en/tutorial/send-usdt0) — 参考基本的原生转账与 ERC-20 转账流程。

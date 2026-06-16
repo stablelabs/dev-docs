@@ -1,0 +1,360 @@
+---
+source_path: reference/system-transactions-api.mdx
+source_sha: 14ee7e0538b5323f809b63454db35d954d8db488
+title: "시스템 트랜잭션 레퍼런스"
+description: "StableSystem 프리컴파일 레퍼런스: 인터페이스, 발신자 인증, 배치 제한, 가스 회계."
+diataxis: "reference"
+---
+
+# 시스템 트랜잭션 레퍼런스
+
+:::note
+**개념:** 시스템 트랜잭션이 SDK 이벤트를 EVM에 어떻게 연결하며 왜 중요한지에 대해서는 [시스템 트랜잭션](/en/explanation/system-transactions)을 참조하세요.
+:::
+
+## 개요
+
+시스템 트랜잭션은 Stable 프로토콜이 Stable SDK 작업에 대해 EVM 이벤트를 발생시킬 수 있는 방법을 제공합니다. 언본딩 완료와 같은 스테이킹 이벤트가 SDK 레이어에서 발생하면, 프로토콜은 자동으로 해당 이벤트를 발생시키는 EVM 트랜잭션을 생성합니다. 이를 통해 이러한 작업들이 EVM 도구 및 애플리케이션에 완전히 가시화됩니다.
+
+## 동기
+
+여러분과 Stable 위의 애플리케이션은 `eth_getLogs`와 같은 표준 EVM 인터페이스를 통해 블록체인 이벤트를 모니터링하기를 기대합니다. 하지만 중요한 작업들은 자연스럽게 EVM 이벤트를 발생시키지 않는 Stable SDK 모듈에서 일어납니다. 이로 인해 가시성 격차가 발생합니다: EVM dApp은 사용자의 토큰이 언제 언본딩을 마치는지 쉽게 추적할 수 없습니다.
+
+시스템 트랜잭션은 이 격차를 메웁니다. 스테이킹 모듈이 언본딩 작업을 완료하면, Stable의 x/stable 모듈이 이벤트를 감지하고 StableSystem 프리컴파일(`0x0000000000000000000000000000000000009999`)을 호출하는 시스템 트랜잭션을 생성합니다. 그러면 프리컴파일은 어떤 dApp이든 구독할 수 있는 적절한 EVM 이벤트를 발생시킵니다. 시스템 트랜잭션은 프로토콜만 사용할 수 있는 특별한 발신자 주소(`0x8888888888888888888888888888888888888888`)로 실행됩니다. 이는 누구도 프로토콜 이벤트를 위조하지 못하도록 막으면서 이벤트 발생을 신뢰가 필요 없고 온체인에서 검증 가능하게 유지합니다.
+
+## 사양
+
+시스템 트랜잭션은 세 가지 주요 구성 요소를 통해 작동합니다: x/stable 모듈의 EndBlocker, PrepareProposal 핸들러, 그리고 StableSystem 프리컴파일입니다.
+
+### 아키텍처 개요
+
+<img
+  className="block"
+  src="/images/system-transaction-architecture.png"
+  alt="시스템 트랜잭션 아키텍처"
+/>
+
+### StableSystem 프리컴파일
+
+StableSystem 프리컴파일은 `0x0000000000000000000000000000000000009999`에 위치하며 EVM 이벤트를 발생시켜야 하는 프로토콜 수준의 작업을 처리합니다. 현재는 언본딩 완료 알림을 지원합니다.
+
+```solidity
+interface IStableSystem {
+    /// @notice Processes queued unbonding completions and emits EVM events
+    /// @param blockHeight The block height at which to process completions
+    /// @dev Only callable by system transactions (from = 0x8888888888888888888888888888888888888888)
+    /// @dev Processes up to 100 completions per call
+    /// @dev Automatically deletes processed completions from the queue
+    function notifyUnbondingCompletions(int64 blockHeight) external;
+
+    /// @notice Emitted when an unbonding operation completes
+    /// @param delegator The address that delegated the tokens
+    /// @param validator The validator address the tokens were delegated to
+    /// @param amount The amount of tokens that finished unbonding (in uusdc)
+    event UnbondingCompleted(
+        address indexed delegator,
+        address indexed validator,
+        uint256 amount
+    );
+
+    /// @notice The caller is not authorized (not system transaction sender)
+    error Unauthorized();
+}
+```
+
+### 시스템 트랜잭션 발신자
+
+시스템 트랜잭션은 `0x8888888888888888888888888888888888888888`을 발신자 주소로 사용합니다. 이 주소는:
+
+- 서명 검증이 필요하지 않습니다
+- PrepareProposal에서 생성된 트랜잭션에서만 사용할 수 있습니다
+- 사용자나 컨트랙트가 위조할 수 없습니다
+- SystemTxDecorator ante 핸들러를 통해 수수료 공제를 건너뜁니다
+
+EVM은 `msg.sender == 0x8888888888888888888888888888888888888888`을 확인하여 시스템 트랜잭션을 인식합니다. 프리컴파일은 이를 사용하여 프로토콜 전용 작업을 제한할 수 있습니다.
+
+### 이벤트 기반 흐름
+
+사용자의 언본딩 기간이 완료되면 다음과 같은 일이 발생합니다:
+
+1. **Stable SDK 레이어:** 스테이킹 모듈의 EndBlocker가 언본딩을 완료하고 위임자 주소, 검증자 주소, 금액과 함께 EventTypeCompleteUnbonding을 발생시킵니다.
+2. **감지:** x/stable 모듈의 EndBlocker가 스테이킹 이후에 실행되어 블록의 이벤트 로그에서 언본딩 이벤트를 스캔합니다. 각 완료에 대해, 위임자 주소, 검증자 주소, 금액, 블록 높이와 함께 상태에 항목을 큐에 추가합니다.
+3. **시스템 TX 생성:** 다음 블록의 PrepareProposal에서, 앱은 큐에 들어 있는 모든 완료를 쿼리합니다. 항목이 존재하면, 현재 블록 높이와 함께 StableSystem.notifyUnbondingCompletions(blockHeight)를 호출하는 시스템 트랜잭션을 생성합니다. 이 트랜잭션은 어떤 사용자 트랜잭션보다도 앞서 블록의 맨 앞에 위치합니다.
+4. **실행:** 블록 실행 중에 시스템 트랜잭션이 먼저 실행됩니다. 프리컴파일은 해당 블록 높이에서 큐에 들어 있는 완료를 상태에서 쿼리하고, 각각(최대 100개)에 대해 UnbondingCompleted 이벤트를 발생시키며, 큐에서 삭제합니다.
+5. **EVM 가시성:** 이벤트는 트랜잭션 영수증과 로그에 나타나, eth\_getLogs 쿼리, 블록 탐색기, 그리고 StableSystem 프리컴파일을 모니터링하는 모든 애플리케이션에 가시화됩니다.
+
+### 배치 처리
+
+블록이 너무 커지는 것을 방지하기 위해, 시스템은 블록당 최대 100개의 언본딩 완료를 처리합니다. 150개의 완료가 큐에 들어 있으면:
+
+- 블록 N: 완료 0-99를 처리하는 시스템 트랜잭션 생성
+- 블록 N+1: 완료 100-149를 처리하는 시스템 트랜잭션 생성
+
+프리컴파일은 calldata로 완료 데이터를 받는 대신 상태를 직접 쿼리합니다. 이렇게 하면 트랜잭션 크기를 예측 가능하게 유지하고 비싼 calldata에서 더 저렴한 상태 읽기로 데이터를 옮길 수 있습니다.
+
+## 사용 예제
+
+가장 일반적인 사용 사례는 사용자의 언본딩 기간이 완료될 때 사용자에게 알려야 하는 스테이킹 대시보드입니다. 다음은 언본딩 완료에 대한 리스너를 설정하는 방법입니다.
+
+```javascript
+import { ethers } from 'ethers';
+
+// StableSystem precompile address
+const STABLE_SYSTEM_ADDRESS = '0x0000000000000000000000000000000000009999';
+
+// ABI for the UnbondingCompleted event
+const STABLE_SYSTEM_ABI = [
+  'event UnbondingCompleted(address indexed delegator, address indexed validator, uint256 amount)'
+];
+
+// Connect to the Stable network
+const provider = new ethers.JsonRpcProvider('https://rpc.testnet.stable.xyz');
+const stableSystem = new ethers.Contract(
+  STABLE_SYSTEM_ADDRESS,
+  STABLE_SYSTEM_ABI,
+  provider
+);
+
+// Subscribe to all unbonding completions
+stableSystem.on('UnbondingCompleted', (delegator, validator, amount, event) => {
+  console.log('Unbonding completed!');
+  console.log('Delegator:', delegator);
+  console.log('Validator:', validator);
+  console.log('Amount:', ethers.formatEther(amount), 'tokens');
+  console.log('Block:', event.log.blockNumber);
+  console.log('Tx Hash:', event.log.transactionHash);
+});
+
+```
+
+이 리스너는 어떤 사용자의 언본딩이 완료될 때마다 실행됩니다. 프로덕션 dApp의 경우, 아래와 같이 특정 사용자에 대한 이벤트를 필터링하세요.
+
+### 특정 사용자에 대한 이벤트 필터링
+
+특정 위임자 주소에 대한 이벤트만 받으려면, 인덱싱된 이벤트 매개변수를 사용하여 필터를 생성하세요:
+
+```javascript
+// Only watch unbondings for a specific user
+const userAddress = '0xabcd...';
+
+const filter = stableSystem.filters.UnbondingCompleted(userAddress);
+
+stableSystem.on(filter, (delegator, validator, amount, event) => {
+  // This only fires for the specified user's unbondings
+  showNotification(`Your unbonding of ${ethers.formatEther(amount)} tokens completed!`);
+  refreshUserBalance(userAddress);
+});
+```
+
+검증자별 대시보드를 구축하는 경우 검증자로도 필터링할 수 있습니다:
+
+```javascript
+// Watch all unbondings from a specific validator
+const validatorAddress = '0x1234...';
+
+const validatorFilter = stableSystem.filters.UnbondingCompleted(null, validatorAddress);
+
+stableSystem.on(validatorFilter, (delegator, validator, amount) => {
+  updateValidatorStats(validator, amount);
+});
+```
+
+### 과거 이벤트 쿼리
+
+dApp이 과거의 언본딩 완료 내역을 표시해야 하는 경우, 블록 범위와 함께 이벤트 필터를 사용하여 과거 이벤트를 쿼리할 수 있습니다:
+
+```javascript
+// Get all unbondings for a user in the last 1000 blocks
+const currentBlock = await provider.getBlockNumber();
+const filter = stableSystem.filters.UnbondingCompleted(userAddress);
+
+const events = await stableSystem.queryFilter(
+  filter,
+  currentBlock - 1000,
+  currentBlock
+);
+
+const unbondingHistory = events.map(event => ({
+  delegator: event.args.delegator,
+  validator: event.args.validator,
+  amount: ethers.formatEther(event.args.amount),
+  blockNumber: event.blockNumber,
+  txHash: event.transactionHash
+}));
+
+console.log('Recent unbondings:', unbondingHistory);
+
+```
+
+## 통합 가이드
+
+### 1단계: Stable System 컨트랙트 인터페이스 추가
+
+먼저, 프로젝트에 StableSystem 프리컴파일 인터페이스를 추가합니다. Foundry나 Hardhat을 사용하는 경우, 새 인터페이스 파일을 생성하세요:
+
+```solidity
+interface IStableSystem {
+    event UnbondingCompleted(
+        address indexed delegator,
+        address indexed validator,
+        uint256 amount
+    );
+}
+```
+
+Solidity 컨트랙트 없이 순수 프런트엔드 dApp을 구축하는 경우, 이벤트에 대한 ABI 조각만 있으면 됩니다:
+
+```javascript
+const STABLE_SYSTEM_ABI = [
+  'event UnbondingCompleted(address indexed delegator, address indexed validator, uint256 amount)'
+];
+```
+
+### 2단계: 이벤트 리스너 설정
+
+ethers.js 프로바이더를 초기화하고 StableSystem 프리컴파일 주소를 가리키는 컨트랙트 인스턴스를 생성합니다. 프리컴파일은 Stable Testnet과 Stable Mainnet 모두에서 항상 `0x00000000000....0000009999`에 배포됩니다.
+
+*참고: 프리컴파일은 아직 Stable Mainnet에 배포되지 않았으며, v1.2.0 업그레이드 이후에 제공될 예정입니다.*
+
+```javascript
+const provider = new ethers.JsonRpcProvider(RPC_URL);
+const stableSystem = new ethers.Contract(
+  '0x0000000000000000000000000000000000009999',
+  STABLE_SYSTEM_ABI,
+  provider
+);
+```
+
+### 3단계: 애플리케이션 로직에서 이벤트 처리
+
+이벤트를 구독하고 그에 따라 애플리케이션 상태를 업데이트합니다. 일반적인 패턴은 다음과 같습니다:
+
+- **잔액 업데이트**: 언본딩이 완료되면 사용자의 토큰 잔액을 새로 고칩니다
+- **알림 시스템**: 사용자의 언본딩이 완료되면 토스트 알림을 표시합니다
+- **대시보드 통계**: 스테이킹 메트릭과 차트를 실시간으로 업데이트합니다
+- **트랜잭션 내역**: 완료된 언본딩을 사용자의 활동 피드에 추가합니다
+
+### 4단계: 연결 문제 처리
+
+이벤트 구독은 지속적인 웹소켓 연결에 의존하므로, 프로덕션 dApp을 위한 재연결 로직을 구현하세요:
+
+```javascript
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 5;
+
+function setupEventListener() {
+  const provider = new ethers.WebSocketProvider('wss://rpc.testnet.stable.xyz');
+
+  provider.on('error', (error) => {
+    console.error('Provider error:', error);
+    if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+      reconnectAttempts++;
+      setTimeout(() => setupEventListener(), 5000);
+    }
+  });
+
+  const stableSystem = new ethers.Contract(
+    '0x0000000000000000000000000000000000009999',
+    STABLE_SYSTEM_ABI,
+    provider
+  );
+
+  stableSystem.on('UnbondingCompleted', handleUnbonding);
+}
+```
+
+## 왜 이 접근 방식인가?
+
+### 커스텀 인덱서와의 비교
+
+이전에는 Stable SDK에서 SDK 이벤트를 감시하고 데이터베이스에 저장하는 커스텀 인덱서를 실행해야 했습니다. 이는 운영 부담을 가중시키고 잠재적인 장애 지점을 유발합니다.
+
+시스템 트랜잭션을 사용하면 별도의 인덱서 인프라가 필요하지 않습니다. 이벤트는 모든 RPC 노드가 이미 인덱싱하고 제공하는 EVM의 로그 시스템을 통해 기본적으로 사용할 수 있습니다. 어떤 표준 web3 라이브러리든 추가 도구 없이 이러한 이벤트를 구독할 수 있습니다.
+
+### SDK 엔드포인트 폴링과의 비교
+
+시스템 트랜잭션이 없으면, EVM dApp은 언본딩 기간이 완료되었는지 확인하기 위해 주기적으로 Stable SDK REST 엔드포인트를 호출해야 합니다. 이로 인해 여러 문제가 발생합니다:
+
+- **증가한 지연 시간**: 5-10초의 폴링 간격은 사용자가 업데이트를 보기까지 그만큼 기다려야 함을 의미합니다
+- **높은 부하**: 엔드포인트를 폴링하는 모든 dApp 인스턴스가 RPC 인프라의 부하를 증가시킵니다
+- **복잡성**: dApp은 web3 프로바이더(EVM 상호작용용)와 Stable SDK REST 클라이언트(SDK 쿼리용)를 모두 처리해야 합니다
+- **실시간 업데이트 부재**: 폴링은 본질적으로 즉각적인 알림을 제공할 수 없습니다
+
+시스템 트랜잭션은 dApp이 EVM 상호작용을 위해 이미 사용하고 있는 동일한 웹소켓 연결을 통해 실시간 이벤트 알림을 제공합니다. 이는 개발자 경험을 단순화하고 인프라 비용을 줄입니다.
+
+## 보안 보장
+
+### 신뢰가 필요 없는 이벤트 발생
+
+시스템 트랜잭션은 검증자만 실행할 수 있는 `PrepareProposal` ABCI 단계에서 생성됩니다. 사용자가 제출한 트랜잭션은 시스템 발신자 주소(`0x8888888888888888888888888888888888888888`)를 위조할 수 없습니다. EVM의 상태 전이 로직은 StableSystem 프리컴파일 주소로의 트랜잭션만 서명 검증을 건너뛸 수 있도록 강제합니다.
+
+이는 다음을 의미합니다:
+
+- 사용자는 언본딩 완료 이벤트를 위조할 수 없습니다
+- 사용자는 자신의 트랜잭션에서 `notifyUnbondingCompletions`를 호출할 수 없습니다
+- `UnbondingCompleted` 이벤트를 발생시키는 유일한 방법은 Stable SDK 스테이킹 모듈에서 실제 언본딩이 완료되는 것입니다
+
+### 추가적인 신뢰 가정 없음
+
+시스템 트랜잭션은 블록체인 합의에 이미 필요한 것 이상의 새로운 보안 가정을 도입하지 않습니다. 검증자가 블록을 올바르게 실행한다고 신뢰한다면, 시스템 트랜잭션 이벤트가 Stable SDK 상태 변경을 정확하게 반영한다고 신뢰할 수 있습니다.
+
+이벤트 발생 과정은 결정론적입니다: `EndBlock`에서 동일한 SDK 이벤트가 주어지면, 모든 정직한 검증자는 `PrepareProposal` 동안 동일한 시스템 트랜잭션을 생성합니다. 합의 메커니즘은 검증자가 어떤 시스템 트랜잭션을 포함할지 동의하도록 보장합니다.
+
+### 블록 최종성
+
+Stable 블록체인은 StableBFT의 합의 메커니즘을 통한 빠른 최종성을 사용합니다. 블록이 커밋되면 즉시 최종 확정되며 재구성될 수 없습니다. 이는 일단 `UnbondingCompleted` 이벤트를 받으면 그것이 영구적이라고 신뢰할 수 있음을 의미합니다.
+
+확률적 최종성 체인처럼 여러 번의 확인을 기다릴 필요가 없습니다. dApp은 이벤트를 받는 즉시 사용자 잔액을 업데이트하고 알림을 표시할 수 있습니다.
+
+## 성능 및 제한 사항
+
+### 배치 크기 제약
+
+각 블록은 시스템 트랜잭션을 통해 최대 100개의 언본딩 완료를 처리합니다. 이 제한은 언본딩 활동이 많은 기간 동안 무제한적인 블록 크기를 방지하기 위해 존재합니다.
+
+실제로 블록당 100개의 완료는 평균 블록 시간 0.7초를 가정할 때 분당 약 9000개의 완료 처리량을 제공합니다. 정상적인 스테이킹 활동은 이 한계에 거의 도달하지 않습니다. 예외적인 상황에서는 완료가 완전히 처리되기 전에 여러 블록 동안 큐에 대기할 수 있습니다.
+
+### 가스 소비
+
+시스템 트랜잭션은 실행 중에 가스를 소비하며, 이는 블록의 가스 한도에 포함됩니다. 가스 비용은 처리되는 완료 수에 따라 선형적으로 증가합니다:
+
+- 기본 함수 호출: \~21,000 가스
+- 이벤트 발생당: \~3,000 가스
+- 상태 읽기: 완료당 \~2,000 가스
+
+100개의 완료로 구성된 전체 배치는 약 521,000 가스를 소비합니다. Stable의 블록 가스 한도는 100,000,000이므로, 이는 사용 가능한 블록 공간의 0.6% 미만에 해당합니다.
+
+### 알림 지연 시간
+
+블록 N 동안 언본딩 기간이 완료되면:
+
+1. Stable 모듈의 `EndBlock`이 블록 N의 상태에 완료를 큐에 추가합니다
+2. 블록 N+1의 `PrepareProposal`이 시스템 트랜잭션을 생성합니다
+3. 시스템 트랜잭션이 블록 N+1 동안 실행되어 이벤트를 발생시킵니다
+
+이는 언본딩 완료와 EVM 이벤트 발생 사이에 한 블록의 지연(약 0.7초)이 있음을 의미합니다. 언본딩 기간 자체가 7일이므로 대부분의 사용 사례에서 이 지연 시간은 허용 가능합니다.
+
+### 높은 부하 시나리오
+
+언본딩 완료가 블록당 100개보다 빠르게 도착하면, 큐에 누적됩니다. 큐는 FIFO 순서로 처리되므로, 가장 오래된 완료가 항상 먼저 알림됩니다.
+
+지속적인 높은 부하 동안 큐는 일시적으로 늘어날 수 있습니다. 하지만 급증이 가라앉으면, 완료가 더 적은 후속 블록들이 점차 큐를 비웁니다. 시스템은 이벤트를 누락하지 않고 급증을 처리하도록 설계되었습니다.
+
+## 향후 확장
+
+시스템 트랜잭션 메커니즘은 모든 Stable SDK 작업을 EVM 이벤트 공간으로 연결하는 일반적인 패턴을 제공합니다. 현재는 언본딩 완료에만 사용되지만, 이 아키텍처는 추가적인 사용 사례를 다루도록 확장할 수 있습니다:
+
+### 스테이킹 작업
+
+언본딩 외에도, 다른 스테이킹 이벤트가 EVM 알림을 발생시킬 수 있습니다:
+
+- 검증자에 의한 수수료율 변경
+- 검증자 수감 및 수감 해제
+
+### 거버넌스 실행
+
+거버넌스 제안이 통과되어 실행될 때, 시스템 트랜잭션은 제안 ID와 실행 결과와 함께 이벤트를 발생시킬 수 있습니다. 이를 통해 dApp은 거버넌스 모듈을 폴링하지 않고도 매개변수 변경이나 업그레이드에 반응할 수 있습니다.
+
+### 일반 이벤트 브리지
+
+이 패턴은 각 모듈이 어떤 SDK 이벤트를 EVM에 미러링할지 등록하는 구성 가능한 이벤트 브리지로 일반화될 수 있습니다. 이는 모듈별 커스텀 로직 없이도 모든 Stable SDK 작업에 대한 포괄적인 가시성을 제공합니다. 핵심 아키텍처 원칙은 시스템 트랜잭션이 블록 제안 동안 검증자에 의해서만 생성되는 프로토콜 수준 기능으로 유지된다는 것입니다.

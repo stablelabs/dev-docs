@@ -1,0 +1,316 @@
+---
+source_path: reference/distribution-module-api.mdx
+source_sha: 2873b889a09094e386aece89d5de0b9cafb80e4f
+title: "Distribution 预编译参考"
+description: "Distribution 预编译参考：奖励提取、提取地址管理和查询方法。"
+diataxis: "reference"
+---
+
+# Distribution 预编译参考
+
+:::note
+**概念：** 关于 distribution 模块的功能以及何时使用它，请参阅 [Distribution 模块](/en/explanation/distribution-module)。
+:::
+
+## 摘要
+
+`distribution` 预编译合约充当桥梁，使 EVM 环境能够使用 Stable SDK 的 `x/distribution` 模块功能。
+
+## 目录
+
+1. **[概念](#concepts)**
+2. **[配置](#configuration)**
+3. **[方法](#methods)**
+4. **[事件](#events)**
+
+## 概念
+
+`distribution` 预编译合约会执行额外的检查，以确保委托人或存款人是调用者。
+
+## 配置
+
+合约地址和 gas 成本是预定义的。
+
+### 合约地址
+
+- `0x0000000000000000000000000000000000000801`
+
+## 方法
+
+### `setWithdrawAddress`
+
+设置接收委托人委托给验证人的代币奖励的地址。
+有时，当委托人是自委托时，验证人地址会被用作委托人。
+
+当提取人地址成功设置时，会发出 `SetWithdrawAddress` 事件。
+
+#### 输入
+
+|名称|类型|描述|
+|---|---|---|
+|delegatorAddress|address|委托人的地址|
+|withdrawerAddress|address|接收委托奖励的地址|
+
+#### 输出
+
+|名称|类型|描述|
+|---|---|---|
+|success|bool|如果提取人地址成功设置则为 true|
+
+### `withdrawDelegatorRewards`
+
+提取委托人将从验证人处获得的奖励。
+验证人奖励给委托人的所有类型代币都会在单笔交易中提取。
+
+当奖励成功提取时，会发出 `WithdrawDelegatorRewards` 事件。
+
+#### 输入
+
+|名称|类型|描述|
+|---|---|---|
+|delegatorAddress|address|委托人的地址|
+|validatorAddress|address|验证人的地址|
+
+#### 输出
+
+|名称|类型|描述|
+|---|---|---|
+|amount|Coin[]|委托人将收到的各种代币奖励|
+
+`Coin` 是一个具有以下字段的结构体：
+
+|名称|类型|描述|
+|---|---|---|
+|denom|string|奖励的面额|
+|amount|uint256|奖励的数量|
+
+### `withdrawValidatorCommission`
+
+提取验证人的佣金。
+验证人作为佣金收到的所有类型代币都会在单笔交易中提取。
+
+当佣金成功提取时，会发出 `WithdrawValidatorCommission` 事件。
+
+#### 输入
+
+|名称|类型|描述|
+|---|---|---|
+|validatorAddress|address|验证人的地址|
+
+#### 输出
+
+|名称|类型|描述|
+|---|---|---|
+|amount|Coin[]|验证人将收到的各种代币佣金|
+
+### `validatorDistributionInfo`
+
+返回表示验证人将收到的奖励的分配信息。验证人可以在自己的地址上向自己委托代币以充当委托人，称为自绑定。
+
+#### 输入
+
+|名称|类型|描述|
+|---|---|---|
+|validatorAddress|address|验证人的地址|
+
+#### 输出
+
+|名称|类型|描述|
+|---|---|---|
+|distributionInfo|ValidatorDistributionInfo|验证人的分配信息|
+
+`ValidatorDistributionInfo` 是一个具有以下字段的结构体：
+
+|名称|类型|描述|
+|---|---|---|
+|operatorAddress|address|验证人操作员的地址|
+|selfBondRewards|DecCoin[]|验证人的自绑定数量|
+|commission|DecCoin[]|验证人的佣金|
+
+`DecCoin` 是一个具有以下字段的结构体：
+
+|名称|类型|描述|
+|---|---|---|
+|denom|string|奖励的面额|
+|amount|uint256|奖励的数量|
+|precision|uint8|奖励的精度|
+
+### `validatorOutstandingRewards`
+
+返回验证人的未结奖励。未结奖励代表总奖励池：验证人的佣金和自绑定奖励，加上欠所有委托人的总奖励。例如，如果验证人 A 有委托人 B、C 和 D，则未结奖励等于 A 的佣金和自绑定奖励，加上 B、C 和 D 的奖励。
+
+#### 输入
+
+|名称|类型|描述|
+|---|---|---|
+|validatorAddress|address|验证人的地址|
+
+#### 输出
+
+|名称|类型|描述|
+|---|---|---|
+|rewards|DecCoin[]|验证人的未结奖励|
+
+### `validatorCommission`
+
+返回验证人的佣金。此方法用于在调用 `withdrawValidatorCommission` 方法之前检索验证人的佣金。
+
+#### 输入
+
+|名称|类型|描述|
+|---|---|---|
+|validatorAddress|address|验证人的地址|
+
+#### 输出
+
+|名称|类型|描述|
+|---|---|---|
+|commission|DecCoin[]|验证人的佣金|
+
+### `validatorSlashes`
+
+返回验证人在起始高度和结束高度之间的罚没历史。罚没是指当验证人有恶意行为或违反网络规则（如双重签名、不当行为或不遵守链规则）时所处以的罚款。
+
+#### 输入
+
+|名称|类型|描述|
+|---|---|---|
+|validatorAddress|address|验证人的地址|
+|startingHeight|uint64|起始高度
+|endingHeight|uint64|结束高度
+|pageRequest|PageReq|分页请求|
+
+`PageReq` 是一个具有以下字段的结构体：
+
+|名称|类型|描述|
+|---|---|---|
+|key|bytes|分页的键|
+|offset|uint64|分页的偏移量|
+|limit|uint64|分页的限制|
+|countTotal|bool|是否统计总页数|
+|reverse|bool|是否反向分页|
+
+#### 输出
+
+|名称|类型|描述|
+|---|---|---|
+|slashes|ValidatorSlashEvent[]|验证人的罚没记录|
+|pagination|PageResp|分页响应
+
+`ValidatorSlashEvent` 是一个具有以下字段的结构体：
+
+|名称|类型|描述|
+|---|---|---|
+|validatorPeriod|uint64|验证人的周期|
+|fraction|Dec|罚没的比例|
+
+`Dec` 是一个具有以下字段的结构体：
+
+|名称|类型|描述|
+|---|---|---|
+|value|uint64|Dec 的值|
+|precision|uint8|Dec 的精度|
+
+`PageResp` 是一个具有以下字段的结构体：
+
+|名称|类型|描述|
+|---|---|---|
+|nextKey|bytes|分页的下一个键|
+|total|uint64|总页数|
+
+### `delegationRewards`
+
+返回委托人从验证人处收到的奖励。
+
+#### 输入
+
+|名称|类型|描述|
+|---|---|---|
+|delegatorAddress|address|委托人的十六进制地址|
+|validatorAddress|address|验证人的地址|
+
+#### 输出
+
+|名称|类型|描述|
+|---|---|---|
+|rewards|DecCoin[]|委托人从验证人处收到的奖励|
+
+### `delegationTotalRewards`
+
+返回委托人从所有验证人处收到的总奖励。
+
+#### 输入
+
+|名称|类型|描述|
+|---|---|---|
+|delegatorAddress|address|委托人的十六进制地址|
+
+#### 输出
+
+|名称|类型|描述|
+|---|---|---|
+|rewards|DelegationDelegatorReward[]|委托人从所有验证人处收到的总奖励|
+|total|DecCoin[]|奖励的总数量|
+
+`DelegationDelegatorReward` 是一个具有以下字段的结构体：
+
+|名称|类型|描述|
+|---|---|---|
+|validatorAddress|address|验证人的地址|
+|reward|DecCoin[]|委托人从验证人处收到的奖励|
+
+### `delegatorValidators`
+
+返回委托人所绑定的验证人。
+
+#### 输入
+
+|名称|类型|描述|
+|---|---|---|
+|delegatorAddress|address|委托人的十六进制地址|
+
+#### 输出
+
+|名称|类型|描述|
+|---|---|---|
+|validators|string[]|委托人所绑定的验证人|
+
+### `delegatorWithdrawAddress`
+
+返回由 `setWithdrawAddress` 方法设置的接收委托奖励的地址。
+
+#### 输入
+
+|名称|类型|描述|
+|---|---|---|
+|delegatorAddress|address|委托人的十六进制地址|
+
+#### 输出
+
+|名称|类型|描述|
+|---|---|---|
+|withdrawAddress|address|接收委托奖励的地址|
+
+## 事件
+
+### SetWithdrawAddress
+
+|名称|类型|已索引|描述|
+|---|---|---|---|
+|caller|address|Y|调用者（委托人）的地址|
+|withdrawAddress|address|N|接收委托奖励的地址|
+
+### WithdrawDelegatorRewards
+
+|名称|类型|已索引|描述|
+|---|---|---|---|
+|delegatorAddress|address|Y|委托人的地址|
+|validatorAddress|address|Y|验证人的地址|
+|amount|uint256|N|奖励的数量|
+
+### WithdrawValidatorCommission
+
+|名称|类型|已索引|描述|
+|---|---|---|---|
+|validatorAddress|address|Y|验证人的地址|
+|commission|uint256|N|佣金的总数量|

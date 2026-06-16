@@ -1,0 +1,114 @@
+---
+source_path: how-to/sdk-with-viem.mdx
+source_sha: c80565f060bd79708a5811def2e3b67fa2cedab9
+title: "搭配 viem 使用 SDK"
+description: "通过三种方式使用 @stablechain/sdk 签名：私钥 Account、浏览器 Transport，或预先构建的 viem WalletClient。"
+diataxis: "how-to"
+---
+
+# 搭配 viem 使用 SDK
+
+`@stablechain/sdk` 基于 viem 构建。`createStable` 接受三种签名模式，你可以根据代码运行的位置选择其一：服务端使用私钥、浏览器端使用用户钱包，或使用你已经构建好的 `WalletClient`（例如在 wagmi 应用中）。
+
+本指南将端到端地展示每种模式。
+
+## 服务端：私钥 `Account`
+
+使用 viem 的 `privateKeyToAccount`，通过后端持有的私钥进行签名。
+
+```ts
+import "dotenv/config";
+import { createStable, Network } from "@stablechain/sdk";
+import { privateKeyToAccount } from "viem/accounts";
+
+const account = privateKeyToAccount(process.env.PRIVATE_KEY as `0x${string}`);
+
+const stable = createStable({
+  network: Network.Mainnet,
+  account,
+});
+
+const { txHash } = await stable.transfer({
+  from: account.address,
+  to: "0xRecipient",
+  amount: 5,
+});
+
+console.log(txHash);
+```
+
+```text
+0x8f3a...2d41
+```
+
+## 浏览器端：来自钱包的 `Transport`
+
+将 `custom(window.ethereum)`（或任意 EIP-1193 provider）作为 `transport` 传入。SDK 会构建 `WalletClient` 并从 provider 读取签名者地址。
+
+```ts
+import { createStable, Network } from "@stablechain/sdk";
+import { custom } from "viem";
+
+const stable = createStable({
+  network: Network.Mainnet,
+  transport: custom(window.ethereum),
+});
+
+const [from] = await window.ethereum.request({ method: "eth_requestAccounts" });
+
+const { txHash } = await stable.transfer({
+  from,
+  to: "0xRecipient",
+  amount: 5,
+});
+```
+
+```text
+0x8f3a...2d41
+```
+
+:::warning
+`transfer`、`bridge` 和 `swap` 会调用 `switchChain` 将钱包切换到正确的网络。如果用户拒绝，SDK 会抛出带有 `phase: "switch_chain"` 的 `StableTransactionError`。请捕获它并向用户提供重试选项。
+:::
+
+## 自带 `WalletClient`
+
+当你已经拥有一个 `WalletClient`（例如来自 wagmi 或自定义签名器）时，可以直接传入。它的优先级高于 `account` 和 `transport`。
+
+```ts
+import { createStable, Network } from "@stablechain/sdk";
+import { createWalletClient, custom } from "viem";
+import { stable as stableChain } from "viem/chains";
+
+const walletClient = createWalletClient({
+  chain: stableChain,
+  transport: custom(window.ethereum),
+});
+
+const [from] = await walletClient.requestAddresses();
+
+const stable = createStable({
+  network: Network.Mainnet,
+  walletClient,
+});
+
+const { txHash } = await stable.transfer({ from, to: "0xRecipient", amount: 5 });
+```
+
+```text
+0x8f3a...2d41
+```
+
+## 选择一种模式
+
+| **模式** | **适用场景** |
+| :--- | :--- |
+| `account` | 后端服务、脚本、代理——任何你持有私钥的地方。 |
+| `transport` | 浏览器应用，用户通过 MetaMask 或不依赖 wagmi 的自定义流程签名。 |
+| `walletClient` | 你已经拥有配置好的 `WalletClient`（wagmi、RainbowKit、ConnectKit）。 |
+
+## 推荐的后续步骤
+
+- [**搭配 wagmi 使用**](/en/how-to/sdk-with-wagmi) — 通过 wagmi hooks 将 SDK 接入 React 应用。
+- [**SDK 参考**](/en/reference/sdk) — 每个配置字段、方法、枚举和错误类。
+- [**SDK 快速入门**](/en/tutorial/sdk-quickstart) — 在测试网上运行你的第一笔转账、跨链和兑换。

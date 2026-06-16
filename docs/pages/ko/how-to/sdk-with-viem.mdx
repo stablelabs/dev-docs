@@ -1,0 +1,114 @@
+---
+source_path: how-to/sdk-with-viem.mdx
+source_sha: c80565f060bd79708a5811def2e3b67fa2cedab9
+title: "viem과 함께 SDK 사용하기"
+description: "@stablechain/sdk로 서명하는 세 가지 방법: 프라이빗 키 Account, 브라우저 Transport, 또는 미리 구성된 viem WalletClient."
+diataxis: "how-to"
+---
+
+# viem과 함께 SDK 사용하기
+
+`@stablechain/sdk`는 viem 기반으로 만들어졌습니다. `createStable`은 세 가지 서명 모드를 지원하며, 코드가 실행되는 위치에 따라 하나를 선택합니다: 프라이빗 키를 사용하는 서버 측, 사용자 지갑을 사용하는 브라우저 측, 또는 이미 구성한 `WalletClient`(예: wagmi 앱에서)를 사용하는 방식입니다.
+
+이 가이드에서는 각 모드를 처음부터 끝까지 보여줍니다.
+
+## 서버 측: 프라이빗 키 `Account`
+
+viem의 `privateKeyToAccount`를 사용해 백엔드가 보유한 프라이빗 키로 서명합니다.
+
+```ts
+import "dotenv/config";
+import { createStable, Network } from "@stablechain/sdk";
+import { privateKeyToAccount } from "viem/accounts";
+
+const account = privateKeyToAccount(process.env.PRIVATE_KEY as `0x${string}`);
+
+const stable = createStable({
+  network: Network.Mainnet,
+  account,
+});
+
+const { txHash } = await stable.transfer({
+  from: account.address,
+  to: "0xRecipient",
+  amount: 5,
+});
+
+console.log(txHash);
+```
+
+```text
+0x8f3a...2d41
+```
+
+## 브라우저 측: 지갑에서 가져온 `Transport`
+
+`custom(window.ethereum)`(또는 모든 EIP-1193 프로바이더)을 `transport`로 전달합니다. SDK가 `WalletClient`를 구성하고 프로바이더에서 서명자 주소를 읽어옵니다.
+
+```ts
+import { createStable, Network } from "@stablechain/sdk";
+import { custom } from "viem";
+
+const stable = createStable({
+  network: Network.Mainnet,
+  transport: custom(window.ethereum),
+});
+
+const [from] = await window.ethereum.request({ method: "eth_requestAccounts" });
+
+const { txHash } = await stable.transfer({
+  from,
+  to: "0xRecipient",
+  amount: 5,
+});
+```
+
+```text
+0x8f3a...2d41
+```
+
+:::warning
+`transfer`, `bridge`, `swap`는 `switchChain`을 호출해 지갑을 올바른 네트워크로 전환합니다. 사용자가 거부하면 SDK는 `phase: "switch_chain"`과 함께 `StableTransactionError`를 발생시킵니다. 이를 잡아서 사용자에게 재시도를 표시하세요.
+:::
+
+## 직접 만든 `WalletClient` 사용하기
+
+이미 `WalletClient`가 있는 경우(예: wagmi 또는 커스텀 서명자에서), 직접 전달하세요. 이는 `account` 및 `transport`보다 우선합니다.
+
+```ts
+import { createStable, Network } from "@stablechain/sdk";
+import { createWalletClient, custom } from "viem";
+import { stable as stableChain } from "viem/chains";
+
+const walletClient = createWalletClient({
+  chain: stableChain,
+  transport: custom(window.ethereum),
+});
+
+const [from] = await walletClient.requestAddresses();
+
+const stable = createStable({
+  network: Network.Mainnet,
+  walletClient,
+});
+
+const { txHash } = await stable.transfer({ from, to: "0xRecipient", amount: 5 });
+```
+
+```text
+0x8f3a...2d41
+```
+
+## 모드 선택하기
+
+| **모드** | **사용 시점** |
+| :--- | :--- |
+| `account` | 백엔드 서비스, 스크립트, 에이전트 — 키를 보유한 모든 곳. |
+| `transport` | 사용자가 MetaMask 또는 wagmi 없는 커스텀 플로우로 서명하는 브라우저 앱. |
+| `walletClient` | 이미 구성된 `WalletClient`가 있는 경우(wagmi, RainbowKit, ConnectKit). |
+
+## 다음 권장 사항
+
+- [**wagmi와 함께 사용하기**](/en/how-to/sdk-with-wagmi) — wagmi 훅을 통해 SDK를 React 앱에 연결합니다.
+- [**SDK 레퍼런스**](/en/reference/sdk) — 모든 설정 필드, 메서드, 열거형, 에러 클래스.
+- [**SDK 빠른 시작**](/en/tutorial/sdk-quickstart) — 테스트넷에서 첫 transfer, bridge, swap을 실행합니다.

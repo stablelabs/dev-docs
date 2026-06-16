@@ -1,0 +1,146 @@
+---
+source_path: reference/ramps.mdx
+source_sha: 0b725ece7c44bee7949850606795ecf389d6d1f7
+title: 램프
+description: "Stable에서 법정화폐와 USDT 간의 전환을 위한 온/오프 램프 및 결제 게이트웨이 제공업체."
+diataxis: "reference"
+---
+
+# 램프
+
+온/오프 램프 파트너는 Stable을 글로벌 법정화폐 시스템에 연결하여 사용자와 기업이 USDT, 현지 통화, 결제 레일 간에 자금을 이동할 수 있게 합니다.
+
+## 온/오프 램프 개요 표
+
+| **제공업체**                                                                    | **카테고리**   | **문서 / 시작하기**                                                                                                | **참고**                       |
+| :------------------------------------------------------------------------------ | :------------- | :------------------------------------------------------------------------------------------------------------------ | :----------------------------------------- |
+| [**Onmeta**](https://onmeta.in/on-off-ramp)                              | 온/오프 램프    | [https://docs.onmeta.in/](https://docs.onmeta.in/)                                                           | 규정 준수 법정화폐-USDT 전환 + 국가 간 지급 |
+| [**Halliday**](https://halliday.xyz/)                                    | 온/오프 램프    | [https://docs.halliday.xyz/pages/home](https://docs.halliday.xyz/pages/home)                                 | CEX + Stripe 통합                   |
+| [**Alchemy Pay**](https://alchemypay.org/about)                          | 게이트웨이        | [https://alchemypay.readme.io/docs/alchemypay-on-ramp](https://alchemypay.readme.io/docs/alchemypay-on-ramp) | 300개 이상의 결제 방식                       |
+| [**DFX**](https://www.dfx.swiss/)                                        | 오프 램프 FX    | [https://docs.dfx.swiss/](https://docs.dfx.swiss/)                                                           | 규제 대상 스테이블코인-법정화폐               |
+| [**Onramp Money**](https://onramp.money/)                                | 온/오프 램프    | [https://docs.onramp.money/onramp/](https://docs.onramp.money/onramp/)                                       | 신흥 시장 커버리지                   |
+| [**MoonPay**](https://www.moonpay.com/business/onramps)                  | 유니버설 램프 | [https://dev.moonpay.com/docs/on-ramp-overview](https://dev.moonpay.com/docs/on-ramp-overview)               | 글로벌 카드 + 은행 지원                 |
+| [**Transak**](https://transak.com/off-ramp)                              | 온/오프 램프    | [https://docs.transak.com/](https://docs.transak.com/)                                                       | 450개 이상의 통합                          |
+| [**Banxa**](https://banxa.com/solutions/by-use-case/on-and-off-ramping/) | 규제 대상 램프 | [https://docs.banxa.com/docs/overview](https://docs.banxa.com/docs/overview)                                 | 100개 이상 국가의 현지 레일              |
+| [**Simplex by Nuvei**](https://www.simplex.com/)                         | 온 램프        | [https://buy.simplex.com](https://buy.simplex.com)                                                           | 245개 이상의 시장에서 카드, Apple/Google Pay, SEPA, ACH 지원; Atomic Wallet을 포함한 하위 지갑 구동 |
+
+## 카테고리 가이드
+
+- **온/오프 램프:** Stable에서 법정화폐와 USDT 간의 직접 전환을 가능하게 하는 플랫폼.
+- **결제 게이트웨이:** 원활한 거래를 위해 앱, 가맹점 또는 핀테크를 글로벌 법정화폐 레일에 연결하는 서비스.
+- **FX 및 오프 램프 네트워크:** 대규모로 규정을 준수하는 스테이블코인-법정화폐 결제를 제공하는 규제 대상 인프라.
+
+## 온/오프 램프 및 결제 게이트웨이
+
+### MoonPay
+
+즉각적인 자산 구매를 위해 전 세계적으로 사용되는 유니버설 암호화폐 온/오프 램프.
+
+**기능**
+
+- 카드 + 은행 + 현지 결제 레일
+- 빠른 글로벌 온보딩
+- 멀티체인 지원
+
+**시작하기**: [MoonPay 온 램프 통합 가이드](https://dev.moonpay.com/docs/on-ramp-overview)를 따라 Stable에서의 법정화폐-USDT 구매를 앱에 내장하세요.
+
+### Transak
+
+450개 이상의 앱에서 암호화폐를 매매하고 전송하는 마찰 없는 방법을 제공하는 온/오프 램프.
+
+**기능**
+
+- 글로벌 법정화폐 방식
+- 손쉬운 통합 API
+- 국가별 규정 준수 지원
+
+**시작하기**: [Transak 통합 문서](https://docs.transak.com/)를 검토하여 Stable을 지원 네트워크로 사용하는 온/오프 램프 위젯 또는 API를 추가하세요.
+
+### Onmeta
+
+VDA 플랫폼을 위한 규정 준수 기능이 내장된 온/오프 램프 및 국가 간 지급 인프라.
+
+**기능**
+
+- 법정화폐 ↔ USDT 전환
+- 규정 준수 가능한 흐름
+- 국가 간 지급
+- 현지 결제 레일
+
+**시작하기**: [Onmeta API 문서](https://docs.onmeta.in/)를 참조하여 Stable에서 법정화폐-USDT 전환 및 국가 간 지급을 통합하세요.
+
+### Halliday
+
+Coinbase 및 Stripe와 같은 주요 CEX 및 결제 플랫폼에서 원활한 온/오프 램프를 가능하게 하는 종단 간 결제 제품군.
+
+**기능**
+
+- 주요 CEX에 직접 연결
+- Stripe + 결제 레일 통합
+- 가맹점 및 앱 친화적 흐름
+
+**시작하기**: [Halliday 통합 문서](https://docs.halliday.xyz/pages/home)를 읽고 CEX 및 Stripe 기반 결제 흐름을 제품 내 Stable에 연결하세요.
+
+### Alchemy Pay
+
+300개 이상의 결제 방식으로 전통 금융과 암호화폐를 연결하는 글로벌 결제 게이트웨이.
+
+**기능**
+
+- 글로벌 법정화폐 온/오프 램프
+- 가맹점 결제
+- 은행 송금 + 카드 + 현지 레일
+
+**시작하기**: [Alchemy Pay 온 램프 API](https://alchemypay.readme.io/docs/alchemypay-on-ramp)를 사용하여 Stable에서 USDT 구매를 위한 300개 이상의 결제 방식을 추가하세요.
+
+### DFX
+
+1억 건 이상의 거래를 보유한 스위스 규제 대상 탈중앙화 FX 및 오프 램프 네트워크.
+
+**기능**
+
+- 스테이블코인-법정화폐 전환
+- 규제 대상 FX 레이어
+- 강력한 다중 통화 지원
+
+**시작하기**: [DFX API 문서](https://docs.dfx.swiss/)를 참고하여 Stable을 소스 네트워크로 사용하는 규정 준수 스테이블코인-법정화폐 오프 램프 흐름을 설정하세요.
+
+### Onramp Money
+
+신흥 시장에 특화된 저비용 법정화폐-암호화폐 게이트웨이.
+
+**기능**
+
+- 현지 결제 방식 커버리지
+- 즉시 결제
+- 130만 명 이상의 지원 사용자
+
+**시작하기**: [Onramp Money 개발자 가이드](https://docs.onramp.money/onramp/)를 따라 Stable에서 신흥 시장 사용자를 위한 법정화폐-암호화폐 흐름을 통합하세요.
+
+### Banxa
+
+100개 이상 국가의 현지 레일을 통해 사용자를 암호화폐에 연결하는 규제 대상 온/오프 램프 인프라.
+
+**기능**
+
+- 규제 대상 법정화폐 게이트웨이
+- 광범위한 글로벌 커버리지
+- 은행 및 현지 결제 옵션
+
+**시작하기**: [Banxa 통합 개요](https://docs.banxa.com/docs/overview)를 읽고 Stable을 지원 네트워크로 사용하는 규제 대상 온/오프 램프 흐름을 활성화하세요.
+
+### Simplex by Nuvei
+
+245개 이상의 시장에서 카드, 은행 및 현지 결제 방식을 지원하는 Nuvei의 법정화폐-암호화폐 온 램프. Simplex를 통한 Stable에서의 USDT 구매는 [Atomic Wallet](/en/reference/wallets#atomic-wallet)을 포함하여 Simplex 위젯을 통합한 모든 지갑이나 앱 내에서도 가능합니다.
+
+**기능**
+
+- Visa, Mastercard, Apple Pay, Google Pay, SEPA, ACH를 통한 Stable에서의 USDT 구매
+- 245개 이상의 시장에 걸친 글로벌 커버리지
+- 하위 지갑 및 앱에서 사용되는 화이트라벨 위젯(예: Atomic Wallet)
+
+**시작하기**: [https://buy.simplex.com](https://buy.simplex.com)에서 Stable의 USDT를 직접 구매하거나, [Simplex 위젯](https://www.simplex.com/)을 통합하여 자체 앱 내에서 온 램프 구매를 제공하세요.
+
+---
+
+Stable을 통합하는 온/오프 램프가 있으신가요? [bizdev@stable.xyz](mailto:bizdev@stable.xyz)로 문의해 주세요.

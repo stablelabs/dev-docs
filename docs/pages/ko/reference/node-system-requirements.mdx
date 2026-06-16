@@ -1,0 +1,122 @@
+---
+source_path: reference/node-system-requirements.mdx
+source_sha: 8caf3472c689135d75758042df3b1c66f88d0481
+title: 시스템 요구사항
+description: "Stable 풀 노드, 아카이브 노드, 검증자 노드 운영을 위한 하드웨어 및 소프트웨어 요구사항."
+---
+
+이 페이지는 다양한 유형의 Stable 노드를 실행하기 위한 하드웨어 및 소프트웨어 요구사항을 설명합니다.
+
+## 하드웨어 요구사항
+
+### 풀노드 (최소 사양)
+
+| 구성 요소 | 요구사항 | 참고사항 |
+|-----------|----------|----------|
+| **CPU** | 4코어 | AMD Ryzen 5 / Intel Core i5 이상 |
+| **RAM** | 8 GB | 16 GB 권장 |
+| **스토리지** | 500 GB NVMe/SSD |  |
+| **네트워크** | 100 Mbps |  |
+| **OS** | Ubuntu 22.04/24.04, Debian 12 | 64bit Linux 필요 |
+
+### 풀노드 (권장 사양)
+
+| 구성 요소 | 요구사항 | 참고사항 |
+|-----------|----------|----------|
+| **CPU** | 8코어 | AMD Ryzen 7 / Intel Core i7 이상 |
+| **RAM** | 16 GB | 32 GB 권장 |
+| **스토리지** | 1 TB NVMe |  |
+| **네트워크** | 1 Gbps |  |
+| **OS** | Ubuntu 24.04 | 최신 LTS 권장 |
+
+### 아카이브 노드
+
+| 구성 요소 | 요구사항 | 참고사항 |
+|-----------|----------|----------|
+| **CPU** | 16코어 | AMD Ryzen 9 / Intel Core i9 또는 동급 |
+| **RAM** | 32 GB | 64 GB 권장 |
+| **스토리지** | 4 TB NVMe | 추후 확장 가능한 구조여야함 |
+| **네트워크** | 1 Gbps |  |
+| **OS** | Ubuntu 24.04 | 최신 LTS 권장 |
+
+## 소프트웨어 요구사항
+
+### 운영 체제
+
+#### 지원되는 배포판
+- **Ubuntu 24.04 LTS** (권장)
+- **Ubuntu 22.04 LTS**
+- **Debian 12 (Bookworm)**
+
+#### 시스템 의존성
+```bash
+# 시스템 패키지 업데이트
+sudo apt update && sudo apt upgrade -y
+
+# 필수 도구 설치
+sudo apt install -y \
+    build-essential \
+    git \
+    wget \
+    curl \
+    jq \
+    lz4 \
+    zstd \
+    htop \
+    net-tools \
+    ufw
+```
+
+## 클라우드 프로바이더 별 권장 타입
+
+### AWS
+- **풀노드**: t3.xlarge 또는 c5.xlarge
+- **아카이브 노드**: m5.2xlarge 또는 c5.2xlarge
+- **스토리지**: 프로비저닝된 IOPS를 가진 gp3
+
+### Google Cloud
+- **풀노드**: n2-standard-4
+- **아카이브 노드**: n2-standard-8
+- **스토리지**: pd-ssd 또는 pd-extreme
+
+### Azure
+- **풀노드**: Standard_D4s_v5
+- **아카이브 노드**: Standard_D8s_v5
+- **스토리지**: Premium SSD v2
+
+### DigitalOcean
+- **풀노드**: General Purpose 8GB
+- **아카이브 노드**: CPU-Optimized 16GB
+- **스토리지**: Volume Block Storage
+
+## 모니터링 요구사항
+
+프로덕션 배포를 위해 다음을 확보하세요:
+
+- **Prometheus**: 메트릭 수집용
+- **Grafana**: 시각화용
+- **AlertManager**: 알림용
+- **Node Exporter**: 시스템 메트릭용
+- **로그 집계**: Loki 권장
+
+## 보안 고려사항
+
+### 시스템 강화
+- OS 및 패키지를 최신 상태로 유지
+- 자동 보안 업데이트 구성
+- SSH 키만 사용 (비밀번호 인증 비활성화)
+- fail2ban 구성
+- 방화벽 활성화 (UFW/iptables)
+
+## 설치 전 체크리스트
+
+설치를 진행하기 전에 다음을 확인하세요:
+
+- [ ] 하드웨어가 최소 요구사항을 충족
+- [ ] 운영 체제가 지원되고 업데이트됨
+- [ ] 스토리지가 충분한 IOPS를 보유
+- [ ] 네트워크 대역폭이 1Gbps 이상임
+- [ ] 방화벽이 구성되어있음
+- [ ] 모니터링이 세팅됨
+- [ ] 백업 계획 준비됨
+- [ ] 보안 조치가 마련됨

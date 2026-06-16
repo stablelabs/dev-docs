@@ -1,0 +1,140 @@
+---
+source_path: tutorial/sdk-quickstart.mdx
+source_sha: 7f6797e29245d890cb46a01da0c772ffc797b252
+title: "SDK 快速开始"
+description: "安装 Stable SDK，在测试网上发送你的第一笔 USDT0 转账，并预览跨链桥和兑换报价。"
+diataxis: "tutorial"
+---
+
+# SDK 快速开始
+
+你将安装 `@stablechain/sdk`，创建一个由私钥签名的客户端，在 Stable Testnet 上发送一笔 USDT0 转账，并获取跨链桥和兑换报价。总耗时约五分钟。
+
+:::note
+Stable 使用 USDT0 作为 gas 代币。你只需要测试网 USDT0 即可进行交易——无需另外充值单独的原生资产。
+:::
+
+## 前提条件
+
+- Node.js 20 或更高版本
+- 一个持有测试网 USDT0 的测试私钥。参见 [为你的测试网钱包充值](/en/how-to/use-faucet)。
+
+## 1. 安装
+
+```bash
+mkdir stable-sdk-quickstart && cd stable-sdk-quickstart
+npm init -y && npm install @stablechain/sdk viem
+```
+
+```text
+added 2 packages, audited 3 packages in 2s
+```
+
+保存你的测试密钥：
+
+```bash
+echo "PRIVATE_KEY=0xYOUR_TEST_KEY" > .env
+```
+
+## 2. 创建客户端
+
+创建 `index.ts`：
+
+```ts
+import "dotenv/config";
+import { createStable, Network } from "@stablechain/sdk";
+import { privateKeyToAccount } from "viem/accounts";
+
+const account = privateKeyToAccount(process.env.PRIVATE_KEY as `0x${string}`);
+
+const stable = createStable({
+  network: Network.Testnet,
+  account,
+});
+
+console.log("Signer:", account.address);
+```
+
+```text
+Signer: 0xYourAddress
+```
+
+`createStable` 接受三种签名模式：`account`（服务端，如上所示）、`transport`（通过 `custom(window.ethereum)` 的浏览器钱包），或 `walletClient`（预先构建的 viem `WalletClient`）。三种方式的完整说明请参见 [将 SDK 与 viem 一起使用](/en/how-to/sdk-with-viem)。
+
+## 3. 发送 USDT0 转账
+
+追加到 `index.ts`：
+
+```ts
+const { txHash } = await stable.transfer({
+  from: account.address,
+  to: "0x000000000000000000000000000000000000dEaD",
+  amount: 0.001,
+});
+
+console.log("Transfer:", txHash);
+```
+
+运行它：
+
+```bash
+npx tsx index.ts
+```
+
+```text
+Signer: 0xYourAddress
+Transfer: 0x8f3a...2d41
+```
+
+在[测试网浏览器](https://testnet.stablescan.xyz)上打开该哈希以确认。
+
+## 4. 获取跨链桥报价
+
+将 USDT0 从 Ethereum Sepolia 跨链桥接到 Stable Testnet。`quoteBridge` 是一个只读调用——无需签名，无需 gas：
+
+```ts
+import { Chain } from "@stablechain/sdk";
+
+const bridgeQuote = await stable.quoteBridge({
+  fromChain: Chain.Sepolia,
+  toChain: Chain.StableTestnet,
+  fromToken: "0xc4DCC311c028e341fd8602D8eB89c5de94625927",
+  toToken: "0x78Cf24370174180738C5B8E352B6D14c83a6c9A9",
+  amount: 1,
+});
+
+console.log("Bridge quote:", bridgeQuote);
+```
+
+```text
+Bridge quote: { toAmount: 0.999812 }
+```
+
+将报价传入 `stable.bridge({ ...params, quote })` 以执行。SDK 为 USDT0 → USDT0 路由选择 LayerZero，其他所有情况则选择 LI.FI。
+
+## 5. 获取兑换报价
+
+兑换通过 LI.FI 在 Stable 上运行。报价返回预期输出和一个预先构建的交易：
+
+```ts
+const swapQuote = await stable.quoteSwap({
+  fromToken: "0x8a2B28364102Bea189D99A475C494330Ef2bDD0B",
+  toToken: "0x78Cf24370174180738C5B8E352B6D14c83a6c9A9",
+  amount: 1,
+  fromDecimals: 6,
+});
+
+console.log("You'll receive:", swapQuote.toAmount, "USDT0");
+```
+
+```text
+You'll receive: 0.998 USDT0
+```
+
+调用 `stable.swap({ ...params, quote: swapQuote })` 以执行。ERC-20 来源的授权由内部处理。
+
+## 后续推荐
+
+- [**SDK 参考**](/en/reference/sdk) — 每个参数、返回类型和错误类。
+- [**与 viem 一起使用**](/en/how-to/sdk-with-viem) — 在私钥、浏览器钱包和预先构建的 `WalletClient` 签名之间切换。
+- [**与 wagmi 一起使用**](/en/how-to/sdk-with-wagmi) — 使用 wagmi hooks 将 SDK 接入 React 应用。

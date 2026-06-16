@@ -1,0 +1,38 @@
+---
+source_path: reference/agentic-wallets.mdx
+source_sha: b56b2c9e8c54b78ccf9500108123c7473ba26c74
+title: "钱包"
+description: "钱包基础设施，使 AI 代理能够在 Stable 上持有资金并签署 x402 支付。"
+diataxis: "reference"
+---
+
+# 钱包
+
+代理钱包为 AI 代理和自主系统提供自托管签名能力，使它们能够参与 x402 支付流程，而无需人工驱动的设置。
+
+## 概览表
+
+| **提供商** | **类别** | **文档 / 入门** | **备注** |
+| :--- | :--- | :--- | :--- |
+| [**Wallet Development Kit (WDK)**](https://docs.wallet.tether.io) | 代理钱包 SDK | [https://docs.wallet.tether.io](https://docs.wallet.tether.io) | Tether 的开源 SDK；`WalletAccountEvm` 原生满足 x402 客户端签名器接口 |
+
+## Tether 的 Wallet Development Kit (WDK)
+
+来自 Tether 的开源 SDK，用于构建自托管的 AI 代理钱包。WDK 使代理能够在本地生成和存储私钥，无需依赖基于云的 KMS 或 TEE 基础设施。
+
+WDK 中的 `WalletAccountEvm` 实例原生满足 x402 SDK 所需的客户端签名器接口。配备了 WDK 和 Stable 上的 USDT0 的代理可以自动拦截 402 HTTP 响应、签署 ERC-3009 授权并重新提交请求。
+
+**软件包：** `@tetherto/wdk`、`@tetherto/wdk-wallet-evm`
+
+**功能**
+
+- 自托管密钥生成和本地存储
+- 通过 `WalletAccountEvm` 原生兼容 x402 客户端签名器
+- 自动拦截 402 响应并签署 ERC-3009
+- 多链支持，包括 Stable
+
+**文档：** [https://docs.wallet.tether.io](https://docs.wallet.tether.io)
+
+---
+
+已有与 Stable 集成的代理钱包？请通过 [bizdev@stable.xyz](mailto:bizdev@stable.xyz) 联系我们。

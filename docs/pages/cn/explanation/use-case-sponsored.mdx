@@ -1,0 +1,25 @@
+---
+source_path: explanation/use-case-sponsored.mdx
+source_sha: 1b76f6180d916d240582c1b5a275b8f34de0ec9a
+title: "赞助和无 gas 体验"
+description: "Stable 如何让应用完全代表用户承担 gas 费用，使得用户上手无需先获取 gas 代币。"
+diataxis: "explanation"
+---
+
+# 赞助和无 gas 体验
+
+有些应用希望从用户体验中彻底移除 gas，让首次使用的用户无需先获取第二种资产即可登录并交易。
+
+## 问题所在
+
+要求用户在使用应用前先获取 gas 代币，会造成一个上手门槛，导致面向消费者的产品转化率骤降。一个只持有 USDT（或者什么都没有）的新用户无法提交交易，而把他们引导到单独的交易所去购买 gas，正是大多数人流失的地方。
+
+## Stable 如何解决
+
+- **Gas 豁免：经治理批准的豁免地址代表用户提交以零 gas 价格执行的封装交易**，使应用全程承担 gas，用户看到的则是一次免费操作。参见 [Gas 豁免](/en/explanation/gas-waiver)。
+- **EIP-7702 会话密钥让 dApp 持有受限范围、有时限的权限**，从而能够代表用户提交交易，而无需用户对每一笔交易签名。参见 [EIP-7702](/en/explanation/eip-7702)。
+
+## 下一步推荐
+
+- [**Gas 豁免**](/en/explanation/gas-waiver) — 了解经治理批准的豁免如何以零 gas 价格提交封装交易。
+- [**EIP-7702**](/en/explanation/eip-7702) — 理解 EOA 如何将受限范围、有时限的权限委托给 dApp。

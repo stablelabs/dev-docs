@@ -1,0 +1,267 @@
+---
+source_path: explanation/gas-waiver.mdx
+source_sha: 094d0be55d626fd84d16fee6f1f842dd11be54d8
+title: Gas 豁免人
+description: "通过治理批准地址实现免 Gas 交易的 Gas Waiver 协议与 Waiver Server API。"
+---
+
+# Gas 豁免人
+
+## 摘要
+
+Gas 豁免人（免 Gas 费）功能通过允许一小部分经过治理批准的地址（"豁免人"）提交 `gasPrice = 0` 的交易，实现 Stable 链上终端用户的无 Gas 费交易。Stable 目前运营一个豁免人服务（"豁免人服务器"），合作伙伴可以集成该服务，无需实现特定协议的封包逻辑即可提供无 Gas 费用户体验。
+
+本文档规定了 Gas 豁免人 机制、交易格式、治理控制以及面向合作伙伴的豁免人服务器 API。
+
+## 范围
+
+本规范涵盖：
+
+- 免 Gas 费交易的协议级规则
+- 封包交易机制和标记地址
+- 治理控制的授权和允许的目标
+- 用于提交已签名用户交易的豁免人服务器接口
+
+## 定义
+
+- **Waiver（豁免人）**：通过验证者治理在链上注册的以太坊地址，授权提交免 Gas 费交易。
+- **InnerTx（内部交易）**：终端用户签名的交易，`gasPrice = 0`。
+- **WrapperTx（封包交易）**：由豁免人签名的交易，将用户的 `InnerTx` 传输到链上并授权执行。
+- **Marker address（标记地址）**：用于识别豁免人封包交易的哨兵地址：`0x000000000000000000000000000000000000f333`。
+- **AllowedTarget（允许的目标）**：一种策略，将豁免人限制在特定的合约地址和方法选择器。
+
+## 概述
+
+Gas 豁免人 使用封包交易模式：
+
+1. 用户使用 `gasPrice = 0` 签署 `InnerTx`。
+2. 豁免人将 `InnerTx` 封包成 `WrapperTx` 并广播。
+3. 验证者检测到标记交易，验证豁免人授权和策略约束，然后执行嵌入的 `InnerTx`。
+
+Stable 运营一个豁免人服务（豁免人服务器），该服务在链上注册为授权豁免人。合作伙伴通过豁免人服务器 API 集成，提交已签名的 `InnerTx` 负载。
+
+## 协议规范
+
+### 标记地址路由
+
+当且仅当满足以下条件时，交易被视为豁免人封包交易：
+
+- `to == 0x000000000000000000000000000000000000f333`。
+
+协议将交易的 `data` 字段解释为编码的内部交易负载，并使用以下豁免人验证规则进行处理。
+
+### 授权和策略检查
+
+对于每个候选封包交易，验证者必须执行：
+
+1. **豁免人授权**
+   - `WrapperTx.from` 必须是通过治理在链上注册的豁免人地址。
+2. **Gas 豁免**
+   - `WrapperTx.gasPrice` 必须等于 `0`。
+   - `InnerTx.gasPrice` 必须等于 `0`。
+3. **目标白名单**
+   - `InnerTx.to` 和从 `InnerTx.data` 提取的方法选择器必须被豁免人的 `AllowedTarget` 策略允许。
+4. **Value 限制**
+   - `WrapperTx.value` 必须等于 `0`。
+
+若以上任何一条未通过，则封包交易将被拒绝，封包内部的交易也无法执行。
+
+### 执行语义
+
+如果所有检查通过：
+
+1. 协议以用户身份执行 `InnerTx`，保留用户的 `from`、`nonce` 和调用语义。
+2. Gas 计费由豁免人机制处理：用户不支付 Gas 费，豁免人交易根据功能定义使用 `gasPrice = 0`。
+3. 封包交易必须提供足够的 `gasLimit` 以覆盖 `InnerTx` 的执行（包括解包和验证的开销）。
+
+## 交易格式
+
+### WrapperTx
+
+封包交易由豁免人签署并发送到标记地址。
+
+```javascript
+WrapperTx {
+  from:     waiver_address,
+  to:       0x000000000000000000000000000000000000f333,
+  value:    0,                          // 必须为零
+  data:     RLP(InnerTx),               // RLP 编码的内部交易
+  gasPrice: 0,                          // 必须为零
+  gasLimit: sufficient_for_inner,       // 必须覆盖内部执行 + 开销
+  nonce:    waiver_nonce
+}
+```
+
+### InnerTx
+
+内部交易由终端用户签署。
+
+```javascript
+InnerTx {
+  from:     user_address,
+  to:       target_contract,
+  value:    value,
+  data:     call_data,
+  gasPrice: 0,                          // 必须为零
+  gasLimit: execution_gas,
+  nonce:    user_nonce
+}
+```
+
+## 治理控制的访问
+
+豁免人授权由验证者治理在链上管理。
+
+治理控制提供：
+
+- 可审查的豁免人地址授权
+- 豁免人注册和更新的链上透明度
+- 撤销能力
+- 通过 `AllowedTarget` 进行每个豁免人的范围界定
+
+## 安全模型
+
+### 终端用户签名完整性
+
+用户签署 `InnerTx`。豁免人不允许修改内部交易负载而不使签名失效。合作伙伴仍必须确保用户仅签署预期的交易负载。
+
+### 信任边界
+
+如果合作伙伴通过豁免人服务器路由提交，Gas 豁免人 引入了服务依赖性：
+
+- 服务的可用性影响提交无 Gas 费交易的能力。
+- 授权保留在链上；只有注册的豁免人地址才能产生有效的封包提交。
+
+## 合作伙伴集成
+
+合作伙伴通过以下方式集成：
+
+1. 从用户收集已签名的 `InnerTx`（`gasPrice = 0`）。
+2. 将已签名的内部交易提交到豁免人服务器 API。
+3. 处理流式结果并向终端用户显示交易哈希。
+
+## 豁免人服务器
+
+### 概述
+
+豁免人服务器将已签名的用户 `InnerTx` 负载封包并广播为豁免人授权的封包交易。合作伙伴无需构造封包交易或操作豁免人地址。
+
+### 端点和基础 URL
+
+基础 URL：
+
+- 主网：待定
+- 测试网：`https://waiver.testnet.stable.xyz`
+
+### 身份验证
+
+除健康检查外，所有端点都需要 Bearer Token 身份验证：
+
+```
+Authorization: Bearer <your-api-key>
+```
+
+### API
+
+#### GET `/v1/health`
+
+健康检查端点。
+
+身份验证：无。
+
+#### POST `/v1/submit`
+
+提交一批已签名的内部交易。
+
+身份验证：必需（`Bearer`）。
+
+请求正文：
+
+```json
+{
+  "transactions": ["0x<signedInnerTx1>", "0x<signedInnerTx2>"]
+}
+```
+
+响应以 NDJSON（换行符分隔的 JSON）流式传输。每行对应一个提交的交易索引。
+
+示例：
+
+```json
+{"index":0,"id":"abc123","success":true,"txHash":"0x..."}
+{"index":1,"id":"def456","success":false,"error":{"code":"VALIDATION_FAILED","message":"invalid signature"}}
+```
+
+#### GET `/v1/submit`
+
+用于流式提交的 WebSocket 接口。
+
+身份验证：必需（`Bearer`）。
+
+### 集成示例
+
+```javascript
+const WAIVER_SERVER = "https://waiver.testnet.stable.xyz";
+
+async function submitGaslessTransaction(signedInnerTxHex, apiKey) {
+  const response = await fetch(`${WAIVER_SERVER}/v1/submit`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      transactions: [signedInnerTxHex],
+    }),
+  });
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    const lines = decoder.decode(value).trim().split("\n");
+    for (const line of lines) {
+      const result = JSON.parse(line);
+      console.log(result);
+    }
+  }
+}
+```
+
+### 创建用户 InnerTx
+
+合作伙伴负责构造 `gasPrice = 0` 的 `InnerTx`，然后收集用户签名。
+
+示例：
+
+```javascript
+import { ethers } from "ethers";
+
+async function createInnerTx(userWallet, contractAddress, callData, nonce) {
+  const innerTx = {
+    to: contractAddress,
+    data: callData,
+    value: value,
+    gasPrice: 0,              // 豁免人必须为 0
+    gasLimit: 100000,
+    nonce: nonce,
+    chainId: 2201,            // 主网为 988，测试网为 2201
+  };
+
+  return await userWallet.signTransaction(innerTx);
+}
+```
+
+### 错误代码
+
+- `PARSE_ERROR`：解析交易失败
+- `INVALID_REQUEST`：请求正文格式错误
+- `BATCH_SIZE_EXCEEDED`：批处理大小超过允许的最大值
+- `VALIDATION_FAILED`：交易验证失败
+- `BROADCAST_FAILED`：广播到链失败
+- `RATE_LIMITED`：超过速率限制
+- `QUEUE_FULL`：服务器队列已满
+- `TIMEOUT`：请求超时

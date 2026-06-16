@@ -1,0 +1,332 @@
+---
+source_path: how-to/build-pay-per-call.mdx
+source_sha: c51728a92a4f9ff299c86445d2b6b0f31cbe5d8c
+title: "构建按调用付费的 API"
+description: "使用 Stable 上的 x402，通过每次请求的 USDT0 支付来将 HTTP 端点货币化。包括服务端设置、客户端集成与支出控制。"
+diataxis: "how-to"
+---
+
+# 构建按调用付费的 API
+
+本指南介绍如何使用 x402 将 API 端点货币化。服务端添加支付处理逻辑，客户端按请求付费，结算在 HTTP 生命周期内完成。
+
+:::note
+**概念：** 关于 x402 协议及其为何适合 Stable，请参阅 [x402](/en/explanation/x402)。关于高层用例模型，请参阅 [按调用付费 API](/en/reference/pay-per-call)。
+:::
+
+:::note
+Semantic 结算方目前仅在主网上运行。本指南中的示例使用 Stable 主网。测试时请使用小额金额。
+:::
+
+## 你将构建的内容
+
+一个付费 HTTP API，服务端以 `402 Payment Required` 响应，客户端按请求付费，结算方在 HTTP 生命周期内在链上结算 USDT0。
+
+### 演示
+
+```text
+step 1. Client: GET /weather (no payment)
+        Server: 402 Payment Required
+                PAYMENT-REQUIRED: { amount: "1000", asset: USDT0, network: eip155:988 }
+
+step 2. Client signs ERC-3009 authorization
+
+step 3. Client: GET /weather + PAYMENT-SIGNATURE header
+        Server: forwards to facilitator → transferWithAuthorization settles on-chain
+                (~700ms block confirmation)
+        Server: 200 OK { weather: "sunny", temperature: 70 }
+                PAYMENT-SETTLE-RESPONSE: { txHash: "0x8f3a...", paid: "0.001 USDT0" }
+
+step 4. Verify settlement on Stablescan
+        https://stablescan.xyz/tx/0x8f3a...
+```
+
+## 概览
+
+**卖方（服务端）：**
+
+```typescript
+// --- Server ---
+app.use(paymentMiddleware({
+  "GET /weather": {
+    price: { amount: "1000", asset: USDT0 },
+    payTo: sellerAddress,
+  },
+  "POST /inference": {
+    price: { amount: "50000", asset: USDT0 },
+    payTo: sellerAddress,
+  },
+}, resourceServer));
+
+// Routes not listed in the config are not gated.
+```
+
+**买方（客户端）：**
+
+```typescript
+// --- Client ---
+account = new WalletAccountEvm(seedPhrase, { provider: RPC });
+client = new x402Client();
+fetchWithPayment = wrapFetchWithPayment(fetch, client);
+
+weatherResponse = fetchWithPayment("https://api.example.com/weather");
+inferenceResponse = fetchWithPayment("https://api.example.com/inference", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ prompt: "Hello" }),
+});
+
+// For each paid request:
+// 1. Initial request returns 402 with PAYMENT-REQUIRED header
+// 2. Client signs ERC-3009 authorization with wallet
+// 3. Client retries with PAYMENT-SIGNATURE header
+// 4. Facilitator settles on-chain, server returns the response
+```
+
+## 卖方：设置付费端点
+
+卖方添加 x402 中间件来定义哪些路由需要付费。当请求到达但没有携带支付时，中间件以 `402 Payment Required` 和支付条款响应。当存在有效的支付标头时，中间件将其转发给结算方，由结算方验证签名并在链上结算支付。卖方只需配置价格和收款地址；结算方负责验证和结算。
+
+```bash
+npm install express @x402/express @x402/evm @x402/core
+```
+
+### 定价
+
+每个路由以 USDT0 基本单位（6 位小数）指定支付金额、网络和收款地址。例如，`"1000"` 等于 `$0.001`，`"50000"` 等于 `$0.05`。
+
+```typescript
+price: {
+  amount: "1000",                                      // base units (6 decimals)
+  asset: USDT0_STABLE,                                 // USDT0 contract address
+  extra: { name: "USDT0", version: "1", decimals: 6 }, // EIP-712 domain info
+}
+```
+
+`extra` 字段（`name`、`version`、`decimals`）由买方的客户端用于构建 EIP-712 签名，必须与链上 USDT0 合约相匹配。
+
+### 路由配置
+
+路由使用 `METHOD /path` 格式映射。每个路由指定接受的支付方案、网络、价格和收款地址（`payTo`）。`description` 和 `mimeType` 字段帮助买方和 AI 代理发现该端点提供的内容。未在配置中列出的路由不受限制，行为与普通 Express 路由一致。
+
+```typescript
+// server.ts
+import express from "express";
+import { paymentMiddleware, x402ResourceServer } from "@x402/express";
+import { ExactEvmScheme } from "@x402/evm/exact/server";
+import { HTTPFacilitatorClient } from "@x402/core/server";
+
+const PAY_TO = process.env.PAY_TO_ADDRESS as `0x${string}`;
+const FACILITATOR_URL = "https://x402.semanticpay.io/";
+const STABLE_NETWORK = "eip155:988"; // Stable Mainnet CAIP-2 ID
+const USDT0_STABLE = "0x779Ded0c9e1022225f8E0630b35a9b54bE713736";
+
+const facilitatorClient = new HTTPFacilitatorClient({ url: FACILITATOR_URL });
+const resourceServer = new x402ResourceServer(facilitatorClient)
+  .register(STABLE_NETWORK, new ExactEvmScheme());
+
+const app = express();
+
+app.use(
+  paymentMiddleware(
+    {
+      // Example 1: Configure a paid GET route
+      "GET /weather": {
+        accepts: [
+          {
+            scheme: "exact",
+            network: STABLE_NETWORK,
+            price: {
+              amount: "1000", // $0.001
+              asset: USDT0_STABLE,
+              extra: { name: "USDT0", version: "1", decimals: 6 },
+            },
+            payTo: PAY_TO,
+          },
+        ],
+        description: "Weather data",
+        mimeType: "application/json",
+      },
+      // Example 2: Configure a paid POST route
+      "POST /inference": {
+        accepts: [
+          {
+            scheme: "exact",
+            network: STABLE_NETWORK,
+            price: {
+              amount: "50000", // $0.05
+              asset: USDT0_STABLE,
+              extra: { name: "USDT0", version: "1", decimals: 6 },
+            },
+            payTo: PAY_TO,
+          },
+        ],
+        description: "AI inference endpoint",
+        mimeType: "application/json",
+      },
+    },
+    resourceServer,
+  ),
+);
+
+app.get("/weather", (req, res) => {
+  res.json({ weather: "sunny", temperature: 70 });
+});
+
+app.post("/inference", (req, res) => {
+  const { prompt } = req.body;
+  res.json({ result: `Inference result for: ${prompt}` });
+});
+
+// Not listed in the config, so no payment required.
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", payTo: PAY_TO });
+});
+
+const PORT = process.env.PORT || 4021;
+app.listen(PORT, () => {
+  console.log(`Server listening at http://localhost:${PORT}`);
+  console.log(`GET  /health    - free`);
+  console.log(`GET  /weather   - $0.001 per request`);
+  console.log(`POST /inference - $0.05 per request`);
+});
+```
+
+:::note
+x402 还为 Hono（`@x402/hono`）和 Next.js（`@x402/next`）提供了中间件。模式相同：创建结算方客户端、注册 EVM 方案并应用中间件。
+:::
+
+## 买方：发起付费请求
+
+买方无需经过手动支付流程即可访问付费端点。买方不支付 gas。结算方在链上结算，买方只支付支付要求中指定的确切金额。
+
+```bash
+npm install @x402/fetch @x402/evm @tetherto/wdk-wallet-evm
+```
+
+### 创建钱包并检查余额
+
+```typescript
+// client.ts
+import WalletManagerEvm from "@tetherto/wdk-wallet-evm";
+
+const account = await new WalletManagerEvm(process.env.SEED_PHRASE!, {
+  provider: "https://rpc.stable.xyz",
+}).getAccount(0);
+
+console.log("Buyer address:", account.address);
+
+// USDT0 uses 6 decimals. A balance of 1000000 equals 1.00 USDT0.
+const USDT0_STABLE = "0x779Ded0c9e1022225f8E0630b35a9b54bE713736";
+const balance = await account.getTokenBalance(USDT0_STABLE);
+console.log("USDT0 balance:", Number(balance) / 1e6, "USDT0");
+```
+
+### 连接到 x402 并发起付费请求
+
+`WalletAccountEvm` 满足 x402 所期望的签名者接口，因此可以直接注册为 x402 客户端的签名者。注册后，通过启用 x402 的客户端发送的请求会自动处理 402 支付流程。
+
+```typescript
+import { x402Client, wrapFetchWithPayment } from "@x402/fetch";
+import { registerExactEvmScheme } from "@x402/evm/exact/client";
+
+const client = new x402Client();
+registerExactEvmScheme(client, { signer: account });
+const fetchWithPayment = wrapFetchWithPayment(fetch, client);
+
+const response = await fetchWithPayment("http://localhost:4021/weather");
+const data = await response.json();
+console.log("Response:", data);
+```
+
+在底层，`fetchWithPayment` 会拦截 402 响应，解析支付要求（金额、代币、网络、收款方），用 WDK 钱包签署一个 ERC-3009 `transferWithAuthorization`，并使用 `PAYMENT-SIGNATURE` 标头重试请求。
+
+:::note
+如果你更喜欢 Axios，可使用 `@x402/axios` 配合 `wrapAxiosWithPayment` 来获得相同的自动支付处理。
+:::
+
+## 测试支付流程
+
+启动服务端并验证付费路由和免费路由。
+
+:::warning
+此测试流程在 Stable 主网上运行。每次成功的付费请求都会通过托管的结算方结算一笔真实的 USDT0 支付。请仅使用专用钱包和小额金额。
+:::
+
+### 1. 确认 402 响应
+
+```bash
+curl -i http://localhost:4021/weather
+```
+
+响应应为 `402 Payment Required`，并带有包含价格、资产和网络的 `PAYMENT-REQUIRED` 标头。
+
+### 2. 运行客户端
+
+```bash
+npx tsx client.ts
+```
+
+客户端处理完整流程：接收 402、签署授权、携带支付重试并打印响应。
+
+### 3. 读取收据
+
+在付费请求成功后，买方可以从服务端响应中读取 `PAYMENT-SETTLE-RESPONSE` 标头并解析结算收据。
+
+```typescript
+// (continued) client.ts
+import { x402HTTPClient } from "@x402/fetch";
+
+const httpClient = new x402HTTPClient(client);
+const receipt = httpClient.getPaymentSettleResponse(
+  (name) => response.headers.get(name),
+);
+console.log("Payment receipt:", JSON.stringify(receipt, null, 2));
+```
+
+## 在没有实时结算方的情况下测试
+
+由于 Semantic 结算方仅支持主网，目前你无法将服务端指向测试网结算方。要在不结算真实支付的情况下迭代服务端逻辑、路由处理程序和中间件行为，可以对结算方客户端进行打桩（stub）。
+
+```typescript
+// server.test.ts
+import { x402ResourceServer } from "@x402/express";
+import { ExactEvmScheme } from "@x402/evm/exact/server";
+
+// Stub facilitator: accepts any signature, returns a fake settlement.
+const stubFacilitatorClient = {
+  verify: async () => ({ isValid: true, payer: "0xMockPayer" }),
+  settle: async () => ({
+    success: true,
+    txHash: "0xMOCK000000000000000000000000000000000000000000000000000000000001",
+    networkId: "eip155:988",
+  }),
+};
+
+export const testResourceServer = new x402ResourceServer(stubFacilitatorClient as any)
+  .register("eip155:988", new ExactEvmScheme());
+```
+
+针对该桩运行单元测试以验证：
+
+- 402 响应包含正确的 `PAYMENT-REQUIRED` 负载。
+- 带有有效 `PAYMENT-SIGNATURE` 标头的请求能够到达处理程序。
+- 缺失或格式错误标头的请求在处理程序运行前就被拒绝。
+
+当你准备好执行真实结算时，切换回 `HTTPFacilitatorClient` 并在主网上使用小额金额运行。
+
+:::warning
+打桩结算仅验证中间件行为。它无法证明你的路由处理程序在真实网络延迟或并发支付下是幂等的。在发布之前，始终要用小额金额在真实主网上完成测试。
+:::
+
+## 进阶：生命周期钩子
+
+x402 提供钩子，可在流程的关键节点拦截并自定义支付处理。例如，服务端可以在验证之前运行逻辑（如检查 API 密钥或订阅者状态），从而为已授权的请求绕过支付，而客户端可以在签名前强制实施支出限制。
+
+完整的钩子参考和示例，请参阅 [x402 生命周期钩子](https://x402.semanticpay.io/docs/hooks)。
+
+## 推荐的后续内容
+
+- [**x402 概念**](/en/explanation/x402) — 了解协议及其适用场景。
+- [**ERC-3009**](/en/explanation/erc-3009) — 回顾 x402 使用的结算标准。
+- [**通过 MCP 服务器付费**](/en/how-to/pay-with-mcp) — 将此 API 封装为 MCP 工具，以便 AI 客户端可以通过提示词调用它。

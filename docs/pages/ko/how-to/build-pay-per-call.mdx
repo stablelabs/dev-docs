@@ -1,0 +1,332 @@
+---
+source_path: how-to/build-pay-per-call.mdx
+source_sha: c51728a92a4f9ff299c86445d2b6b0f31cbe5d8c
+title: "유료 호출 API 구축하기"
+description: "Stable에서 x402를 사용해 요청별 USDT0 결제로 HTTP 엔드포인트를 수익화하세요. 서버 설정, 클라이언트 통합, 지출 제어를 다룹니다."
+diataxis: "how-to"
+---
+
+# 유료 호출 API 구축하기
+
+이 가이드는 x402로 API 엔드포인트를 수익화하는 과정을 안내합니다. 서버는 결제 핸들러를 추가하고, 클라이언트는 요청마다 비용을 지불하며, 정산은 HTTP 라이프사이클 내에서 이루어집니다.
+
+:::note
+**개념:** x402 프로토콜과 Stable에 적합한 이유는 [x402](/en/explanation/x402)를 참고하세요. 상위 수준의 사용 사례 모델은 [유료 호출 API](/en/reference/pay-per-call)를 참고하세요.
+:::
+
+:::note
+Semantic 퍼실리테이터는 현재 메인넷에서만 작동합니다. 이 가이드의 예제는 Stable 메인넷을 사용합니다. 테스트 시에는 소액만 사용하세요.
+:::
+
+## 무엇을 구축하는가
+
+서버가 `402 Payment Required`로 응답하고, 클라이언트가 요청마다 결제하며, 퍼실리테이터가 HTTP 라이프사이클 내에서 USDT0를 온체인으로 정산하는 유료 HTTP API입니다.
+
+### 데모
+
+```text
+step 1. Client: GET /weather (no payment)
+        Server: 402 Payment Required
+                PAYMENT-REQUIRED: { amount: "1000", asset: USDT0, network: eip155:988 }
+
+step 2. Client signs ERC-3009 authorization
+
+step 3. Client: GET /weather + PAYMENT-SIGNATURE header
+        Server: forwards to facilitator → transferWithAuthorization settles on-chain
+                (~700ms block confirmation)
+        Server: 200 OK { weather: "sunny", temperature: 70 }
+                PAYMENT-SETTLE-RESPONSE: { txHash: "0x8f3a...", paid: "0.001 USDT0" }
+
+step 4. Verify settlement on Stablescan
+        https://stablescan.xyz/tx/0x8f3a...
+```
+
+## 개요
+
+**판매자 (서버):**
+
+```typescript
+// --- Server ---
+app.use(paymentMiddleware({
+  "GET /weather": {
+    price: { amount: "1000", asset: USDT0 },
+    payTo: sellerAddress,
+  },
+  "POST /inference": {
+    price: { amount: "50000", asset: USDT0 },
+    payTo: sellerAddress,
+  },
+}, resourceServer));
+
+// Routes not listed in the config are not gated.
+```
+
+**구매자 (클라이언트):**
+
+```typescript
+// --- Client ---
+account = new WalletAccountEvm(seedPhrase, { provider: RPC });
+client = new x402Client();
+fetchWithPayment = wrapFetchWithPayment(fetch, client);
+
+weatherResponse = fetchWithPayment("https://api.example.com/weather");
+inferenceResponse = fetchWithPayment("https://api.example.com/inference", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ prompt: "Hello" }),
+});
+
+// For each paid request:
+// 1. Initial request returns 402 with PAYMENT-REQUIRED header
+// 2. Client signs ERC-3009 authorization with wallet
+// 3. Client retries with PAYMENT-SIGNATURE header
+// 4. Facilitator settles on-chain, server returns the response
+```
+
+## 판매자: 유료 엔드포인트 설정하기
+
+판매자는 어떤 라우트가 결제를 요구하는지 정의하기 위해 x402 미들웨어를 추가합니다. 결제 없이 요청이 도착하면, 미들웨어는 `402 Payment Required`와 결제 조건으로 응답합니다. 유효한 결제 헤더가 있으면, 미들웨어는 이를 퍼실리테이터로 전달하고 퍼실리테이터가 서명을 검증한 뒤 결제를 온체인으로 정산합니다. 판매자는 가격과 수령 주소만 구성하면 되고, 검증과 정산은 퍼실리테이터가 처리합니다.
+
+```bash
+npm install express @x402/express @x402/evm @x402/core
+```
+
+### 가격 책정
+
+각 라우트는 결제 금액을 USDT0 기본 단위(소수점 6자리), 네트워크, 자금을 수령할 주소로 지정합니다. 예를 들어 `"1000"`은 `$0.001`이고 `"50000"`은 `$0.05`입니다.
+
+```typescript
+price: {
+  amount: "1000",                                      // base units (6 decimals)
+  asset: USDT0_STABLE,                                 // USDT0 contract address
+  extra: { name: "USDT0", version: "1", decimals: 6 }, // EIP-712 domain info
+}
+```
+
+`extra` 필드(`name`, `version`, `decimals`)는 구매자 클라이언트가 EIP-712 서명을 구성하는 데 사용되며, 온체인 USDT0 컨트랙트와 일치해야 합니다.
+
+### 라우트 구성
+
+라우트는 `METHOD /path` 형식으로 매핑됩니다. 각 라우트는 허용되는 결제 스킴, 네트워크, 가격, 자금을 수령할 주소(`payTo`)를 지정합니다. `description`과 `mimeType` 필드는 구매자와 AI 에이전트가 엔드포인트가 제공하는 것을 발견하는 데 도움이 됩니다. 구성에 나열되지 않은 라우트는 게이트되지 않으며 일반 Express 라우트처럼 동작합니다.
+
+```typescript
+// server.ts
+import express from "express";
+import { paymentMiddleware, x402ResourceServer } from "@x402/express";
+import { ExactEvmScheme } from "@x402/evm/exact/server";
+import { HTTPFacilitatorClient } from "@x402/core/server";
+
+const PAY_TO = process.env.PAY_TO_ADDRESS as `0x${string}`;
+const FACILITATOR_URL = "https://x402.semanticpay.io/";
+const STABLE_NETWORK = "eip155:988"; // Stable Mainnet CAIP-2 ID
+const USDT0_STABLE = "0x779Ded0c9e1022225f8E0630b35a9b54bE713736";
+
+const facilitatorClient = new HTTPFacilitatorClient({ url: FACILITATOR_URL });
+const resourceServer = new x402ResourceServer(facilitatorClient)
+  .register(STABLE_NETWORK, new ExactEvmScheme());
+
+const app = express();
+
+app.use(
+  paymentMiddleware(
+    {
+      // Example 1: Configure a paid GET route
+      "GET /weather": {
+        accepts: [
+          {
+            scheme: "exact",
+            network: STABLE_NETWORK,
+            price: {
+              amount: "1000", // $0.001
+              asset: USDT0_STABLE,
+              extra: { name: "USDT0", version: "1", decimals: 6 },
+            },
+            payTo: PAY_TO,
+          },
+        ],
+        description: "Weather data",
+        mimeType: "application/json",
+      },
+      // Example 2: Configure a paid POST route
+      "POST /inference": {
+        accepts: [
+          {
+            scheme: "exact",
+            network: STABLE_NETWORK,
+            price: {
+              amount: "50000", // $0.05
+              asset: USDT0_STABLE,
+              extra: { name: "USDT0", version: "1", decimals: 6 },
+            },
+            payTo: PAY_TO,
+          },
+        ],
+        description: "AI inference endpoint",
+        mimeType: "application/json",
+      },
+    },
+    resourceServer,
+  ),
+);
+
+app.get("/weather", (req, res) => {
+  res.json({ weather: "sunny", temperature: 70 });
+});
+
+app.post("/inference", (req, res) => {
+  const { prompt } = req.body;
+  res.json({ result: `Inference result for: ${prompt}` });
+});
+
+// Not listed in the config, so no payment required.
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", payTo: PAY_TO });
+});
+
+const PORT = process.env.PORT || 4021;
+app.listen(PORT, () => {
+  console.log(`Server listening at http://localhost:${PORT}`);
+  console.log(`GET  /health    - free`);
+  console.log(`GET  /weather   - $0.001 per request`);
+  console.log(`POST /inference - $0.05 per request`);
+});
+```
+
+:::note
+x402는 Hono(`@x402/hono`)와 Next.js(`@x402/next`)용 미들웨어도 제공합니다. 패턴은 동일합니다: 퍼실리테이터 클라이언트를 생성하고, EVM 스킴을 등록하고, 미들웨어를 적용합니다.
+:::
+
+## 구매자: 유료 요청하기
+
+구매자는 수동 결제 흐름을 거치지 않고도 유료 엔드포인트에 접근합니다. 구매자는 가스비를 지불하지 않습니다. 퍼실리테이터가 온체인으로 정산하며, 구매자는 결제 요구사항에 지정된 정확한 금액만 지불합니다.
+
+```bash
+npm install @x402/fetch @x402/evm @tetherto/wdk-wallet-evm
+```
+
+### 지갑 생성 및 잔액 확인
+
+```typescript
+// client.ts
+import WalletManagerEvm from "@tetherto/wdk-wallet-evm";
+
+const account = await new WalletManagerEvm(process.env.SEED_PHRASE!, {
+  provider: "https://rpc.stable.xyz",
+}).getAccount(0);
+
+console.log("Buyer address:", account.address);
+
+// USDT0 uses 6 decimals. A balance of 1000000 equals 1.00 USDT0.
+const USDT0_STABLE = "0x779Ded0c9e1022225f8E0630b35a9b54bE713736";
+const balance = await account.getTokenBalance(USDT0_STABLE);
+console.log("USDT0 balance:", Number(balance) / 1e6, "USDT0");
+```
+
+### x402에 연결하고 유료 요청하기
+
+`WalletAccountEvm`은 x402가 기대하는 서명자 인터페이스를 충족하므로, x402 클라이언트의 서명자로 직접 등록할 수 있습니다. 등록되면 x402 지원 클라이언트를 통해 전송된 요청은 402 결제 흐름을 자동으로 처리합니다.
+
+```typescript
+import { x402Client, wrapFetchWithPayment } from "@x402/fetch";
+import { registerExactEvmScheme } from "@x402/evm/exact/client";
+
+const client = new x402Client();
+registerExactEvmScheme(client, { signer: account });
+const fetchWithPayment = wrapFetchWithPayment(fetch, client);
+
+const response = await fetchWithPayment("http://localhost:4021/weather");
+const data = await response.json();
+console.log("Response:", data);
+```
+
+내부적으로 `fetchWithPayment`는 402 응답을 가로채고, 결제 요구사항(금액, 토큰, 네트워크, 수령인)을 파싱하며, WDK 지갑으로 ERC-3009 `transferWithAuthorization`에 서명하고, `PAYMENT-SIGNATURE` 헤더와 함께 요청을 재시도합니다.
+
+:::note
+Axios를 선호한다면, 동일한 자동 결제 처리를 위해 `@x402/axios`와 `wrapAxiosWithPayment`를 사용하세요.
+:::
+
+## 결제 흐름 테스트하기
+
+서버를 시작하고 유료 및 무료 라우트를 모두 검증합니다.
+
+:::warning
+이 테스트 흐름은 Stable 메인넷에서 실행됩니다. 성공한 각 유료 요청은 호스팅된 퍼실리테이터를 통해 실제 USDT0 결제를 정산합니다. 전용 지갑과 소액만 사용하세요.
+:::
+
+### 1. 402 응답 확인하기
+
+```bash
+curl -i http://localhost:4021/weather
+```
+
+응답은 가격, 자산, 네트워크를 포함하는 `PAYMENT-REQUIRED` 헤더와 함께 `402 Payment Required`여야 합니다.
+
+### 2. 클라이언트 실행하기
+
+```bash
+npx tsx client.ts
+```
+
+클라이언트는 전체 주기를 처리합니다: 402를 받고, 권한을 서명하고, 결제와 함께 재시도하고, 응답을 출력합니다.
+
+### 3. 영수증 읽기
+
+성공한 유료 요청 후, 구매자는 서버 응답에서 `PAYMENT-SETTLE-RESPONSE` 헤더를 읽고 정산 영수증을 파싱할 수 있습니다.
+
+```typescript
+// (continued) client.ts
+import { x402HTTPClient } from "@x402/fetch";
+
+const httpClient = new x402HTTPClient(client);
+const receipt = httpClient.getPaymentSettleResponse(
+  (name) => response.headers.get(name),
+);
+console.log("Payment receipt:", JSON.stringify(receipt, null, 2));
+```
+
+## 라이브 퍼실리테이터 없이 테스트하기
+
+Semantic 퍼실리테이터는 메인넷 전용이므로, 현재 서버를 테스트넷 퍼실리테이터로 연결할 수 없습니다. 실제 결제를 정산하지 않고 서버 로직, 라우트 핸들러, 미들웨어 동작을 반복 개발하려면, 퍼실리테이터 클라이언트를 스텁으로 대체하세요.
+
+```typescript
+// server.test.ts
+import { x402ResourceServer } from "@x402/express";
+import { ExactEvmScheme } from "@x402/evm/exact/server";
+
+// Stub facilitator: accepts any signature, returns a fake settlement.
+const stubFacilitatorClient = {
+  verify: async () => ({ isValid: true, payer: "0xMockPayer" }),
+  settle: async () => ({
+    success: true,
+    txHash: "0xMOCK000000000000000000000000000000000000000000000000000000000001",
+    networkId: "eip155:988",
+  }),
+};
+
+export const testResourceServer = new x402ResourceServer(stubFacilitatorClient as any)
+  .register("eip155:988", new ExactEvmScheme());
+```
+
+스텁에 대해 유닛 테스트를 실행하여 다음을 검증합니다:
+
+- 402 응답에 올바른 `PAYMENT-REQUIRED` 페이로드가 포함됩니다.
+- 유효한 `PAYMENT-SIGNATURE` 헤더가 있는 요청이 핸들러에 도달합니다.
+- 헤더가 누락되었거나 형식이 잘못된 요청은 핸들러 실행 전에 거부됩니다.
+
+실제 정산을 실행할 준비가 되면, `HTTPFacilitatorClient`로 다시 전환하고 소액으로 메인넷에서 실행하세요.
+
+:::warning
+스텁 정산은 미들웨어 동작만 검증합니다. 실제 네트워크 지연이나 동시 결제 상황에서 라우트 핸들러가 멱등성을 갖는지는 증명하지 않습니다. 출시 전에 항상 소액으로 라이브 메인넷 테스트를 마무리하세요.
+:::
+
+## 고급: 라이프사이클 훅
+
+x402는 흐름의 주요 지점에서 결제 처리를 가로채고 커스터마이징할 수 있는 훅을 제공합니다. 예를 들어, 서버는 검증 전에 로직을 실행하여(예: API 키 또는 구독자 상태 확인) 승인된 요청에 대해 결제를 우회할 수 있고, 클라이언트는 서명 전에 지출 한도를 적용할 수 있습니다.
+
+전체 훅 레퍼런스와 예제는 [x402 라이프사이클 훅](https://x402.semanticpay.io/docs/hooks)을 참고하세요.
+
+## 다음 추천
+
+- [**x402 개념**](/en/explanation/x402) — 프로토콜과 그것이 적용되는 위치를 이해하세요.
+- [**ERC-3009**](/en/explanation/erc-3009) — x402가 사용하는 정산 표준을 검토하세요.
+- [**MCP 서버로 결제하기**](/en/how-to/pay-with-mcp) — AI 클라이언트가 프롬프트를 통해 호출할 수 있도록 이 API를 MCP 도구로 래핑하세요.

@@ -1,0 +1,215 @@
+---
+source_path: tutorial/quick-start.mdx
+source_sha: ac60005c171579369156d04b03a48434c2e6bbba
+title: 在 Stable 上部署你的第一个智能合约
+description: 了解如何配置开发环境、使用 USDT0 为钱包充值，并将合约部署到 Stable 测试网。
+---
+
+# 在 Stable 上部署你的第一个智能合约
+
+在本教程中，你将向 Stable 测试网部署一个简单的智能合约，并从链上读取其状态。在此过程中，你将了解 Stable 网络的配置方式、USDT0 作为 gas 代币的工作原理，以及如何将标准 EVM 工具指向 Stable。
+
+本教程假设你具备基本的 Solidity 知识和 Unix 终端使用经验，无需任何 Stable 使用经验。
+
+## 前提条件
+
+- 已安装 [Foundry](https://book.getfoundry.sh/getting-started/installation)（`forge`、`cast` 和 `anvil` 在 PATH 中可用）
+- 一个你拥有私钥的钱包（全新的测试密钥即可——切勿使用持有真实资金的密钥进行测试）
+- 能够连接到测试网 RPC 和水龙头的网络
+
+---
+
+## 1. 创建新的 Foundry 项目
+
+运行以下命令创建一个新项目：
+
+```bash
+forge init stable-hello && cd stable-hello
+```
+
+Foundry 会在 `src/` 目录中创建一个示例 `Counter.sol` 合约及对应的测试文件。你将直接部署该合约——目标是将真实内容上链，而不是编写新的 Solidity 代码。
+
+## 2. 查看待部署的合约
+
+打开 [src/Counter.sol](src/Counter.sol)，它包含两个函数：
+
+```solidity
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.13;
+
+contract Counter {
+    uint256 public number;
+
+    function setNumber(uint256 newNumber) public {
+        number = newNumber;
+    }
+
+    function increment() public {
+        number++;
+    }
+}
+```
+
+`number` 是存储在链上的公共状态变量。`increment()` 和 `setNumber()` 是修改它的两种方式。读取 `number` 不消耗 gas——这是一次免费的 `eth_call`。
+
+## 3. 配置 Stable 测试网
+
+在项目根目录创建名为 [.env](.env) 的文件以存储网络凭据：
+
+```bash
+touch .env
+```
+
+添加以下内容，将占位符替换为你的实际私钥：
+
+```bash
+PRIVATE_KEY=0xYOUR_PRIVATE_KEY_HERE
+```
+
+接下来，打开 [foundry.toml](foundry.toml)，将 Stable 测试网添加为命名网络配置。在现有 `[profile.default]` 部分下方追加以下内容：
+
+```toml
+[rpc_endpoints]
+stable_testnet = "https://rpc.testnet.stable.xyz"
+```
+
+这告诉 Foundry 在使用 `stable_testnet` 时将交易发送到哪里。Stable 兼容 EVM，无需其他配置。
+
+---
+
+**检查点：** 确认 RPC 端点可达：
+
+```bash
+cast chain-id --rpc-url https://rpc.testnet.stable.xyz
+```
+
+预期输出：
+
+```
+2201
+```
+
+Chain ID `2201` 是 Stable 测试网。如果看到此数字，说明你的机器可以访问该网络。
+
+---
+
+## 4. 获取钱包地址
+
+从私钥派生部署者地址，以便知道要充值哪个账户：
+
+```bash
+source .env
+cast wallet address $PRIVATE_KEY
+```
+
+复制打印出的地址，下一步需要用到它。
+
+## 5. 为钱包充值 USDT0
+
+Stable 使用 **USDT0** 作为 gas 代币——你用于支付商品和服务的同一资产，直接用于支付计算费用。没有其他原生代币。
+
+访问测试网水龙头并申请资金：
+
+```
+https://faucet.stable.xyz
+```
+
+粘贴上一步的地址。水龙头会向你的钱包发送 1 USDT0，足够部署和与多个合约交互。
+
+---
+
+**检查点：** 确认余额已到账：
+
+```bash
+cast balance $PRIVATE_KEY --rpc-url https://rpc.testnet.stable.xyz
+```
+
+你应该看到一个非零值。如果余额仍为 `0`，等待几秒后重试——Stable 大约每 0.7 秒产生一个新区块，资金到账很快。
+
+---
+
+## 6. 部署合约
+
+使用 `forge create` 进行部署：
+
+```bash
+source .env
+forge create src/Counter.sol:Counter \
+  --rpc-url https://rpc.testnet.stable.xyz \
+  --private-key $PRIVATE_KEY \
+  --broadcast
+```
+
+Foundry 会编译合约、广播部署交易并等待回执。由于出块时间约为 0.7 秒，这只需片刻。
+
+---
+
+**检查点：** 输出应如下所示：
+
+```
+[⠒] Compiling...
+No files changed, compilation skipped
+Deployer: 0xYourAddress
+Deployed to: 0xSomeContractAddress
+Transaction hash: 0xSomeTxHash
+```
+
+复制 `Deployed to` 地址，接下来两步需要用到它。
+
+---
+
+## 7. 调用写入函数
+
+现在调用 `setNumber()` 将一个值存储到链上：
+
+```bash
+cast send 0xSomeContractAddress "setNumber(uint256)" 42 \
+  --rpc-url https://rpc.testnet.stable.xyz \
+  --private-key $PRIVATE_KEY
+```
+
+这会发送一笔交易。你需要支付少量 USDT0 费用来完成状态更改。值 `42` 现已存储在 Stable 测试网的 `number` 变量中。
+
+## 8. 从链上读取状态
+
+调用 `number()` 读取该值。这是免费读取——无需交易，无需 gas：
+
+```bash
+cast call 0xSomeContractAddress "number()(uint256)" \
+  --rpc-url https://rpc.testnet.stable.xyz
+```
+
+预期输出：
+
+```
+42
+```
+
+你已成功向 Stable 测试网写入并读取数据。部署、写入、读取的完整流程是 EVM 开发的核心循环，在这里与任何其他 EVM 链完全相同。
+
+## 9. 在 Stablescan 上查看你的部署
+
+打开 Stable 测试网区块浏览器并粘贴你的合约地址：
+
+```
+https://testnet.stablescan.xyz
+```
+
+你将看到部署交易和你发起的 `setNumber` 调用。Stablescan 是检查链上状态、验证合约源代码以及查阅 Stable 上交易历史的权威工具。
+
+---
+
+## 你学到了什么
+
+你部署了一个合约、发送了一笔状态更改交易，并读取了链上状态——全部在 Stable 测试网上完成。现在你知道如何：
+
+- 配置 Foundry（或任何 EVM 工具链）通过标准 RPC 端点指向 Stable
+- 使用 USDT0 水龙头为钱包充值
+- 使用 USDT0 作为 gas 代币支付交易费用
+- 在 Stablescan 上查看你的工作
+
+**后续步骤：**
+
+- [JSON-RPC API](/cn/developers/core-mechanics/json-rpc-api) — 查看 Stable 支持哪些 `eth_` 方法及与以太坊主网的差异
+- [Gas 与定价](/cn/developers/core-mechanics/gas-pricing) — 了解 USDT0 计价的手续费计算方式
+- [测试网信息](/cn/developers/testnet/testnet-information) — 完整的网络参数、合约地址和跨链桥详情

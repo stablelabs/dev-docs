@@ -1,0 +1,251 @@
+---
+source_path: how-to/upgrade-node.mdx
+source_sha: e18a08860589cf17c4cc3abd3c3bc4df00630efb
+title: Upgrade 가이드
+description: "Stable 네트워크 버전 변경에 따른 노드 업그레이드 절차, 유형 및 롤백 전략."
+---
+
+이 가이드는 upgrade 절차 및 rollback을 포함한 Stable 노드의 upgrade 과정을 다룹니다.
+
+> 전체 버전 히스토리 및 upgrade 세부 정보는 [Version History](#TODO)를 참조하세요.
+
+## Upgrade 방법
+
+### Soft Upgrades (Non-Breaking)
+- 언제든지 수행 가능
+- 이전 버전과 호환 가능
+
+### Hard Upgrades (Breaking)
+- 특정 높이에서 upgrade 필요
+- 이전 버전과 호환 불가능
+
+### Emergency Upgrades
+- 중요한 보안 수정
+- 즉각적인 조치 필요
+- 체인 중단이 필요할 수 있음
+
+## 표준 Upgrade 절차
+
+### 1단계: 준비
+
+```bash
+# Check current version
+stabled version --long
+
+# Backup critical data
+cp -r ~/.stabled/config ~/stable-backup-$(date +%Y%m%d)/
+
+# For validators only: Backup validator state
+cp ~/.stabled/data/priv_validator_state.json ~/stable-backup-$(date +%Y%m%d)/
+
+# Check disk space (need 2x current data size)
+df -h ~/.stabled
+```
+
+### 2단계: 새 바이너리 다운로드
+
+```bash
+# For v1.2.0-rc1 upgrade (January 22, 2026)
+# Choose your architecture:
+
+# Linux AMD64
+BINARY_URL="https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/binary/stabled-1.2.0-rc1-linux-amd64-testnet.tar.gz"
+
+# OR Linux ARM64
+BINARY_URL="https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/binary/stabled-1.2.0-rc1-linux-arm64-testnet.tar.gz"
+
+# Download new binary
+wget $BINARY_URL
+
+# Extract to temporary location
+tar -xvzf stabled-1.2.0-rc1-linux-*.tar.gz -C /tmp/
+
+# Verify new version
+/tmp/stabled version --long
+```
+
+### 3단계: Upgrade 수행
+
+#### Soft Upgrades의 경우
+
+```bash
+# Stop node
+sudo systemctl stop ${SERVICE_NAME}
+
+# Backup current binary
+sudo mv /usr/bin/stabled /usr/bin/stabled.backup
+
+# Install new binary
+sudo mv /tmp/stabled /usr/bin/stabled
+sudo chmod +x /usr/bin/stabled
+
+# Verify installation
+stabled version --long
+
+# Start node
+sudo systemctl start ${SERVICE_NAME}
+
+# Monitor logs
+sudo journalctl -u ${SERVICE_NAME} -f
+```
+
+#### Hard Upgrades
+
+```bash
+# Monitor for upgrade height
+while true; do
+    HEIGHT=$(curl -s localhost:26657/status | jq -r '.result.sync_info.latest_block_height')
+    echo "Current height: $HEIGHT"
+    if [ $HEIGHT -ge $UPGRADE_HEIGHT ]; then
+        break
+    fi
+    sleep 10
+done
+
+# Node will halt automatically at upgrade height
+# Wait for halt message in logs
+sudo journalctl -u ${SERVICE_NAME} -f | grep "UPGRADE"
+
+# Once halted, perform upgrade
+sudo systemctl stop ${SERVICE_NAME}
+sudo mv /usr/bin/stabled /usr/bin/stabled.backup
+sudo mv /tmp/stabled /usr/bin/stabled
+
+# Start with new binary
+sudo systemctl start ${SERVICE_NAME}
+```
+
+### 4단계: Upgrade 후 검증
+
+```bash
+# Check node status
+curl -s localhost:26657/status | jq '.result'
+
+# Verify version
+curl -s localhost:26657/status | jq '.result.node_info.version'
+
+# Check peers
+curl -s localhost:26657/net_info | jq '.result.n_peers'
+
+# Monitor sync status
+watch -n 2 'curl -s localhost:26657/status | jq ".result.sync_info"'
+
+# Check for errors
+sudo journalctl -u ${SERVICE_NAME} --since "10 minutes ago" | grep -i error
+```
+
+## Cosmovisor 설정 (자동 Upgrades)
+
+Cosmovisor는 조율된 upgrade의 upgrade 프로세스를 자동화합니다.
+
+### 설치
+
+```bash
+# Install cosmovisor
+go install cosmossdk.io/tools/cosmovisor/cmd/cosmovisor@latest
+
+# Or download binary
+wget https://github.com/cosmos/cosmos-sdk/releases/download/cosmovisor%2Fv1.7.0/cosmovisor-v1.7.0-linux-amd64.tar.gz
+tar -xzf cosmovisor-v1.7.0-linux-amd64.tar.gz
+sudo mv cosmovisor /usr/bin/
+```
+
+### 구성
+
+```bash
+# Set environment variables
+cat >> ~/.bashrc <<EOF
+export DAEMON_NAME=stabled
+export DAEMON_HOME=$HOME/.stabled
+export DAEMON_RESTART_AFTER_UPGRADE=true
+export DAEMON_ALLOW_DOWNLOAD_BINARIES=true
+export UNSAFE_SKIP_BACKUP=false
+EOF
+
+source ~/.bashrc
+
+# Create directory structure
+mkdir -p $DAEMON_HOME/cosmovisor/genesis/bin
+mkdir -p $DAEMON_HOME/cosmovisor/upgrades
+
+# Copy current binary to genesis
+cp /usr/bin/stabled $DAEMON_HOME/cosmovisor/genesis/bin/
+
+# Create systemd service
+sudo tee /etc/systemd/system/cosmovisor.service > /dev/null <<EOF
+[Unit]
+Description=Cosmovisor daemon
+After=network-online.target
+
+[Service]
+Environment="DAEMON_NAME=stabled"
+Environment="DAEMON_HOME=$HOME/.stabled"
+Environment="DAEMON_RESTART_AFTER_UPGRADE=true"
+Environment="DAEMON_ALLOW_DOWNLOAD_BINARIES=true"
+User=$USER
+ExecStart=/usr/bin/cosmovisor run start --chain-id stabletestnet_2201-1
+Restart=always
+RestartSec=3
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Enable and start
+sudo systemctl daemon-reload
+sudo systemctl enable cosmovisor
+sudo systemctl start cosmovisor
+```
+
+### Cosmovisor로 Upgrade
+
+```bash
+# For each upgrade, create directory (use the upgrade name from the proposal)
+mkdir -p $DAEMON_HOME/cosmovisor/upgrades/v1.2.0-rc1/bin
+
+# Place new binary
+cp /path/to/new/stabled $DAEMON_HOME/cosmovisor/upgrades/v1.2.0-rc1/bin/
+
+# Cosmovisor will automatically switch at upgrade height
+```
+
+## Rollback
+
+### 데이터 Rollback
+
+```bash
+# Stop node
+sudo systemctl stop ${SERVICE_NAME}
+
+# Backup current state (in case needed)
+cp -r ~/.stabled/data ~/.stabled/data.failed
+
+# Restore from snapshot before upgrade
+cd ~/.stabled
+rm -rf data/
+tar -I lz4 -xf ~/snapshots/pre-upgrade-snapshot.tar.lz4
+
+# Restore previous binary
+sudo mv /usr/bin/stabled.backup /usr/bin/stabled
+
+# Start node
+sudo systemctl start ${SERVICE_NAME}
+```
+
+## 긴급 상황 발생 시
+
+```bash
+# If chain halts unexpectedly
+# 1. Check Discord for instructions
+# 2. Export state at last known good height
+stabled export --height <last_good_height> > export.json
+
+# 3. Wait for coordinated restart instructions
+```
+
+## 다음 단계
+
+- [Version History](#TODO) - 전체 upgrade 히스토리 및 릴리스 노트
+- upgrade 후 [노드 모니터링](./monitoring)
+- 일반적인 문제는 [Troubleshooting](./troubleshooting) 확인

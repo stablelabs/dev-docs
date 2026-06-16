@@ -1,0 +1,49 @@
+---
+source_path: reference/eip-7702-api.mdx
+source_sha: ed9c7f3d8305826eb401d45116a49d3adf2cd3f6
+title: "EIP-7702"
+description: "Stable 对 EIP-7702 的支持。EOA 可以将其账户代码设置为现有的智能合约，从而实现批量支付、消费限额和会话密钥。"
+diataxis: "reference"
+---
+
+# EIP-7702
+
+Stable 支持 **EIP-7702**，它允许 EOA 将其账户代码设置为现有的智能合约。EOA 在执行委托方逻辑的同时保留其原始地址和私钥。
+
+:::note
+**概念：** 关于 EIP-7702 在 Stable 上的作用、委托模型以及安全注意事项，请参阅 [EIP-7702](/en/explanation/eip-7702)。完整规范请参阅 [EIP-7702 规范](https://eips.ethereum.org/EIPS/eip-7702)。
+:::
+
+## 交易格式
+
+EIP-7702 使用交易类型 `0x04`，并带有 `authorizationList` 字段。每个授权都指定一个委托合约，EOA 在该交易中执行其代码。
+
+```typescript
+{
+  type: 4,
+  to: eoa.address,
+  data: delegateCallData,
+  authorizationList: [signedAuthorization],
+  maxPriorityFeePerGas: 0n, // always 0 on Stable
+  // ... standard EIP-1559 fields
+}
+```
+
+该授权包含：
+
+- `chainId`：必须与目标链匹配。
+- `address`：委托合约地址。
+- `nonce`：授权 nonce（与交易 nonce 分开）。
+
+支持 EIP-7702 的钱包和库会自动处理授权格式。
+
+## 工具链
+
+- **ethers.js**：`wallet.signAuthorization({ chainId, address, nonce })` 生成已签名的授权，用于包含在 `authorizationList` 中。
+- **viem**：使用带有 walletClient 的 `signAuthorization`，然后将结果传递给 `sendTransaction`。
+- **Hardhat / Foundry**：当你的工具链版本支持 Pectra 硬分叉时，标准的 EIP-7702 交易格式即可使用。
+
+## 后续推荐
+
+- [**EIP-7702 概念**](/en/explanation/eip-7702) — 了解委托模型及何时使用它。
+- [**账户抽象（EIP-7702）**](/en/reference/eip-7702-api) — 逐步实现批量支付、消费限额和会话密钥。

@@ -1,0 +1,64 @@
+---
+source_path: reference/agentic-facilitators.mdx
+source_sha: 04ed6e6dfcf00c9a5b1d3bb17c3cd9db40f7e5b2
+title: "结算服务商"
+description: "在 Stable 上验证并提交 x402 智能体支付的结算服务，让你无需自行运行基础设施。"
+diataxis: "reference"
+---
+
+# 结算服务商
+
+结算服务商（facilitator）负责验证已签名的 x402 支付，并提交在 Stable 上以 USDT0 进行结算的链上调用。使用托管的结算服务商意味着你无需运行结算基础设施或管理 gas 代币。关于支付通道层面的背景信息，请参阅 [智能体结算](/en/explanation/agent-settlement)。
+
+## 总览表
+
+| **服务商** | **类别** | **文档 / 快速开始** | **说明** |
+| :--- | :--- | :--- | :--- |
+| [**Semantic Pay**](https://x402.semanticpay.io) | x402 结算服务商 | [https://docs.semanticpay.io/supported-chains#stable](https://docs.semanticpay.io/supported-chains#stable) | 面向 Stable 的公开 x402 结算服务商；通过 ERC-3009 验证并结算 USDT0 支付 |
+| [**Heurist**](https://facilitator.heurist.xyz) | x402 结算服务商 | [https://docs.heurist.ai/x402-products/facilitator#supported-networks](https://docs.heurist.ai/x402-products/facilitator#supported-networks) | 支持 Stable 的多链 x402 结算服务商；具备高吞吐量验证与结算，并提供 OFAC 筛查 |
+
+## Semantic Pay
+
+面向 AI 智能体的支付基础设施：无需信任、点对点、无需许可。Semantic Pay 作为兼容 x402 的支付结算服务商运行于 Stable 之上，通过 ERC-3009（`transferWithAuthorization`）结算 USDT0 支付。智能体的钱包中无需单独的 gas 代币。
+
+在 Stable 上集成 x402 的开发者只需将其中间件指向 `https://x402.semanticpay.io`，无需任何自定义结算基础设施。
+
+**功能特性**
+
+- 通过 USDT0 进行支付负载验证（`/verify`）和链上结算（`/settle`）
+- 使用 ERC-3009 `transferWithAuthorization` 实现无 gas 转账
+- 用于智能体监管的支出限额、审批流程和紧急停止开关
+- 端到端可追溯性，提供从意图到结算的完整审计日志
+- 用于实时支付生命周期更新的事件回调
+
+**结算服务商端点：** `https://x402.semanticpay.io`
+
+**文档：** [https://docs.semanticpay.io/supported-chains#stable](https://docs.semanticpay.io/supported-chains#stable)
+
+## Heurist
+
+Heurist 运营一个支持 Stable 以及 Base、Base Sepolia 和 X Layer 的多链 x402 结算服务商。它面向高频智能体工作负载，吞吐量经过调优，可达到每秒数千次支付验证与结算。
+
+将你的中间件指向 `https://facilitator.heurist.xyz`。开始使用无需 API 密钥。
+
+**功能特性**
+
+- 通过单一端点跨多个网络进行支付验证和链上结算
+- 为高频智能体流量量身定制的吞吐量
+- 对发送方地址自动进行 OFAC 筛查
+- 对验证和结算活动进行实时可观测性监控
+
+**结算服务商端点：** `https://facilitator.heurist.xyz`
+
+**文档：** [https://docs.heurist.ai/x402-products/facilitator#supported-networks](https://docs.heurist.ai/x402-products/facilitator#supported-networks)
+
+## 如何选择
+
+- 使用托管的结算服务商（Semantic Pay 或 Heurist）可快速上手。无需运行基础设施，也无需管理 gas 代币。
+- 根据对你的工作负载最重要的因素来选择：如果你想要 Stable 原生工具，并需要生命周期回调和智能体监管控制，选择 Semantic Pay；如果你需要一个跨越 Stable 及其他 EVM 网络的单一端点，或者 OFAC 筛查是硬性要求，选择 Heurist。
+- 如果你需要对结算策略拥有完全控制权、希望将支付数据保留在自己的环境中，或预期流量足以证明运维开销的合理性，则可自行托管。
+- 目前两家结算服务商都能在 Stable 上结算 x402。同一个 `/settle` 端点也可以作为 MPP 服务器的链上提交目标，因为 MPP 的传输格式仅在客户端 ↔ 资源服务器这一跳上与 x402 不同。请参阅 [在 Stable 上构建 MPP 端点](/en/how-to/build-mpp-endpoint)。
+
+---
+
+已经在 Stable 上集成了智能体支付？请通过 [bizdev@stable.xyz](mailto:bizdev@stable.xyz) 与我们联系。

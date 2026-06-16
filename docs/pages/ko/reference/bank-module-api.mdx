@@ -1,0 +1,306 @@
+---
+source_path: reference/bank-module-api.mdx
+source_sha: 11f910679971e60d245d94af0e500a40af501789
+title: "Bank precompile 참조"
+description: "Bank precompile 참조: ERC-20 메서드, mint/burn 권한 부여, 이벤트 시그니처."
+diataxis: "reference"
+---
+
+# Bank precompile 참조
+
+:::note
+**개념:** bank 모듈이 무엇을 하고 언제 사용하는지에 대해서는 [Bank 모듈](/en/explanation/bank-module)을 참조하세요.
+:::
+
+## 개요
+
+Stable SDK의 `x/bank` 모듈은 기본적인 토큰 관리 기능만 제공합니다.
+어떤 토큰이든 제한 없이 어떤 계정으로도 전송할 수 있지만, 다른 계정에게 토큰 전송을 위임할 수는 없습니다.
+이러한 이유로 `bank` precompiled 컨트랙트는 Stable SDK의 기존 `x/bank` 모듈 위에 추가적인 권한 부여 및 위임 기능을 제공합니다.
+
+## 목차
+
+1. **[개념](#concepts)**
+2. **[구성](#configuration)**
+3. **[메서드](#methods)**
+4. **[이벤트](#events)**
+
+## 개념
+
+이 precompiled 컨트랙트는 ERC-20 표준 메서드를 제공합니다 - 전송을 위한 `transfer`와 `balanceOf`, 위임을 위한 `transferFrom`, `approve`, `allowance` 등이 있습니다. 컨트랙트 주소를 등록하지 않고도 이러한 메서드를 직접 호출할 수 있습니다.
+
+그러나 `mint` 및 `burn` 메서드를 사용하려면 먼저 `x/precompile` 모듈이 컨트랙트 주소를 화이트리스트에 등록해야 합니다.
+
+```go
+func (p *Precompile) mint(
+  ctx sdk.Context,
+  contract *vm.Contract,
+  denom string,
+  method *abi.Method,
+  stateDB vm.StateDB,
+  args []interface{},
+) ([]byte, error) {
+  // ...
+
+  // mint method is only allowed for the registered caller contract
+  if _, err := precompilecommon.CheckPermissions(ctx, p.precompileKeeper, contract.CallerAddress, CallerPermissions); err != nil {
+    return nil, err
+  }
+```
+
+이 추가 검증 과정은 이 precompiled 컨트랙트를 호출하는 토큰 컨트랙트가 권한을 부여받았음을 보장합니다.
+
+`x/precompile` 모듈 화이트리스트에 토큰 컨트랙트 주소와 그 denom을 등록하려면 거버넌스 제안을 제출해야 합니다.
+
+## 구성
+
+컨트랙트 주소와 가스 비용은 미리 정의되어 있습니다.
+
+### 컨트랙트 주소
+
+- STABLE(거버넌스 토큰)의 경우 `0x0000000000000000000000000000000000001003`
+
+## 메서드
+
+### `mint`
+
+요청한 양만큼 새로운 토큰을 발행하여 계정으로 전송합니다.
+발행할 토큰의 양은 0보다 커야 합니다.
+
+토큰이 성공적으로 발행되어 계정으로 전송되면 `PrecompiledBankMint`가 발생합니다.
+
+참고:
+
+- 거버넌스 토큰 발행은 금지되어 있습니다.
+- mint 메서드를 호출하는 호출자 컨트랙트는 x/precompile 모듈에 등록되어 있어야 합니다.
+
+#### 입력
+
+|이름|타입|설명|
+|---|---|---|
+|to|address|발행된 토큰을 받을 주소|
+|amount|uint256|발행할 토큰의 양|
+
+#### 출력
+
+|이름|타입|설명|
+|---|---|---|
+|success|bool|토큰이 성공적으로 발행되어 계정으로 전송되면 true|
+
+### `burn`
+
+계정에서 요청한 양만큼 토큰을 소각합니다.
+소각할 토큰의 양은 0보다 커야 합니다.
+
+토큰이 성공적으로 소각되면 `PrecompiledBankBurn`이 발생합니다.
+
+참고:
+
+- 거버넌스 토큰 소각은 금지되어 있습니다.
+- burn 메서드를 호출하는 호출자 컨트랙트는 x/precompile 모듈에 등록되어 있어야 합니다.
+
+#### 입력
+
+|이름|타입|설명|
+|---|---|---|
+|from|address|토큰을 소각할 주소|
+|amount|uint256|소각할 토큰의 양|
+
+#### 출력
+
+|이름|타입|설명|
+|---|---|---|
+|success|bool|토큰이 성공적으로 소각되면 true|
+
+### `transfer`
+
+송신자로부터 수신자에게 요청한 양만큼 토큰을 전송합니다.
+토큰은 전송 가능하도록 설정되어 있어야 합니다. 전송할 토큰의 양은 0보다 커야 합니다.
+
+토큰이 성공적으로 전송되면 `PrecompiledBankTransfer`가 발생합니다.
+
+#### 입력
+
+|이름|타입|설명|
+|---|---|---|
+|to|address|토큰을 받을 주소|
+|amount|uint256|전송할 토큰의 양|
+
+#### 출력
+
+|이름|타입|설명|
+|---|---|---|
+|success|bool|토큰이 성공적으로 전송되면 true|
+
+### `transferFrom`
+
+권한을 부여받은 spender가 allowance 한도 내에서 소유자로부터 수신자에게 요청한 양만큼 토큰을 전송합니다.
+토큰은 전송 가능하도록 설정되어 있어야 합니다.
+전송할 토큰의 양은 0보다 크고 현재 allowance보다 작거나 같아야 합니다.
+
+토큰이 성공적으로 전송되면 `PrecompiledBankTransfer`가 발생합니다.
+
+#### 입력
+
+|이름|타입|설명|
+|---|---|---|
+|from|address|토큰을 전송할 주소|
+|to|address|토큰을 받을 주소|
+|amount|uint256|전송할 토큰의 양|
+
+#### 출력
+
+|이름|타입|설명|
+|---|---|---|
+|success|bool|토큰이 성공적으로 전송되면 true|
+
+### `multiTransfer`
+
+단일 계정에서 여러 계정으로 토큰을 전송합니다.
+토큰은 전송 가능하도록 설정되어 있어야 합니다.
+각 수신자에게 전송할 토큰의 양은 0보다 커야 합니다.
+
+토큰이 성공적으로 전송되면 각 수신자마다 `PrecompiledBankTransfer`가 발생합니다.
+
+#### 입력
+
+|이름|타입|설명|
+|---|---|---|
+|to|address[]|전송된 토큰을 받을 주소들|
+|amount|uint256[]|각 수신자에게 전송할 토큰의 양|
+
+#### 출력
+
+|이름|타입|설명|
+|---|---|---|
+|success|bool|각 수신자에게 토큰이 성공적으로 전송되면 true|
+
+### `approve`
+
+소유자의 계정에서 토큰을 전송할 수 있도록 spender에게 권한을 부여합니다.
+권한을 부여할 토큰의 양은 0보다 커야 합니다.
+
+권한이 성공적으로 설정되면 `PrecompiledBankApproval`이 발생합니다.
+
+#### 입력
+
+|이름|타입|설명|
+|---|---|---|
+|spender|address|권한을 부여할 주소|
+|value|uint256|권한을 부여할 토큰의 양|
+
+#### 출력
+
+|이름|타입|설명|
+|---|---|---|
+|success|bool|권한이 성공적으로 설정되면 true|
+
+### `revoke`
+
+소유자로부터 토큰을 전송할 수 있는 spender의 권한을 취소합니다.
+
+권한이 성공적으로 취소되면 `PrecompiledBankRevoke`가 발생합니다.
+
+#### 입력
+
+|이름|타입|설명|
+|---|---|---|
+|spender|address|취소할 주소|
+
+#### 출력
+
+|이름|타입|설명|
+|---|---|---|
+|success|bool|권한이 성공적으로 취소되면 true|
+
+### `balanceOf`
+
+계정의 토큰 잔액을 반환합니다.
+
+#### 입력
+
+|이름|타입|설명|
+|---|---|---|
+|account|address|토큰 잔액을 조회할 주소|
+
+#### 출력
+
+|이름|타입|설명|
+|---|---|---|
+|balance|uint256|계정에 있는 토큰의 양|
+
+### `totalSupply`
+
+토큰의 총 공급량을 반환합니다.
+
+#### 입력
+
+없음
+
+#### 출력
+
+|이름|타입|설명|
+|---|---|---|
+|totalSupply|uint256|토큰의 총량|
+
+### `allowance`
+
+spender가 owner로부터 아직 인출할 수 있는 양을 반환합니다.
+
+#### 입력
+
+|이름|타입|설명|
+|---|---|---|
+|owner|address|소유자의 주소|
+|spender|address|spender의 주소|
+
+#### 출력
+
+|이름|타입|설명|
+|---|---|---|
+|amount|uint256|권한이 부여된 토큰의 양|
+
+## 이벤트
+
+이 precompiled 컨트랙트에서 발생하는 모든 이벤트는 `PrecompiledBank` 접두사로 시작합니다.
+모호함을 피하기 위해, 이 precompiled 컨트랙트를 호출하는 토큰 컨트랙트는 동일한 접두사를 가진 이벤트 이름 사용을 피해야 합니다.
+
+### PrecompiledBankMint
+
+|이름|타입|인덱싱됨|설명|
+|---|---|---|---|
+|from|address|Y|토큰을 발행한 주소|
+|to|address|Y|발행된 토큰을 받을 주소|
+|amount|uint256|N|발행된 토큰의 양|
+
+### PrecompiledBankBurn
+
+|이름|타입|인덱싱됨|설명|
+|---|---|---|---|
+|from|address|Y|토큰을 소각한 주소|
+|to|address|Y|이 메서드에서는 사용되지 않음|
+|amount|uint256|N|소각된 토큰의 양|
+
+### PrecompiledBankTransfer
+
+|이름|타입|인덱싱됨|설명|
+|---|---|---|---|
+|from|address|Y|토큰을 전송한 주소|
+|to|address|Y|전송된 토큰을 받을 주소|
+|amount|uint256|N|전송된 토큰의 양|
+
+### PrecompiledBankApproval
+
+|이름|타입|인덱싱됨|설명|
+|---|---|---|---|
+|owner|address|Y|토큰 권한을 부여한 주소|
+|spender|address|Y|권한을 부여할 주소|
+|value|uint256|N|권한이 부여된 토큰의 양|
+
+### PrecompiledBankRevoke
+
+|이름|타입|인덱싱됨|설명|
+|---|---|---|---|
+|owner|address|Y|토큰 권한을 취소한 주소|
+|spender|address|Y|취소할 주소|
+|value|uint256|N|권한이 부여된 토큰의 양|

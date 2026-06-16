@@ -1,0 +1,316 @@
+---
+source_path: reference/distribution-module-api.mdx
+source_sha: 2873b889a09094e386aece89d5de0b9cafb80e4f
+title: "Distribution precompile 참조"
+description: "Distribution precompile 참조: 보상 인출, 인출 주소 관리, 쿼리 메서드."
+diataxis: "reference"
+---
+
+# Distribution precompile 참조
+
+:::note
+**개념:** distribution 모듈이 무엇을 하는지와 언제 사용하는지에 대해서는 [Distribution 모듈](/en/explanation/distribution-module)을 참조하세요.
+:::
+
+## 개요
+
+`distribution` precompiled 컨트랙트는 EVM 환경에서 Stable SDK의 `x/distribution` 모듈 기능을 사용할 수 있게 해주는 브릿지 역할을 합니다.
+
+## 목차
+
+1. **[개념](#concepts)**
+2. **[구성](#configuration)**
+3. **[메서드](#methods)**
+4. **[이벤트](#events)**
+
+## 개념
+
+`distribution` precompiled 컨트랙트는 위임자 또는 예치자가 호출자인지 확인하기 위한 추가 검증을 수행합니다.
+
+## 구성
+
+컨트랙트 주소와 가스 비용은 미리 정의되어 있습니다.
+
+### 컨트랙트 주소
+
+- `0x0000000000000000000000000000000000000801`
+
+## 메서드
+
+### `setWithdrawAddress`
+
+위임자가 검증인에게 위임한 토큰에 대한 보상을 받을 주소를 설정합니다.
+때때로 위임자가 자기 위임(self-delegated)인 경우, 검증인 주소가 위임자로 사용됩니다.
+
+`SetWithdrawAddress`는 인출자 주소가 성공적으로 설정되면 발생합니다.
+
+#### 입력
+
+|이름|타입|설명|
+|---|---|---|
+|delegatorAddress|address|위임자의 주소|
+|withdrawerAddress|address|위임 보상을 받을 주소|
+
+#### 출력
+
+|이름|타입|설명|
+|---|---|---|
+|success|bool|인출자 주소가 성공적으로 설정되면 true|
+
+### `withdrawDelegatorRewards`
+
+검증인으로부터 위임자가 받을 보상을 인출합니다.
+검증인이 위임자에게 보상하는 모든 종류의 토큰이 단일 트랜잭션으로 인출됩니다.
+
+`WithdrawDelegatorRewards`는 보상이 성공적으로 인출되면 발생합니다.
+
+#### 입력
+
+|이름|타입|설명|
+|---|---|---|
+|delegatorAddress|address|위임자의 주소|
+|validatorAddress|address|검증인의 주소|
+
+#### 출력
+
+|이름|타입|설명|
+|---|---|---|
+|amount|Coin[]|위임자가 받을 다양한 토큰의 보상|
+
+`Coin`은 다음 필드를 가진 구조체입니다:
+
+|이름|타입|설명|
+|---|---|---|
+|denom|string|보상의 denom|
+|amount|uint256|보상의 금액|
+
+### `withdrawValidatorCommission`
+
+검증인의 수수료를 인출합니다.
+검증인이 수수료로 받는 모든 종류의 토큰이 단일 트랜잭션으로 인출됩니다.
+
+`WithdrawValidatorCommission`은 수수료가 성공적으로 인출되면 발생합니다.
+
+#### 입력
+
+|이름|타입|설명|
+|---|---|---|
+|validatorAddress|address|검증인의 주소|
+
+#### 출력
+
+|이름|타입|설명|
+|---|---|---|
+|amount|Coin[]|검증인이 받을 다양한 토큰의 수수료|
+
+### `validatorDistributionInfo`
+
+검증인이 받을 보상을 나타내는 distribution 정보를 반환합니다. 검증인은 자신의 주소에서 자신에게 토큰을 위임하여 위임자로 행동할 수 있는데, 이를 self-bonded라고 합니다.
+
+#### 입력
+
+|이름|타입|설명|
+|---|---|---|
+|validatorAddress|address|검증인의 주소|
+
+#### 출력
+
+|이름|타입|설명|
+|---|---|---|
+|distributionInfo|ValidatorDistributionInfo|검증인의 distribution 정보|
+
+`ValidatorDistributionInfo`는 다음 필드를 가진 구조체입니다:
+
+|이름|타입|설명|
+|---|---|---|
+|operatorAddress|address|검증인 운영자의 주소|
+|selfBondRewards|DecCoin[]|검증인의 self-bonded 금액|
+|commission|DecCoin[]|검증인의 수수료|
+
+`DecCoin`은 다음 필드를 가진 구조체입니다:
+
+|이름|타입|설명|
+|---|---|---|
+|denom|string|보상의 denom|
+|amount|uint256|보상의 금액|
+|precision|uint8|보상의 정밀도|
+
+### `validatorOutstandingRewards`
+
+검증인의 미결제 보상(outstanding rewards)을 반환합니다. 미결제 보상은 전체 보상 풀을 나타냅니다: 검증인의 수수료와 self-bonded 보상, 그리고 위임자에게 지급해야 할 총 보상입니다. 예를 들어, 검증인 A에 위임자 B, C, D가 있다면 미결제 보상은 A의 수수료와 self-bonded 보상에 B, C, D의 보상을 더한 것과 같습니다.
+
+#### 입력
+
+|이름|타입|설명|
+|---|---|---|
+|validatorAddress|address|검증인의 주소|
+
+#### 출력
+
+|이름|타입|설명|
+|---|---|---|
+|rewards|DecCoin[]|검증인의 미결제 보상|
+
+### `validatorCommission`
+
+검증인의 수수료를 반환합니다. 이 메서드는 `withdrawValidatorCommission` 메서드를 호출하기 전에 검증인의 수수료를 조회하는 데 사용됩니다.
+
+#### 입력
+
+|이름|타입|설명|
+|---|---|---|
+|validatorAddress|address|검증인의 주소|
+
+#### 출력
+
+|이름|타입|설명|
+|---|---|---|
+|commission|DecCoin[]|검증인의 수수료|
+
+### `validatorSlashes`
+
+시작 높이와 종료 높이 사이의 검증인 슬래싱 내역을 반환합니다. 슬래싱은 검증인이 악의적으로 행동하거나 이중 서명, 부정 행위, 체인 규칙 미준수 등 네트워크 규칙을 위반할 때 부과되는 벌금입니다.
+
+#### 입력
+
+|이름|타입|설명|
+|---|---|---|
+|validatorAddress|address|검증인의 주소|
+|startingHeight|uint64|시작 높이
+|endingHeight|uint64|종료 높이
+|pageRequest|PageReq|페이지네이션 요청|
+
+`PageReq`는 다음 필드를 가진 구조체입니다:
+
+|이름|타입|설명|
+|---|---|---|
+|key|bytes|페이지네이션의 키|
+|offset|uint64|페이지네이션의 오프셋|
+|limit|uint64|페이지네이션의 한도|
+|countTotal|bool|전체 페이지 수를 셀지 여부|
+|reverse|bool|페이지네이션을 역순으로 할지 여부|
+
+#### 출력
+
+|이름|타입|설명|
+|---|---|---|
+|slashes|ValidatorSlashEvent[]|검증인의 슬래싱|
+|pagination|PageResp|페이지네이션 응답
+
+`ValidatorSlashEvent`는 다음 필드를 가진 구조체입니다:
+
+|이름|타입|설명|
+|---|---|---|
+|validatorPeriod|uint64|검증인의 기간|
+|fraction|Dec|슬래싱의 비율|
+
+`Dec`는 다음 필드를 가진 구조체입니다:
+
+|이름|타입|설명|
+|---|---|---|
+|value|uint64|Dec의 값|
+|precision|uint8|Dec의 정밀도|
+
+`PageResp`는 다음 필드를 가진 구조체입니다:
+
+|이름|타입|설명|
+|---|---|---|
+|nextKey|bytes|페이지네이션의 다음 키|
+|total|uint64|전체 페이지 수|
+
+### `delegationRewards`
+
+위임자가 검증인으로부터 받는 보상을 반환합니다.
+
+#### 입력
+
+|이름|타입|설명|
+|---|---|---|
+|delegatorAddress|address|위임자의 hex 주소|
+|validatorAddress|address|검증인의 주소|
+
+#### 출력
+
+|이름|타입|설명|
+|---|---|---|
+|rewards|DecCoin[]|위임자가 검증인으로부터 받는 보상|
+
+### `delegationTotalRewards`
+
+위임자가 모든 검증인으로부터 받는 총 보상을 반환합니다.
+
+#### 입력
+
+|이름|타입|설명|
+|---|---|---|
+|delegatorAddress|address|위임자의 hex 주소|
+
+#### 출력
+
+|이름|타입|설명|
+|---|---|---|
+|rewards|DelegationDelegatorReward[]|위임자가 모든 검증인으로부터 받는 총 보상|
+|total|DecCoin[]|보상의 총 금액|
+
+`DelegationDelegatorReward`는 다음 필드를 가진 구조체입니다:
+
+|이름|타입|설명|
+|---|---|---|
+|validatorAddress|address|검증인의 주소|
+|reward|DecCoin[]|위임자가 검증인으로부터 받는 보상|
+
+### `delegatorValidators`
+
+위임자가 본딩된 검증인들을 반환합니다.
+
+#### 입력
+
+|이름|타입|설명|
+|---|---|---|
+|delegatorAddress|address|위임자의 hex 주소|
+
+#### 출력
+
+|이름|타입|설명|
+|---|---|---|
+|validators|string[]|위임자가 본딩된 검증인들|
+
+### `delegatorWithdrawAddress`
+
+`setWithdrawAddress` 메서드로 설정한 위임 보상을 받을 주소를 반환합니다.
+
+#### 입력
+
+|이름|타입|설명|
+|---|---|---|
+|delegatorAddress|address|위임자의 hex 주소|
+
+#### 출력
+
+|이름|타입|설명|
+|---|---|---|
+|withdrawAddress|address|위임 보상을 받을 주소|
+
+## 이벤트
+
+### SetWithdrawAddress
+
+|이름|타입|인덱싱됨|설명|
+|---|---|---|---|
+|caller|address|Y|호출자(위임자)의 주소|
+|withdrawAddress|address|N|위임 보상을 받을 주소|
+
+### WithdrawDelegatorRewards
+
+|이름|타입|인덱싱됨|설명|
+|---|---|---|---|
+|delegatorAddress|address|Y|위임자의 주소|
+|validatorAddress|address|Y|검증인의 주소|
+|amount|uint256|N|보상의 금액|
+
+### WithdrawValidatorCommission
+
+|이름|타입|인덱싱됨|설명|
+|---|---|---|---|
+|validatorAddress|address|Y|검증인의 주소|
+|commission|uint256|N|수수료의 총 금액|

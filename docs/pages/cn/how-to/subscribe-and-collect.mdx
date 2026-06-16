@@ -1,0 +1,391 @@
+---
+source_path: how-to/subscribe-and-collect.mdx
+source_sha: c1fe3d6efad8671b22584ae67ffc3cdbf929337d
+title: "订阅与收款"
+description: "使用 EIP-7702 委托在 Stable 上构建基于拉取的订阅支付。设置订阅者授权并自动执行计费周期的收款。"
+diataxis: "how-to"
+---
+
+# 订阅与收款
+
+本指南将引导你构建一个订阅支付系统，订阅者只需授权一次，服务提供方便可在每个计费周期通过 EIP-7702 账户抽象自动收款。
+
+:::note
+**概念：** 关于订阅模型、权衡取舍以及与卡片预存计费的比较，请参阅[订阅计费](/en/reference/subscriptions)。
+:::
+
+## 你将构建的内容
+
+一个完整的订阅生命周期：订阅者委托并订阅一次，提供方按计划收款（展示第二个周期以证明重复行为），订阅者取消订阅。
+
+### 演示
+
+```text
+step 1. Subscriber delegates EOA to SubscriptionManager (EIP-7702)
+        tx: 0x7702...aaaa
+
+step 2. Subscriber registers subscription (10 USDT0 / 30 days)
+        subscriptionId: 0xabc...
+        nextChargeAt:   2026-05-23T12:00:00Z
+
+step 3. Provider calls collect() on day 30
+        collected:    10 USDT0
+        gas cost:     ~0.000050 USDT0
+        nextChargeAt: 2026-06-22T12:00:00Z
+
+step 4. Provider calls collect() on day 60
+        collected:    10 USDT0
+        gas cost:     ~0.000050 USDT0
+        nextChargeAt: 2026-07-22T12:00:00Z
+
+step 5. Subscriber cancels
+        subscription: inactive
+```
+
+## 概述
+
+**订阅者：**
+
+```
+─── Subscriber ───────────────────────────────────────
+// One-time setup: delegate EOA to the subscription contract
+signAuthorization(delegateContract)
+sendTransaction({ type: 4, authorizationList: [signedAuth] })
+
+// Subscribe: set billing terms on own EOA
+sendTransaction({ to: self, data: subscribe(subscriptionId, provider, amount, interval) })
+
+// Cancel: revoke billing access at any time
+sendTransaction({ to: self, data: cancelSubscription(subscriptionId) })
+```
+
+**服务提供方：**
+
+```
+─── Service Provider ────────────────────────────────
+// Each billing cycle: collect payment from subscriber's EOA
+// The delegate contract verifies caller, billing schedule, and amount
+sendTransaction({ to: subscriberEOA, data: collect(subscriptionId) })
+
+// Automate with a cron job matching the billing interval
+// The contract reverts if called before the interval has elapsed
+```
+
+## 委托合约
+
+订阅计费的工作原理是将订阅者的 EOA 委托给一个执行计费条款的合约。通过 EIP-7702，订阅者的账户临时获得合约逻辑，使得服务提供方能够在每个计费周期收款，而无需订阅者每次都签名。
+
+你可以使用现有的已部署合约，也可以部署自己的合约。下面的示例是一个最小化的 `SubscriptionManager` 合约，支持三种操作：
+
+- `subscribe`：为某个 `subscriptionId` 注册计费条款。
+- `collect`：提供方为该 `subscriptionId` 拉取下一笔计划付款。
+- `cancelSubscription`：订阅者撤销某个特定订阅。
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+/// @title SubscriptionManager (example)
+/// @notice Delegate contract for EIP-7702 subscription billing.
+///         Runs on the subscriber's EOA via delegation.
+contract SubscriptionManager {
+    struct Subscription {
+        address provider;
+        uint256 amount;
+        uint256 interval;
+        uint256 nextChargeAt;
+        bool active;
+    }
+
+    // Keyed by subscriptionId.
+    // Storage is already per subscriber EOA under delegation.
+    mapping(bytes32 => Subscription) public subscriptions;
+
+    IERC20 public immutable usdt0;
+
+    event SubscriptionCreated(
+        bytes32 indexed subscriptionId,
+        address indexed provider,
+        uint256 amount,
+        uint256 interval,
+        uint256 nextChargeAt
+    );
+
+    event SubscriptionCollected(
+        bytes32 indexed subscriptionId,
+        address indexed provider,
+        uint256 amount,
+        uint256 collectedAt
+    );
+
+    event SubscriptionCancelled(bytes32 indexed subscriptionId);
+
+    constructor(address _usdt0) {
+        usdt0 = IERC20(_usdt0);
+    }
+
+    /// @notice Register a subscription. Called by the subscriber on their own EOA.
+    function subscribe(
+        bytes32 subscriptionId,
+        address provider,
+        uint256 amount,
+        uint256 interval
+    ) external {
+        require(msg.sender == address(this), "subscriber only");
+        require(provider != address(0), "invalid provider");
+        require(amount > 0, "invalid amount");
+        require(interval > 0, "invalid interval");
+        require(!subscriptions[subscriptionId].active, "already exists");
+
+        uint256 nextChargeAt = block.timestamp + interval;
+
+        subscriptions[subscriptionId] = Subscription({
+            provider: provider,
+            amount: amount,
+            interval: interval,
+            nextChargeAt: nextChargeAt,
+            active: true
+        });
+
+        emit SubscriptionCreated(subscriptionId, provider, amount, interval, nextChargeAt);
+    }
+
+    /// @notice Collect a payment for a specific subscription. Called by the service provider.
+    function collect(bytes32 subscriptionId) external {
+        Subscription storage sub = subscriptions[subscriptionId];
+
+        require(sub.active, "not active");
+        require(msg.sender == sub.provider, "not provider");
+        require(block.timestamp >= sub.nextChargeAt, "too early");
+
+        sub.nextChargeAt += sub.interval;
+
+        require(usdt0.transfer(sub.provider, sub.amount), "transfer failed");
+
+        emit SubscriptionCollected(subscriptionId, sub.provider, sub.amount, block.timestamp);
+    }
+
+    /// @notice Cancel a specific subscription. Called by the subscriber.
+    function cancelSubscription(bytes32 subscriptionId) external {
+        require(msg.sender == address(this), "subscriber only");
+        require(subscriptions[subscriptionId].active, "not active");
+
+        delete subscriptions[subscriptionId];
+
+        emit SubscriptionCancelled(subscriptionId);
+    }
+}
+```
+
+:::note
+此合约作为参考实现提供，仅用于测试目的。委托合约对订阅者的 EOA 拥有完全的执行权限，因此在生产环境中，请使用经过审计和验证的合约。有关 EIP-7702 委托和安全性的更多背景信息，请参阅 [EIP-7702](/en/explanation/eip-7702)。
+:::
+
+## 配置
+
+```typescript
+// config.ts
+import { ethers } from "ethers";
+
+export const STABLE_TESTNET_RPC = "https://rpc.testnet.stable.xyz";
+export const CHAIN_ID = 2201;
+export const USDT0_ADDRESS = "0x78Cf24370174180738C5B8E352B6D14c83a6c9A9";
+export const SUBSCRIPTION_MANAGER = "0xYourDeployedSubscriptionManager";
+
+export const provider = new ethers.JsonRpcProvider(STABLE_TESTNET_RPC);
+export const subscriberWallet = new ethers.Wallet(process.env.SUBSCRIBER_KEY!, provider);
+```
+
+## 步骤 1：委托订阅者的 EOA（EIP-7702）
+
+订阅者签署一个 EIP-7702 授权，将其 EOA 委托给 `SubscriptionManager`。此后，订阅者的 EOA 将执行委托合约的逻辑。
+
+```typescript
+// delegate.ts
+import { subscriberWallet, provider, CHAIN_ID, SUBSCRIPTION_MANAGER } from "./config";
+
+const authorization = {
+  chainId: CHAIN_ID,
+  address: SUBSCRIPTION_MANAGER,
+  nonce: await provider.getTransactionCount(subscriberWallet.address),
+};
+
+const signedAuth = await subscriberWallet.signAuthorization(authorization);
+
+const tx = await subscriberWallet.sendTransaction({
+  type: 4,
+  to: subscriberWallet.address,
+  authorizationList: [signedAuth],
+  maxPriorityFeePerGas: 0n,
+});
+
+const receipt = await tx.wait(1);
+console.log("Delegation tx:", receipt.hash);
+```
+
+```bash
+npx tsx delegate.ts
+```
+
+```text
+Delegation tx: 0x7702...aaaa
+```
+
+## 步骤 2：注册订阅（订阅者）
+
+订阅者在自己的 EOA 上调用 `subscribe()`。由于 EOA 已被委托，此操作将执行 `SubscriptionManager.subscribe`。
+
+```typescript
+// subscribe.ts
+import { ethers } from "ethers";
+import { subscriberWallet } from "./config";
+
+const subscriptionManager = new ethers.Interface([
+  "function subscribe(bytes32 subscriptionId, address provider, uint256 amount, uint256 interval)",
+]);
+
+const serviceProvider = "0xServiceProviderAddress";
+const monthlyAmount = ethers.parseUnits("10", 6); // 10 USDT0
+const interval = 30 * 24 * 60 * 60;              // 30 days in seconds
+
+// Derive a unique subscriptionId from provider + plan name + local nonce
+const subscriptionId = ethers.solidityPackedKeccak256(
+  ["address", "string", "uint256"],
+  [serviceProvider, "pro-monthly", 1]
+);
+
+const tx = await subscriberWallet.sendTransaction({
+  to: subscriberWallet.address, // call self (delegate code executes)
+  data: subscriptionManager.encodeFunctionData("subscribe", [
+    subscriptionId,
+    serviceProvider,
+    monthlyAmount,
+    interval,
+  ]),
+  maxPriorityFeePerGas: 0n,
+});
+
+const receipt = await tx.wait(1);
+console.log("Subscription registered, tx:", receipt.hash);
+console.log("Subscription ID:", subscriptionId);
+```
+
+```bash
+npx tsx subscribe.ts
+```
+
+```text
+Subscription registered, tx: 0xabcd...1234
+Subscription ID: 0xfedc...9876
+```
+
+## 步骤 3：收取付款（服务提供方）
+
+每个计费周期，服务提供方在订阅者的 EOA 上调用 `collect(subscriptionId)`。委托逻辑在转移 USDT0 之前会验证调用者、计费计划和金额。
+
+```typescript
+// collect.ts
+import { ethers } from "ethers";
+
+const provider = new ethers.JsonRpcProvider("https://rpc.testnet.stable.xyz");
+const providerWallet = new ethers.Wallet(process.env.PROVIDER_KEY!, provider);
+
+const subscriptionManager = new ethers.Interface([
+  "function collect(bytes32 subscriptionId)",
+]);
+
+const subscriberEOA = "0xSubscriberEOAAddress";
+const subscriptionId = "0xYourSubscriptionId";
+
+const tx = await providerWallet.sendTransaction({
+  to: subscriberEOA, // subscriber's EOA (runs delegate code)
+  data: subscriptionManager.encodeFunctionData("collect", [subscriptionId]),
+  maxPriorityFeePerGas: 0n,
+});
+
+const receipt = await tx.wait(1);
+console.log("Payment collected, tx:", receipt.hash);
+console.log("Gas used:", receipt.gasUsed.toString());
+
+// In production, run this on a cron schedule matching the billing interval.
+// The delegate contract will revert if called before the interval has elapsed.
+```
+
+```bash
+npx tsx collect.ts
+```
+
+```text
+Payment collected, tx: 0x8f3a...2d41
+Gas used: 52000
+```
+
+在 Stable 上，一次 `collect()` 调用大约消耗 **50k-55k gas**（21k 基础 + 7702 委托开销 + ERC-20 `transfer`）。按 1 gwei 基础费用计算，提供方每个计费周期支付的费用约为 `0.000050 USDT0`。
+
+## 步骤 4：取消订阅（订阅者）
+
+订阅者在自己的 EOA 上调用 `cancelSubscription(subscriptionId)`，以撤销该特定订阅的计费权限。
+
+```typescript
+// cancel.ts
+import { ethers } from "ethers";
+import { subscriberWallet } from "./config";
+
+const subscriptionManager = new ethers.Interface([
+  "function cancelSubscription(bytes32 subscriptionId)",
+]);
+
+const subscriptionId = "0xYourSubscriptionId";
+
+const tx = await subscriberWallet.sendTransaction({
+  to: subscriberWallet.address,
+  data: subscriptionManager.encodeFunctionData("cancelSubscription", [subscriptionId]),
+  maxPriorityFeePerGas: 0n,
+});
+
+const receipt = await tx.wait(1);
+console.log("Subscription cancelled, tx:", receipt.hash);
+```
+
+```bash
+npx tsx cancel.ts
+```
+
+```text
+Subscription cancelled, tx: 0xdef0...5678
+```
+
+## 安全模型
+
+订阅者授权委托合约从其 EOA 中拉取资金。请准确了解该授权涵盖的范围以及如何限制风险敞口。
+
+**订阅者授权的内容。** 通过委托给 `SubscriptionManager`，订阅者授予该合约逻辑对其 EOA 的完全执行权限。委托方只能在其代码所设定的条件下转移资金：调用者是已注册的提供方、间隔时间已过、金额与已存储的订阅相匹配。它无法转移到其他地址或绕过间隔检查，因为合约代码不允许这些操作。
+
+**需要缓解的失败模式。**
+
+- **恶意委托升级**：如果 `SubscriptionManager` 是一个其实现可被管理员更改的代理合约，那么该授权实际上信任了该管理员。仅委托给不可变的合约或具有透明、时间锁定升级的代理合约。
+- **提供方被攻破**：如果提供方的密钥泄露，攻击者可在每个周期金额的上限内提前收款。订阅者应为每个订阅设置 `spendingLimit`，并监控未经授权的 `SubscriptionCollected` 事件。
+- **委托替换**：使用不同的委托方再次订阅会清除订阅状态。请使用模块化委托方，在单一委托下支持多种功能（订阅、批量支付、支出限额），而不是每个功能使用一个委托方。
+- **可重放签名**：所有签名都使用与订阅者 EOA 绑定的 EIP-7702 nonce，因此它们无法跨链或跨委托重放。
+
+**推荐的防护措施。**
+
+- 在生产环境使用前审计委托合约。
+- 相对于订阅者的余额，保持每个订阅的金额较小。
+- 监控 `SubscriptionCreated` / `SubscriptionCollected` 事件并向订阅者展示。
+- 为订阅者提供清晰的"取消"界面，在其自己的 EOA 上调用 `cancelSubscription(subscriptionId)`。
+
+## 重要注意事项
+
+- **持久委托**：EIP-7702 委托会持续存在，直到订阅者明确更改或清除它。无需每个计费周期重新委托。
+- **每个 EOA 单一委托**：如果订阅者之后委托给不同的合约，订阅委托逻辑将被替换，收款将失败。请使用模块化委托合约，在单一委托下支持多种功能（订阅、批量支付、支出限额、会话密钥）。
+- **计划行为**：此示例在每次成功收款时将 `nextChargeAt` 推进一个间隔。如果已经过去了多个计费周期，重复的 `collect()` 调用可以逐个周期追赶。如果你的产品需要不同的策略，请扩展该逻辑。
+- **使用经过审计的委托方**：仅委托给已经过审计的合约。
+
+## 下一步推荐
+
+- [**订阅计费概念**](/en/reference/subscriptions) — 了解基于拉取的计费模型。
+- [**账户抽象**](/en/how-to/account-abstraction) — 了解批量支付、支出限额和会话密钥如何在单一委托下组合。
+- [**EIP-7702 概念**](/en/explanation/eip-7702) — 回顾使这一切成为可能的委托模型。

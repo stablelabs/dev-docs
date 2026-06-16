@@ -1,0 +1,57 @@
+---
+source_path: explanation/agent-settlement.mdx
+source_sha: 161a49c64c60ae1d96e433bc9f7348f9f0220133
+title: "代理结算"
+description: "自主代理如何在 Stable 上以 USDT 持有、支付和结算，无需独立的 gas 代币，并具备亚秒级最终确认。"
+diataxis: "explanation"
+---
+
+# 代理结算
+
+代理结算是 Stable 面向机器支付的通道。代理持有 USDT0 余额，通过 HTTP 为某个资源付费，付款在同一请求周期内于链上结算。代理从同一个余额中同时支出付款和网络费用。无需独立的 gas 代币，无需注册，也无需轮换 API 密钥。
+
+## 这对代理为何重要
+
+代理的交易方式与人类不同。它们持续运行，进行大量小额付款，且无法完成注册流程或轮换 API 密钥。Stable 上的结算正契合这种工作负载：
+
+- **USDT0 既是 gas 代币也是支付代币。** 代理钱包持有单一资产，并用它同时支付费用和付款。
+- **亚美分、可预测的费用。** 费用以美元计价，因此代理可以为每个操作的成本做预算，而无需从波动的 gas 资产进行换算。
+- **亚秒级最终确认。** 已付费的 HTTP 调用在请求生命周期内完成结算（约 700 毫秒出块时间），这使高频机器流量成为可能。
+- **USDT 的分发覆盖。** USDT 是持有最广泛的稳定币；Stable 是专为它打造的场所。
+
+## 各层级如何协作
+
+两个层级承担不同的职责，互为补充而非相互替代：
+
+- **x402** 是*支付标准*。它是一种 HTTP 原生协议，服务器以 `402 Payment Required` 响应，客户端签署授权，由 facilitator 提交。
+- **MPP（Machine Payments Protocol）** 是 IETF 标准化路线上的标准，它通过更广泛的意图和多通道支持取代 x402；x402 是 Stable 目前支持的向后兼容子集。参见 [MPP](/en/explanation/mpp)。
+- **Stable** 是*结算层*。USDT0 的链上转账实际上在这里发生。
+
+**facilitator** 位于两者之间：它验证已签名的付款并提交链上调用，从而使开发者无需运行结算基础设施。请参见 [Facilitators](/en/reference/agentic-facilitators)，了解目前支持 Stable 的提供商。
+
+```text
+agent (client)  ──HTTP──▶  resource server  ──signed payment──▶  facilitator  ──tx──▶  Stable
+                          (returns 402)                          (verify + submit)     (USDT0 settles)
+```
+
+## 你可以构建什么
+
+- **按调用付费的 API**，以 USDT0 按请求计价，通过 x402 或 MPP 结算。
+- **代理对代理的商业**，一个代理通过 HTTP 为另一个代理的服务付费。
+- **付费的 MCP 工具**，封装 x402 端点，使 AI 客户端可以通过提示词调用并为其付费。
+- **自主采购**，基于已编入预算的 USDT0 余额。
+- **基于用量的计费**，按每次请求结算而非按发票结算。
+- **代理钱包**，仅以 USDT0 充值，无需托管中间件。
+
+## 从这里开始
+
+- [**构建按调用付费的 API**](/en/how-to/build-pay-per-call) — 搭建一个 x402 门控的端点，并在请求中结算一笔真实的 USDT0 付款。
+- [**在 Stable 上构建 MPP 端点**](/en/how-to/build-mpp-endpoint) — 为 USDT0 编写三个 MPP 自定义方法钩子，并在 Stable 上结算。
+- [**使用 AI 进行开发**](/en/how-to/develop-with-ai) — 将 Docs MCP 和 Runtime MCP 接入你的 AI 编辑器，并粘贴 Stable 上下文块。
+- [**通过 MCP 服务器付费**](/en/how-to/pay-with-mcp) — 将 x402 付费 API 暴露为 MCP 工具，使代理可以通过自然语言提示词调用它们。
+
+## 推荐的后续阅读
+
+- [**深入了解 x402**](/en/explanation/x402) — 阅读 HTTP 支付协议在 Stable 上端到端的工作方式。
+- [**MPP**](/en/explanation/mpp) — x402 所属的更广泛的 IETF 标准化路线标准。
+- [**Facilitators**](/en/reference/agentic-facilitators) — 查看哪些 facilitator 已在 Stable 上结算 USDT0 付款。

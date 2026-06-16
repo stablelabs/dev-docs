@@ -1,0 +1,128 @@
+---
+source_path: reference/oracles.mdx
+source_sha: a8b69a212813ce80e6bb9ed34fc5c11471d77c76
+title: "预言机"
+description: "Stable 上的预言机价格喂送提供商，包括合约地址、支持的交易对和集成示例。"
+diataxis: "reference"
+---
+
+# 预言机
+
+预言机为智能合约提供链下数据，例如资产价格。RedStone 在 Stable 上运营价格喂送。
+
+## 概览表
+
+| **提供商** | **类别** | **支持的交易对** | **文档 / 入门** | **备注** |
+| :--- | :--- | :--- | :--- | :--- |
+| [**RedStone**](https://www.redstone.finance/) | 预言机价格喂送 | BTC, ETH, USDT, USDC, PYUSD, XAUt, frxUSD, FXS, LBTC, sfrxETH/ETH, sfrxUSD, SolvBTC, sthUSD, thBILL, weETH | [https://docs.redstone.finance/docs/dapps/redstone-push/](https://docs.redstone.finance/docs/dapps/redstone-push/) | 主网已上线 |
+
+## RedStone
+
+RedStone 通过其 [Push 模型](https://docs.redstone.finance/docs/dapps/redstone-push/) 在 Stable 上提供预言机价格喂送。喂送合约暴露了与 Chainlink 兼容的 `AggregatorV3Interface`。
+
+**能力**
+
+- 基于推送的价格喂送，具有可配置的偏差阈值和心跳间隔
+- 与 Chainlink 兼容的 `AggregatorV3Interface`，包含 `latestRoundData()`、`decimals()` 和 `description()`
+- 覆盖蓝筹资产、稳定币、LST、LRT 以及收益型 / 基本面定价资产
+
+### 主网价格喂送地址
+
+来源：[RedStone push 喂送仪表板](https://app.redstone.finance/push-feeds?networks=stable&testnets=true)
+
+| **价格喂送** | **合约地址** | **偏差** | **心跳** |
+| :--- | :--- | :--- | :--- |
+| **BTC / USD** | [0x687103bA8CC2f66C94696182Ef410400Da45fb24](https://stablescan.xyz/address/0x687103bA8CC2f66C94696182Ef410400Da45fb24) | 0.5% | 6h |
+| **ETH / USD** | [0x457BE3C697c644bF329C2C3ea79EbF1D254d603a](https://stablescan.xyz/address/0x457BE3C697c644bF329C2C3ea79EbF1D254d603a) | 0.5% | 6h |
+| **USDT / USD** | [0x58264801fadCd8598D3EE993572ADe9cA27F42c8](https://stablescan.xyz/address/0x58264801fadCd8598D3EE993572ADe9cA27F42c8) | 0.5% | 6h |
+| **USDC / USD** | [0x8ea3C667C264BbdaA1dA7638904b8671F451c7F9](https://stablescan.xyz/address/0x8ea3C667C264BbdaA1dA7638904b8671F451c7F9) | 0.5% | 6h |
+| **PYUSD / USD** | [0x1c30dA143E97c228102A5cAe3960dBBB41321604](https://stablescan.xyz/address/0x1c30dA143E97c228102A5cAe3960dBBB41321604) | 0.5% | 6h |
+| **XAUt / USD** | [0xd5E244accc514b56DCAD89897DD44499E7C35a05](https://stablescan.xyz/address/0xd5E244accc514b56DCAD89897DD44499E7C35a05) | 0.5% | 6h |
+| **frxUSD / USD** | [0xB5197ca89507FE045e8ce9996593D35071915EB7](https://stablescan.xyz/address/0xB5197ca89507FE045e8ce9996593D35071915EB7) | 0.5% | 6h |
+| **FXS / USD** | [0xC3b182aee94AECeCa39b072942f3Ce4B87465517](https://stablescan.xyz/address/0xC3b182aee94AECeCa39b072942f3Ce4B87465517) | 0.5% | 6h |
+| **LBTC / USD** | [0x80295Cf12E28f3F943304BFd6C2A2C044e731aaB](https://stablescan.xyz/address/0x80295Cf12E28f3F943304BFd6C2A2C044e731aaB) | 0.5% | 6h |
+| **sfrxETH / ETH** | [0x29533E113D803ab1967F6CB9495B95DC8C1EA594](https://stablescan.xyz/address/0x29533E113D803ab1967F6CB9495B95DC8C1EA594) | 0.5% | 6h |
+| **sfrxUSD / FUNDAMENTAL** | [0x71784611831b9566df7301A78bC1B3d29a8737bF](https://stablescan.xyz/address/0x71784611831b9566df7301A78bC1B3d29a8737bF) | 0.5% | 6h |
+| **SolvBTC / FUNDAMENTAL** | [0x58fa68A373956285dDfb340EDf755246f8DfCA16](https://stablescan.xyz/address/0x58fa68A373956285dDfb340EDf755246f8DfCA16) | 0.01% | 24h |
+| **sthUSD / FUNDAMENTAL** | [0xb81131B6368b3F0a83af09dB4E39Ac23DA96C2Db](https://stablescan.xyz/address/0xb81131B6368b3F0a83af09dB4E39Ac23DA96C2Db) | 0.5% | 12h |
+| **thBILL / FUNDAMENTAL / USD** | [0x7532df197a36587aeD2B9A59785c8BeD182FA62D](https://stablescan.xyz/address/0x7532df197a36587aeD2B9A59785c8BeD182FA62D) | 0.5% | 6h |
+| **weETH / FUNDAMENTAL** | [0xD57b79401956BE4872D3d03F0C920639335e350F](https://stablescan.xyz/address/0xD57b79401956BE4872D3d03F0C920639335e350F) | 0.5% | 6h |
+
+## 读取价格喂送
+
+喂送合约实现了与 Chainlink 兼容的 [`AggregatorV3Interface`](https://docs.redstone.finance/docs/dapps/redstone-push/)。任何 Chainlink 风格价格喂送所使用的相同消费者模式均适用于此。
+
+```solidity
+pragma solidity ^0.8.25;
+
+interface AggregatorV3Interface {
+    function latestRoundData()
+        external
+        view
+        returns (
+            uint80 roundId,
+            int256 answer,
+            uint256 startedAt,
+            uint256 updatedAt,
+            uint80 answeredInRound
+        );
+    function decimals() external view returns (uint8);
+    function description() external view returns (string memory);
+}
+
+contract OracleConsumer {
+    AggregatorV3Interface public oracle;
+
+    constructor(address oracleAddress) {
+        oracle = AggregatorV3Interface(oracleAddress);
+    }
+
+    function getLatestPriceData()
+        external
+        view
+        returns (
+            uint80 roundId,
+            int256 answer,
+            uint256 updatedAt
+        )
+    {
+        (roundId, answer, , updatedAt, ) = oracle.latestRoundData();
+        return (roundId, answer, updatedAt);
+    }
+}
+```
+
+:::note
+Stable 上的 RedStone push 喂送目前仅在主网上可用。在消费价格之前，请始终根据您应用程序的新鲜度容忍度验证链上的 `updatedAt`。
+:::
+
+### 直接读取喂送
+
+您无需部署消费者合约即可读取任何 RedStone 喂送。以下调用读取 ETH/USD 喂送：
+
+```bash
+cast call 0x457BE3C697c644bF329C2C3ea79EbF1D254d603a "latestRoundData()(uint80,int256,uint256,uint256,uint80)" --rpc-url https://rpc.stable.xyz
+```
+
+### 将消费者部署到 Stable 主网
+
+这假设您已安装 Foundry 并拥有一个有资金的钱包。完整设置说明请参阅[部署智能合约](/en/tutorial/smart-contract)教程。
+
+1. 将上面的合约保存到 Foundry 项目中的 `src/OracleConsumer.sol`。
+
+2. 使用 BTC/USD 主网喂送地址进行部署：
+
+```bash
+source .env ;
+forge create src/OracleConsumer.sol:OracleConsumer --broadcast --rpc-url $STABLE_MAINNET_RPC_URL --private-key $PRIVATE_KEY --constructor-args 0x687103bA8CC2f66C94696182Ef410400Da45fb24
+```
+
+3. 从您部署的合约中读取最新价格：
+
+```bash
+cast call <DEPLOYED_ADDRESS> "getLatestPriceData()(uint80,int256,uint256)" --rpc-url $STABLE_MAINNET_RPC_URL
+```
+
+## 有预言机想要集成 Stable？
+
+请联系团队 [bizdev@stable.xyz](mailto:bizdev@stable.xyz)，以便在此页面上列出。

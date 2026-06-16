@@ -1,0 +1,650 @@
+---
+source_path: how-to/install-node.mdx
+source_sha: 9dfb0333d9152dfd5083da30d4c5e7c0597f091d
+title: Installation Guide
+description: "사전 컴파일된 바이너리를 사용하여 Linux에 Stable 노드를 설치하는 단계별 가이드."
+---
+
+This guide provides detailed instructions for installing and setting up a Stable node on various platforms.
+
+## Prerequisites
+
+Before starting the installation, ensure you have:
+- Met all [System Requirements](./system-requirements)
+- Root or sudo access to your server
+- Basic knowledge of Linux command line
+
+## Installation Method
+
+Use the pre-compiled binaries for your platform. Building from source is not currently supported.
+
+### Mainnet
+
+#### Linux AMD64
+
+```bash
+# Download the latest binary for AMD64 architecture
+wget https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/binary/stabled-latest-linux-amd64-mainnet.tar.gz
+
+# Extract the archive
+tar -xvzf stabled-latest-linux-amd64-mainnet.tar.gz
+
+# Move binary to system path
+sudo mv stabled /usr/bin/
+
+# Verify installation
+stabled version
+```
+
+#### Linux ARM64
+
+```bash
+# Download the binary for ARM64 architecture
+wget https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/binary/stabled-latest-linux-arm64-mainnet.tar.gz
+
+# Extract and install
+tar -xvzf stabled-latest-linux-arm64-mainnet.tar.gz
+sudo mv stabled /usr/bin/
+
+# Verify installation
+stabled version
+```
+
+### Testnet
+
+#### Linux AMD64
+
+```bash
+# Download the latest binary for AMD64 architecture
+wget https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/binary/stabled-latest-linux-amd64-testnet.tar.gz
+
+# Extract the archive
+tar -xvzf stabled-latest-linux-amd64-testnet.tar.gz
+
+# Move binary to system path
+sudo mv stabled /usr/bin/
+
+# Verify installation
+stabled version
+```
+
+#### Linux ARM64
+
+```bash
+# Download the binary for ARM64 architecture
+wget https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/binary/stabled-latest-linux-arm64-testnet.tar.gz
+
+# Extract and install
+tar -xvzf stabled-latest-linux-arm64-testnet.tar.gz
+sudo mv stabled /usr/bin/
+
+# Verify installation
+stabled version
+```
+
+## Node Initialization
+
+After installing the binary, initialize your node:
+
+### Step 1: Set Node Name
+
+```bash
+# Set your node's moniker (choose a unique name)
+export MONIKER="your-node-name"
+```
+
+### Step 2: Initialize the Node
+
+### Mainnet
+
+```bash
+# Initialize with the mainnet chain ID
+stabled init $MONIKER --chain-id stable_988-1
+
+# This creates the configuration directory at ~/.stabled/
+```
+
+> **Note**: For current network parameters including chain ID, see [Mainnet Information](#TODO)
+
+### Testnet
+
+```bash
+# Initialize with the testnet chain ID
+stabled init $MONIKER --chain-id stabletestnet_2201-1
+
+# This creates the configuration directory at ~/.stabled/
+```
+
+> **Note**: For current network parameters including chain ID, see [Testnet Information](#TODO)
+
+### Step 3: Download Genesis File
+
+:::code-group
+```bash [Mainnet]
+# Create backup of default genesis
+mv ~/.stabled/config/genesis.json ~/.stabled/config/genesis.json.backup
+
+# Download mainnet genesis
+wget https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/configuration/genesis.zip
+unzip genesis.zip
+
+# Move genesis to config directory
+cp genesis.json ~/.stabled/config/genesis.json
+
+# Verify genesis checksum
+sha256sum ~/.stabled/config/genesis.json
+# Expected: e1ceda79a3cc48a1028ca8646a2e9e2d156f610637cfb8b428ca8354277921f1
+```
+```bash [Testnet]
+# Create backup of default genesis
+mv ~/.stabled/config/genesis.json ~/.stabled/config/genesis.json.backup
+
+# Download testnet genesis
+wget https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/configuration/genesis.zip
+unzip genesis.zip
+
+# Move genesis to config directory
+cp genesis.json ~/.stabled/config/genesis.json
+
+# Verify genesis checksum
+sha256sum ~/.stabled/config/genesis.json
+# Expected: 66afbb6e57e6faf019b3021de299125cddab61d433f28894db751252f5b8eaf2
+```
+:::
+
+### Step 4: Configure Node
+
+#### Download Configuration Files
+
+:::code-group
+```bash [Mainnet]
+# Download optimized configuration (choose one based on your node type)
+# For RPC/Full nodes:
+wget https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/configuration/rpc_node_config.zip
+unzip rpc_node_config.zip
+
+# For Archive nodes:
+# wget https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/configuration/archive_node_config.zip
+# unzip archive_node_config.zip
+
+# Backup original config
+cp ~/.stabled/config/config.toml ~/.stabled/config/config.toml.backup
+
+# Apply new configuration
+cp config.toml ~/.stabled/config/config.toml
+
+# Update moniker in config
+sed -i "s/^moniker = \".*\"/moniker = \"$MONIKER\"/" ~/.stabled/config/config.toml
+```
+```bash [Testnet]
+# Download optimized configuration
+wget https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/configuration/rpc_node_config.zip
+unzip rpc_node_config.zip
+
+# Backup original config
+cp ~/.stabled/config/config.toml ~/.stabled/config/config.toml.backup
+
+# Apply new configuration
+cp config.toml ~/.stabled/config/config.toml
+
+# Update moniker in config
+sed -i "s/^moniker = \".*\"/moniker = \"$MONIKER\"/" ~/.stabled/config/config.toml
+```
+:::
+
+#### Essential Configuration Updates
+
+Edit `~/.stabled/config/app.toml`:
+
+```toml
+# Enable JSON-RPC for EVM compatibility
+[json-rpc]
+enable = true
+address = "0.0.0.0:8545"
+ws-address = "0.0.0.0:8546"
+allow-unprotected-txs = true
+```
+
+Edit `~/.stabled/config/config.toml`:
+
+:::code-group
+```toml [Mainnet]
+# P2P Configuration
+[p2p]
+# Maximum number of peers
+max_num_inbound_peers = 50
+max_num_outbound_peers = 30
+
+# Seed nodes
+seeds = "9aa181b20248e948567cb47a15eae35d58cd549d@seed1.stable.xyz:46656"
+
+# Persistent peers (mainnet seed nodes)
+persistent_peers = "b896f6f8ca5a4d1cc40de09407df0c96e76df950@peer1.stable.xyz:26656"
+
+# Enable peer exchange
+pex = true
+
+# RPC Configuration
+[rpc]
+# Listen address
+laddr = "tcp://0.0.0.0:26657"
+
+# Maximum number of simultaneous connections
+max_open_connections = 900
+
+# CORS settings (adjust for production)
+cors_allowed_origins = ["*"]
+```
+```toml [Testnet]
+# P2P Configuration
+[p2p]
+# Maximum number of peers
+max_num_inbound_peers = 50
+max_num_outbound_peers = 30
+
+# Seed nodes
+seeds = "6f3195823f7e5ee6f911a0a0ceb9ea689e0dc5bd@seed1.testnet.stable.xyz:56656"
+
+# Persistent peers (testnet seed nodes)
+persistent_peers = "128accd3e8ee379bfdf54560c21345451c7048c7@peer1.testnet.stable.xyz:26656"
+
+# Enable peer exchange
+pex = true
+
+# RPC Configuration
+[rpc]
+# Listen address
+laddr = "tcp://0.0.0.0:26657"
+
+# Maximum number of simultaneous connections
+max_open_connections = 900
+
+# CORS settings (adjust for production)
+cors_allowed_origins = ["*"]
+```
+:::
+
+## Systemd Service Setup
+
+Create a systemd service for automatic management:
+
+### Step 1: Create Service File
+
+:::code-group
+```bash [Mainnet]
+sudo tee /etc/systemd/system/stabled.service > /dev/null <<EOF
+[Unit]
+Description=Stable Daemon Service
+After=network-online.target
+
+[Service]
+User=$USER
+ExecStart=/usr/bin/stabled start --chain-id stable_988-1
+Restart=always
+RestartSec=3
+LimitNOFILE=65535
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=stabled
+
+[Install]
+WantedBy=multi-user.target
+EOF
+```
+```bash [Testnet]
+sudo tee /etc/systemd/system/stabled.service > /dev/null <<EOF
+[Unit]
+Description=Stable Daemon Service
+After=network-online.target
+
+[Service]
+User=$USER
+ExecStart=/usr/bin/stabled start --chain-id stabletestnet_2201-1
+Restart=always
+RestartSec=3
+LimitNOFILE=65535
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=stabled
+
+[Install]
+WantedBy=multi-user.target
+EOF
+```
+:::
+
+### Step 2: Enable and Start Service
+
+```bash
+# Reload systemd configuration
+sudo systemctl daemon-reload
+
+# Enable service to start on boot
+sudo systemctl enable stabled
+
+# Start the service
+sudo systemctl start stabled
+
+# Check service status
+sudo systemctl status stabled
+
+# View logs
+sudo journalctl -u stabled -f
+```
+
+## Cosmovisor Setup (Recommended for Automatic Upgrades)
+
+Cosmovisor is a process manager that automatically handles chain upgrades. This is the recommended setup for production nodes.
+
+### Step 1: Install Cosmovisor
+
+```bash
+# Install Cosmovisor
+go install cosmossdk.io/tools/cosmovisor/cmd/cosmovisor@latest
+
+# Or download pre-built binary
+wget https://github.com/cosmos/cosmos-sdk/releases/download/cosmovisor%2Fv1.7.0/cosmovisor-v1.7.0-linux-amd64.tar.gz
+tar -xvzf cosmovisor-v1.7.0-linux-amd64.tar.gz
+sudo mv cosmovisor /usr/bin/
+
+# Verify installation
+cosmovisor version
+```
+
+### Step 2: Set Environment Variables
+
+```bash
+# Add to ~/.bashrc or ~/.profile
+echo "# Cosmovisor Configuration" >> ~/.bashrc
+echo "export DAEMON_NAME=stabled" >> ~/.bashrc
+echo "export DAEMON_HOME=$HOME/.stabled" >> ~/.bashrc
+echo "export DAEMON_ALLOW_DOWNLOAD_BINARIES=true" >> ~/.bashrc
+echo "export DAEMON_RESTART_AFTER_UPGRADE=true" >> ~/.bashrc
+echo "export DAEMON_LOG_BUFFER_SIZE=512" >> ~/.bashrc
+echo "export UNSAFE_SKIP_BACKUP=true" >> ~/.bashrc
+
+# Load variables
+source ~/.bashrc
+
+```
+
+### Step 3: Setup Cosmovisor Directory Structure
+
+```bash
+# Create cosmovisor directory structure
+mkdir -p ~/.stabled/cosmovisor/genesis/bin
+mkdir -p ~/.stabled/cosmovisor/upgrades
+
+# Copy current binary to genesis
+cp /usr/bin/stabled ~/.stabled/cosmovisor/genesis/bin/
+
+# Create current symlink
+ln -s ~/.stabled/cosmovisor/genesis ~/.stabled/cosmovisor/current
+
+# Verify setup
+ls -la ~/.stabled/cosmovisor/
+cosmovisor run version
+```
+
+### Step 4: Set Environment Variable
+
+```bash
+# Set service name (default: stable)
+export SERVICE_NAME=stable
+```
+
+### Step 5: Create Service File
+
+:::code-group
+```bash [Mainnet]
+sudo tee /etc/systemd/system/${SERVICE_NAME}.service > /dev/null <<EOF
+[Unit]
+Description=Cosmovisor daemon
+After=network-online.target
+
+[Service]
+Environment="DAEMON_NAME=stabled"
+Environment="DAEMON_HOME=$HOME/.stabled"
+Environment="DAEMON_RESTART_AFTER_UPGRADE=true"
+Environment="DAEMON_ALLOW_DOWNLOAD_BINARIES=true"
+Environment="DAEMON_LOG_BUFFER_SIZE=512"
+Environment="UNSAFE_SKIP_BACKUP=true"
+User=$USER
+ExecStart=$(which cosmovisor) run start --chain-id stable_988-1
+Restart=always
+RestartSec=3
+LimitNOFILE=65535
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=${SERVICE_NAME}
+
+[Install]
+WantedBy=multi-user.target
+EOF
+```
+```bash [Testnet]
+sudo tee /etc/systemd/system/${SERVICE_NAME}.service > /dev/null <<EOF
+[Unit]
+Description=Cosmovisor daemon
+After=network-online.target
+
+[Service]
+Environment="DAEMON_NAME=stabled"
+Environment="DAEMON_HOME=$HOME/.stabled"
+Environment="DAEMON_RESTART_AFTER_UPGRADE=true"
+Environment="DAEMON_ALLOW_DOWNLOAD_BINARIES=true"
+Environment="DAEMON_LOG_BUFFER_SIZE=512"
+Environment="UNSAFE_SKIP_BACKUP=true"
+User=$USER
+ExecStart=$(which cosmovisor) run start --chain-id stabletestnet_2201-1
+Restart=always
+RestartSec=3
+LimitNOFILE=65535
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=${SERVICE_NAME}
+
+[Install]
+WantedBy=multi-user.target
+EOF
+```
+:::
+
+### Step 6: Enable and Start Service
+
+```bash
+# Reload systemd
+sudo systemctl daemon-reload
+
+# Enable service
+sudo systemctl enable ${SERVICE_NAME}
+
+# Start the service
+sudo systemctl start ${SERVICE_NAME}
+
+# Check status
+sudo systemctl status ${SERVICE_NAME}
+
+# View logs
+sudo journalctl -u ${SERVICE_NAME} -f
+```
+
+### Preparing for Upgrades
+
+When a chain upgrade is announced:
+
+```bash
+# Example: Preparing for v0.8.0 upgrade
+UPGRADE_NAME="v0.8.0"
+mkdir -p ~/.stabled/cosmovisor/upgrades/$UPGRADE_NAME/bin
+
+# Download new binary
+wget https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/binary/stabled-0.8.0-linux-amd64-testnet.tar.gz
+tar -xvzf stabled-0.8.0-linux-amd64-testnet.tar.gz
+
+# Place in upgrade directory
+mv stabled ~/.stabled/cosmovisor/upgrades/$UPGRADE_NAME/bin/
+
+# Verify the binary
+~/.stabled/cosmovisor/upgrades/$UPGRADE_NAME/bin/stabled version
+
+# Cosmovisor will automatically switch to this binary at the upgrade height
+```
+
+### Monitoring Cosmovisor
+
+```bash
+# Check current binary version
+cosmovisor run version
+
+# View upgrade info
+ls -la ~/.stabled/cosmovisor/upgrades/
+
+# Check service logs for upgrade status
+sudo journalctl -u ${SERVICE_NAME} | grep -i upgrade
+
+# Monitor real-time logs during upgrade
+sudo journalctl -u ${SERVICE_NAME} -f
+```
+
+## Manual Systemd Service Setup (Alternative)
+
+If you prefer not to use Cosmovisor, you can create a standard systemd service:
+
+### Step 1: Set Environment Variable
+
+```bash
+# Set service name (default: stable)
+export SERVICE_NAME=stable
+```
+
+### Step 2: Create Service File
+
+:::code-group
+```bash [Mainnet]
+sudo tee /etc/systemd/system/${SERVICE_NAME}.service > /dev/null <<EOF
+[Unit]
+Description=Stable Daemon Service
+After=network-online.target
+
+[Service]
+User=$USER
+ExecStart=/usr/bin/stabled start --chain-id stable_988-1
+Restart=always
+RestartSec=3
+LimitNOFILE=65535
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=${SERVICE_NAME}
+
+[Install]
+WantedBy=multi-user.target
+EOF
+```
+```bash [Testnet]
+sudo tee /etc/systemd/system/${SERVICE_NAME}.service > /dev/null <<EOF
+[Unit]
+Description=Stable Daemon Service
+After=network-online.target
+
+[Service]
+User=$USER
+ExecStart=/usr/bin/stabled start --chain-id stabletestnet_2201-1
+Restart=always
+RestartSec=3
+LimitNOFILE=65535
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=${SERVICE_NAME}
+
+[Install]
+WantedBy=multi-user.target
+EOF
+```
+:::
+
+### Step 3: Enable and Start Service
+
+```bash
+# Reload systemd configuration
+sudo systemctl daemon-reload
+
+# Enable service to start on boot
+sudo systemctl enable ${SERVICE_NAME}
+
+# Start the service
+sudo systemctl start ${SERVICE_NAME}
+
+# Check service status
+sudo systemctl status ${SERVICE_NAME}
+
+# View logs
+sudo journalctl -u ${SERVICE_NAME} -f
+```
+
+## Quick Sync Options
+
+For faster synchronization, see the [Snapshots & Sync Guide](./snapshots) for:
+- Archive node snapshots
+- Pruned node snapshots
+
+## Post-Installation Verification
+
+### Check Node Status
+
+```bash
+# Check if node is running
+sudo systemctl status stabled
+
+# Check sync status
+curl -s localhost:26657/status | jq '.result.sync_info'
+
+# Check connected peers
+curl -s localhost:26657/net_info | jq '.result.n_peers'
+
+# Check latest block
+curl -s localhost:26657/status | jq '.result.sync_info.latest_block_height'
+```
+
+### Monitor Logs
+
+```bash
+# Follow service logs
+sudo journalctl -u stabled -f
+
+# Check for errors
+sudo journalctl -u stabled --since "1 hour ago" | grep -i error
+
+# Check for peer connections
+sudo journalctl -u stabled --since "10 minutes ago" | grep -i "peer"
+```
+
+## Security Hardening
+
+After installation, secure your node:
+
+### Firewall Configuration
+
+```bash
+# Configure UFW
+sudo ufw allow 22/tcp  # SSH
+sudo ufw allow 26656/tcp  # P2P
+sudo ufw allow 26657/tcp  # RPC (only if needed externally)
+sudo ufw enable
+```
+
+## Next Steps
+
+1. **Configure your node**: See [Configuration Guide](./configuration)
+2. **Speed up sync**: Check [Snapshots & Sync](./snapshots)
+3. **Monitor your node**: Set up [Monitoring](./monitoring)
+4. **Join the community**: Get support in [Discord](https://discord.gg/stablexyz)
+
+## Troubleshooting
+
+If you encounter issues during installation:
+- Check the [Troubleshooting Guide](./troubleshooting)
+- Verify system requirements are met
+- Ensure ports are not blocked by firewall
+- Check disk space and permissions
+- Review systemd logs for errors

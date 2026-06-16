@@ -1,0 +1,132 @@
+---
+source_path: reference/node-system-requirements.mdx
+source_sha: 8caf3472c689135d75758042df3b1c66f88d0481
+title: 系统要求
+description: "运行 Stable 全节点、归档节点和验证者节点的硬件与软件要求。"
+---
+
+本页面概述了运行不同类型 Stable 节点的硬件和软件要求。
+
+## 硬件要求
+
+### 全节点（最低要求）
+
+| 组件 | 要求 | 说明 |
+|-----------|------------|--------|
+| **CPU** | 4 核心 | AMD Ryzen 5 / Intel Core i5 或更佳 |
+| **RAM** | 8 GB | 建议 16 GB 以获得更佳性能 |
+| **存储** | 500 GB NVMe/SSD | 需要写入吞吐量 > 1000 MiBps |
+| **网络** | 100 Mbps | 稳定、低延迟连接 |
+| **操作系统** | Ubuntu 22.04/24.04, Debian 12 | 需要 64 位 Linux |
+
+### 全节点（推荐配置）
+
+| 组件 | 要求 | 说明 |
+|-----------|------------|--------|
+| **CPU** | 8 核心 | AMD Ryzen 7 / Intel Core i7 或更佳 |
+| **RAM** | 16 GB | 32 GB 可获得最佳性能 |
+| **存储** | 1 TB NVMe | 写入吞吐量 > 2000 MiBps |
+| **网络** | 1 Gbps | 首选专用连接 |
+| **操作系统** | Ubuntu 24.04 | 建议最新 LTS |
+
+### 存档节点
+
+| 组件 | 要求 | 说明 |
+|-----------|------------|--------|
+| **CPU** | 16 核心 | AMD Ryzen 9 / Intel Core i9 或同等产品 |
+| **RAM** | 32 GB | 建议 64 GB |
+| **存储** | 4 TB NVMe | 快速增长，需规划扩容 |
+| **网络** | 1 Gbps | 需要不计量连接 |
+| **操作系统** | Ubuntu 24.04 | 建议最新 LTS |
+
+## 软件要求
+
+### 操作系统
+
+#### 支持的发行版
+- **Ubuntu 24.04 LTS**（推荐）
+- **Ubuntu 22.04 LTS**
+- **Debian 12 (Bookworm)**
+
+#### 系统依赖
+```bash
+# 更新系统包
+sudo apt update && sudo apt upgrade -y
+
+# 安装基本工具
+sudo apt install -y \
+    build-essential \
+    git \
+    wget \
+    curl \
+    jq \
+    lz4 \
+    zstd \
+    htop \
+    net-tools \
+    ufw
+```
+
+## 网络要求
+
+### 带宽使用情况
+
+| 节点类型 | 下载 | 上传 | 月流量 |
+|-----------|----------|--------|--------------|
+| 全节点 | ~50 Mbps 平均 | ~25 Mbps 平均 | ~15 TB |
+| 存档节点 | ~100 Mbps 平均 | ~50 Mbps 平均 | ~30 TB |
+
+## 云服务提供商推荐
+
+### AWS
+- **全节点**：t3.xlarge 或 c5.xlarge
+- **存档节点**：m5.2xlarge 或 c5.2xlarge
+- **存储**：gp3 配置 IOPS
+
+### Google Cloud
+- **全节点**：n2-standard-4
+- **存档节点**：n2-standard-8
+- **存储**：pd-ssd 或 pd-extreme
+
+### Azure
+- **全节点**：Standard_D4s_v5
+- **存档节点**：Standard_D8s_v5
+- **存储**：Premium SSD v2
+
+### DigitalOcean
+- **全节点**：General Purpose 8GB
+- **存档节点**：CPU-Optimized 16GB
+- **存储**：Volume Block Storage
+
+## 监控要求
+
+对于生产环境部署，请确保您拥有：
+
+- **Prometheus**：用于指标收集
+- **Grafana**：用于可视化
+- **AlertManager**：用于告警
+- **Node Exporter**：用于系统指标
+- **日志聚合**：建议使用 ELK 或 Loki
+
+## 安全考虑
+
+### 系统加固
+- 保持操作系统和软件包更新
+- 配置自动安全更新
+- 仅使用 SSH 密钥（禁用密码认证）
+- 配置 fail2ban
+- 启用防火墙（UFW/iptables）
+- 定期安全审计
+
+## 安装前检查清单
+
+在进行安装之前，请验证：
+
+- [ ] 硬件满足最低要求
+- [ ] 操作系统受支持且已更新
+- [ ] 存储具有足够的 IOPS
+- [ ] 网络带宽充足
+- [ ] 防火墙规则已配置
+- [ ] 系统监控已设置
+- [ ] 备份策略已定义
+- [ ] 安全措施已到位

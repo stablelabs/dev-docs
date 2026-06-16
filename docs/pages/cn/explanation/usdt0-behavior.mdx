@@ -1,0 +1,187 @@
+---
+source_path: explanation/usdt0-behavior.mdx
+source_sha: b278d52c285179daa8a7bbea92edf7cc0b69f04c
+title: "USDT0 在 Stable 上的行为"
+description: "USDT0 在 Stable 上同时作为原生资产和 ERC-20 代币运行。请针对余额对账、授权安全性和操作码行为对合约进行审计。"
+diataxis: "explanation"
+---
+
+# USDT0 在 Stable 上的行为
+
+**如果你正在从以太坊移植合约，请在部署前阅读本页。** Stable 上的 USDT0 既是原生 gas 代币，又是基于同一余额的 ERC-20 代币。因此，四种以太坊上的假定行为会失效：合约的原生余额可能在没有调用该合约的情况下发生变化；`EXTCODEHASH` 可能在零值和空哈希之间来回切换；向零地址转账会回滚；以及由于分数余额对账，一笔逻辑上的转账可能发出多个 `Transfer` 事件。
+
+本页将逐一讲解每种情况并给出安全的合约模式。如果你只读一节，请阅读[迁移清单](#migration-checklist)。它是"把你的以太坊合约移植到这里"的摘要。
+
+## 双重角色概述
+
+Stable 上的 USDT0 既是原生 gas 代币，又是 ERC-20 代币。这种双重角色模型会影响余额行为、合约设计和事件处理。下面各节将逐一讲解双重角色改变预期行为的每种情况。
+
+有关 USDT0 为何以这种方式运行的背景信息，请参阅 [USDT 作为 gas](/en/explanation/usdt-as-gas-token)。要通过真实转账体验这种行为，请参阅[发送你的第一笔 USDT0](/en/tutorial/send-usdt0)。
+
+## 余额对账
+
+USDT0 作为原生资产使用 18 位小数，作为 ERC-20 代币使用 6 位小数。原生转账和 ERC-20 转账操作于同一底层余额，但 12 位的精度差距意味着当转账涉及亚整数精度时，系统必须对账分数金额。
+
+```
+before
+  0.000001 USDT0 (ERC-20) + 0.000000000000000000 USDT0 (internal)
+  // address(account).balance = 0.000001000000000000
+  // USDT0.balanceOf(account) = 0.000001
+
+if transfer 0.0000001 USDT0 to another account
+
+after
+  0.000000 USDT0 (ERC-20) + 0.000000900000000000 USDT0 (internal)
+  // address(account).balance = 0.000000900000000000
+  // USDT0.balanceOf(account) = 0.000000
+```
+
+这可能导致 `address(account).balance` 和 `USDT0.balanceOf(account)` 之间相差最多 0.000001 USDT0。
+
+## 事件处理
+
+每次对账转账都会发出一个额外的 `Transfer` 事件。根据发送方和接收方的分数余额受到何种影响，一笔逻辑上的 USDT0 转账最多可产生两个额外的 `Transfer` 事件：
+
+- **发送方调整**：如果发送方的分数余额不足，0.000001 USDT0 会从发送方转移到储备地址。这会发出一个额外的 `Transfer` 事件。
+- **接收方调整**：如果接收方的分数余额溢出，0.000001 USDT0 会从储备地址转移到接收方。这会发出一个额外的 `Transfer` 事件。
+- **两者均调整**：如果两个条件在同一笔转账中同时发生，则绕过储备地址。发送方作为主转账的一部分直接向接收方转移 0.000001 USDT0。不会发出额外事件。
+
+这些辅助事件涉及储备地址 `0x6D11e1A6BdCC974ebE1cA73CC2c1Ea3fDE624370`。通过重放 `Transfer` 事件来跟踪 USDT0 余额的索引器和链下服务，必须过滤或考虑与此地址之间的转账。
+
+## 合约设计要求
+
+### 原生余额可变性
+
+在以太坊上，合约的原生余额通常只会因合约执行而发生变化。在 Stable 上，合约的原生 USDT0 余额还可能因基于 ERC-20 授权的操作（包括 `transferFrom` 和 `permit`）而发生变化。这些操作可以在不调用任何合约代码的情况下减少合约的原生余额。
+
+因此，以下假设在 Stable 上无效：
+
+> 合约的原生余额只有在合约被调用时才会减少。
+
+### 不要镜像原生余额
+
+在以太坊上，使用内部变量跟踪存款很常见。在 Stable 上，这是不安全的，因为 ERC-20 `transferFrom` 可以在外部耗尽原生余额。
+
+```solidity
+// UNSAFE on Stable
+uint256 public deposited;
+
+function deposit() external payable {
+    deposited += msg.value;
+}
+```
+
+### 转账前始终检查真实余额
+
+所有原生价值转账都必须在转账前使用 `address(this).balance` 验证偿付能力，而不是使用内部记账变量：
+
+```solidity
+// SAFE
+function withdraw() external {
+    uint256 amount = credit[msg.sender];
+    credit[msg.sender] = 0;
+    require(address(this).balance >= amount, "insufficient balance");
+    payable(msg.sender).call{value: amount}("");
+}
+```
+
+### 状态推进必须与余额无关
+
+依赖于推进、里程碑或完成条件的协议逻辑，必须使用非余额状态变量（例如计数器或纪元）显式跟踪这些条件。原生余额应仅在支付时用于偿付能力验证。
+
+### 禁止零地址转账
+
+在 Stable 上，向 `address(0)` 的原生转账和 ERC-20 转账都会回滚。
+
+```solidity
+// REVERT on Stable
+payable(address(0)).call{value: amount}("")
+USDT0.transfer(address(0), amount);
+```
+
+任何发送原生 USDT0 的合约逻辑都应在转账调用前验证接收方并明确拒绝 `address(0)`：
+
+```solidity
+// SAFE
+require(recipient != address(0), "zero address recipient");
+payable(recipient).call{value: amount}("");
+```
+
+如果合约使用零地址转账作为销毁机制，则必须重新设计。如果需要不可逆的损失语义，请使用显式的接收（sink）合约。
+
+### EXTCODEHASH 行为
+
+在以太坊上，`EXTCODEHASH` 操作码返回：
+
+- **零哈希**（`0x0000...`）：如果某地址从未被使用过（nonce=0、balance=0、无代码）。
+- **空哈希**（`0xc5d2…a470`，即空代码的 Keccak-256 哈希）：如果某地址存在但没有代码。
+
+在以太坊上，一旦地址从零哈希转变为空哈希，就无法再回到零哈希。在 Stable 上，由于 USDT0 支持基于 `permit()` 的授权，地址可以在不发送交易的情况下创建授权。结合 `transferFrom()`，这允许在 nonce 不增加的情况下改变原生余额，从而可能使 `EXTCODEHASH` 在零哈希和空哈希之间来回切换。
+
+```solidity
+// UNSAFE on Stable
+function isUnusedAddress(address addr) public view returns (bool) {
+    bytes32 codeHash;
+    assembly {
+        codeHash := extcodehash(addr)
+    }
+    return codeHash == bytes32(0);
+}
+```
+
+请改用显式跟踪：
+
+```solidity
+// SAFE
+contract SafeAddressTracker {
+    mapping(address => bool) public hasBeenUsed;
+
+    function markAsUsed(address addr) internal {
+        hasBeenUsed[addr] = true;
+    }
+
+    function isUnused(address addr) public view returns (bool) {
+        return !hasBeenUsed[addr];
+    }
+}
+```
+
+## 测试要求
+
+Stable 部署的测试套件应包括：
+
+- 基于授权的耗尽场景（`approve` + `transferFrom`）
+- 使用真实原生余额强制执行偿付能力
+- 不依赖 `EXTCODEHASH` 的地址使用逻辑
+- 零地址转账的显式失败用例
+
+## 迁移清单
+
+从以太坊向 Stable 移植合约时：
+
+- 移除内部原生余额镜像
+- 将所有偿付能力检查替换为 `address(this).balance`
+- 移除所有向 `address(0)` 的原生或 ERC-20 转账
+- 审计所有 USDT0 授权
+- 添加涵盖 `permit` 和基于授权流程的测试
+- 验证链下索引器能处理来自分数余额对账的辅助 `Transfer` 事件
+
+## 关键要点
+
+在 Stable 上正确的合约设计需要：
+
+- 将 USDT0 视为双重角色资产
+- 针对真实余额强制执行偿付能力
+- 避免基于授权的耗尽路径
+- 消除对以太坊特定余额和地址假设的依赖
+
+链下服务和索引器应：
+
+- 考虑来自分数余额对账的辅助 `Transfer` 事件
+- 使用直接的余额查询，而不是基于事件的余额重建
+
+## 推荐的下一步
+
+- [**USDT 作为 gas**](/en/explanation/usdt-as-gas-token) — 了解 USDT0 为何同时作为原生资产和 ERC-20 代币运行。
+- [**发送你的第一笔 USDT0**](/en/tutorial/send-usdt0) — 在测试网上通过原生和 ERC-20 路径提交 USDT0 转账。
+- [**以太坊对比**](/en/explanation/ethereum-comparison) — 查看从以太坊移植时的每一项行为差异。

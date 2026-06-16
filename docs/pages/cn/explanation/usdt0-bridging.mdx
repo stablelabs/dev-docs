@@ -1,0 +1,151 @@
+---
+source_path: explanation/usdt0-bridging.mdx
+source_sha: a85e32a5812a12a5f3c2161fd245a44c27bde59d
+title: "跨链桥接到 Stable"
+description: "USDT0（OFT Mesh）和原生 USDT（Legacy Mesh）跨链桥接到 Stable 的机制。"
+diataxis: "explanation"
+---
+
+# 跨链桥接到 Stable
+
+USDT 通过两条桥接路径之一进入 Stable，具体取决于它在源链上的形态。这两条路径都会将 USDT0 交付到用户在 Stable 上的钱包。
+
+:::note
+**两条路径，同一结果：**
+- **OFT Mesh**：源链已经拥有 USDT0。在源链上销毁，在 Stable 上铸造。跨链 1:1。示例：Arbitrum、Ethereum、Optimism、Polygon、Unichain、Ink、Bera、Mantle、Hyperliquid、MegaETH（共 21 条链）。
+- **Legacy Mesh**：源链仅有原生 USDT。通过 Arbitrum 作为枢纽进行路由。对转账金额收取 0.03% 费用。示例：Tron、TON。
+:::
+
+下面各节将详细描述每条路径。
+
+## USDT0 OFT Mesh 与 Legacy Mesh
+
+Stable 参与两个互补的跨链转账网络。
+
+### OFT Mesh
+
+任何支持 USDT0 的链都可以参与 OFT Mesh。在 OFT Mesh 内，USDT0 跨链转账保持 1:1 的价值比率。当发生转账时，源链上的 USDT0 代币被销毁，并在目标链上铸造等量的代币。当前 OFT Mesh 参与者包括 Arbitrum、Bera、Conflux、Ethereum、Flare、Hedera、Hyperliquid、Ink、Mantle、MegaETH、Monad、Morph、MP1、Optimism、Plasma、Polygon、Rootstock、Sei、Stable、Tempo、Unichain 和 X Layer。
+
+### Legacy Mesh
+
+任何拥有原生 USDT（而非 USDT0）的链都可以通过 Legacy Mesh 进行路由。Legacy Mesh 采用枢纽辐射式架构，由 Arbitrum 作为 USDT0 的中央枢纽。该模型利用 Arbitrum 上的 USDT0 流动性池。USDT0 团队对转账金额收取 0.03% 的费用。当前 Legacy Mesh 参与者包括 Tron 和 TON。
+
+Ethereum 和 Arbitrum 同时参与两个 Mesh：这些链上的用户可以通过 OFT 路径（销毁/铸造 USDT0）或 Legacy 路径（通过 Arbitrum 枢纽锁定原生 USDT）进行桥接。
+
+---
+
+## 路径 1：将 USDT0 桥接到 Stable（OFT 支持的链）
+
+当用户已在 OFT 支持的源链（如 Arbitrum 或 Ink）上持有 USDT0 时，适用此路径。
+
+### 参与方
+
+| 名称 | 链上？ | 负责方 |
+| --- | --- | --- |
+| 用户 | N/A | 用户 |
+| USDT0 OUpgradable | ✅ | USDT0 的智能合约 |
+| LayerZero Endpoint V2 | ✅ | LayerZero 的智能合约 |
+| MessageLib Registry | ✅ | LayerZero 的智能合约 |
+| Executor | ❌ | LayerZero Labs |
+| USDT0 DVN | ❌ | USDT0 |
+| Canary DVN | ❌ | Canary |
+| LayerZero DVN | ❌ | LayerZero Labs |
+
+### 流程图
+
+<img src="/images/to-stable.png" alt="将 USDT0 桥接到 Stable：OFT Mesh 流程" />
+
+### 详细步骤
+
+#### 1. 发起转账（链上，源链）
+
+用户在源链上的 **USDT0 OUpgradable** 合约上调用 `lzSend` 方法。该交易包含消息负载、目标 LayerZero 端点和合约地址，以及诸如 gas 上限和费用等配置参数。
+
+#### 2. 数据包创建（链上，源链）
+
+源 LayerZero 端点打包 OApp 的消息，使用指定的源 MessageLib 合约对其进行编码，并将其发送到安全栈（DVN）和 Executor，完成发送交易。
+
+#### 3. 消息验证（链下，DVN）
+
+去中心化验证网络（DVN）在目标合约执行消息之前独立验证消息。只有获得 OApp 授权的 DVN 才能执行验证。USDT0 桥接要求三个 DVN 对每条消息进行签名：LayerZero Labs、Canary 和 USDT0。要查看任何路径上的规范配置，请参阅 [LayerZeroScan 上 USDT0 的 OApp](https://layerzeroscan.com/)。
+
+#### 4. 标记为可验证（链上，Stable）
+
+一旦所有所需的 DVN 验证了消息，目标 MessageLib 合约就会将其标记为可验证。
+
+#### 5. 验证提交（链下，Executor）
+
+Executor 将经过验证的消息提交到目标 LayerZero 端点，为执行做好准备。
+
+#### 6. 数据包验证（链上，Stable）
+
+目标 LayerZero 端点确认 Executor 交付的数据包与 DVN 验证的数据包匹配。
+
+#### 7. 消息执行（链下，Executor）
+
+Executor 在目标链上调用 `lzReceive`，触发 Stable 上的 USDT0 OUpgradable 合约进行消息处理。
+
+#### 8. 完成（链上，Stable）
+
+Stable 上的 USDT0 OUpgradable 合约处理经过验证的消息，完成跨链转账。USDT0 被铸造到用户的地址。
+
+---
+
+## 路径 2：将原生 USDT 桥接到 Stable（Legacy Mesh）
+
+当用户在 Legacy Mesh 链（如 Tron）上持有原生 USDT 时，适用此路径。转账在到达 Stable 之前会通过 Arbitrum 作为中间枢纽进行路由。
+
+### 参与方
+
+| 名称 | 链上？ | 负责方 |
+| --- | --- | --- |
+| 用户 | N/A | 用户 |
+| USDT Pool | ✅ | USDT0 的智能合约 |
+| USDT0 Pool | ✅ | USDT0 的智能合约 |
+| MultiHopComposer | ✅ | LayerZero 的智能合约 |
+| USDT0 OUpgradable | ✅ | USDT0 的智能合约 |
+| LayerZero Endpoint | ✅ | LayerZero 的智能合约 |
+| MessageLib Registry | ✅ | LayerZero 的智能合约 |
+| USDT0 Legacy Mesh Operator | ❌ | USDT0 |
+| Executor | ❌ | LayerZero Labs |
+| USDT0 DVN | ❌ | USDT0 |
+| Canary DVN | ❌ | Canary |
+| LayerZero DVN | ❌ | LayerZero Labs |
+
+### 流程图
+
+<img src="/images/from-stable.png" alt="将原生 USDT 从 Tron 桥接到 Stable：Legacy Mesh 流程" />
+
+### 详细步骤
+
+#### 1. 发起转账（链上，Tron）
+
+用户发起桥接交易，并将原生 USDT 发送到 Tron 上的 **USDT Pool** 合约。USDT 被锁定在池中。然后 USDT Pool 合约向 Tron 上的 LayerZero Endpoint 合约发送一条消息。
+
+#### 2. 向 Legacy Mesh 发送消息（链下）
+
+LayerZero Endpoint 合约将消息发送到 **USDT0 Legacy Mesh Operator**，由其验证消息。
+
+#### 3. 发起 MultiHop 转账（链上，Arbitrum）
+
+USDT0 Legacy Mesh Operator 在 Arbitrum 上的 LayerZero **MultiHopComposer** 合约上调用 `lzCompose()` 方法。无需额外的用户交互，MultiHopComposer 合约即可执行从 Arbitrum 到 Stable 的 USDT0 铸造-销毁桥接转账。
+
+:::note
+MultiHopComposer 合约完全无需许可，并且没有 `owner()`，以确保不可变性。
+:::
+
+#### 4. 将 USDT0 转移到 Stable（链上和链下）
+
+其余步骤遵循与[将 USDT0 桥接到 Stable](#path-1--bridging-usdt0-to-stable-oft-supported-chains)（上述第 1–8 步）完全相同的路径。Arbitrum 上的 USDT0 OUpgradable 合约通过 LayerZero 发送，DVN 进行验证，USDT0 在 Stable 上铸造。
+
+### 注意事项
+
+- Arbitrum 上的 USDT0 流动性由 USDT0 团队管理。
+- Legacy Mesh 对转账金额收取 0.03% 的费用。
+- 用户无需直接与 Arbitrum 交互；MultiHop 流程是自动的。
+
+## 接下来推荐
+
+- [**资金流转**](/en/explanation/flow-of-funds) — 查看 USDT 从入金到结算的端到端生命周期。
+- [**桥接教程**](/en/tutorial/bridge-usdt0) — 使用 LayerZero OFT Adapter 将测试 USDT 从 Sepolia 桥接到 Stable 测试网。
+- [**USDT 作为 gas**](/en/explanation/usdt-as-gas-token) — 了解该资产到达 Stable 后的作用。

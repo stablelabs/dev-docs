@@ -1,0 +1,181 @@
+---
+source_path: reference/indexers.mdx
+source_sha: 1c58bfaa41b5ad47db75e7b0674d90cd5f095ccf
+title: "인덱서"
+description: "The Graph, Goldsky, Allium, Stablescan, CoinGecko를 포함한 Stable용 인덱싱 및 분석 제공업체."
+diataxis: "reference"
+---
+
+# 인덱서
+
+인덱서와 분석 플랫폼은 온체인 데이터에 대한 구조화된 접근을 제공하여, 개발자가 트랜잭션, 잔액, 로그, 이벤트, 애플리케이션별 데이터를 대규모로 쿼리할 수 있게 합니다. Stable은 EVM 호환이므로 표준 Ethereum 인덱싱 도구가 원활하게 작동합니다.
+
+이 페이지에서는 현재 및 향후 인덱싱 제공업체와 함께 개발자가 기대할 수 있는 기능을 나열합니다.
+
+## 개요 표
+
+| **제공업체**                                                                | **카테고리**                  | **문서 / 시작하기**                                                                                                              | **참고**                                                          |
+| :-------------------------------------------------------------------------- | :---------------------------- | :---------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------- |
+| [**Stablescan**](https://stablescan.xyz/)                               | 블록체인 익스플로러           | [https://docs.etherscan.io/introduction](https://docs.etherscan.io/introduction)                                                     | 블록체인 익스플로러; 트랜잭션, 블록, 컨트랙트 가시성. |
+| [**The Graph**](https://thegraph.com/explorer/participants/indexers) | 인덱서                       | [https://thegraph.com/docs/en/developing/creating-a-subgraph/](https://thegraph.com/docs/en/developing/creating-a-subgraph/) | GraphQL을 사용해 서브그래프를 구축, 배포, 쿼리합니다.                  |
+| [**Goldsky**](https://goldsky.com/)                                  | 인덱서                       | [https://docs.goldsky.com/introduction](https://docs.goldsky.com/introduction)                                               | 고성능 인덱싱 및 실시간 데이터 스트리밍.            |
+| [**Ormi Labs**](https://ormilabs.com/)                               | 인덱서                       | [https://docs.ormilabs.com/subgraphs/quickstart](https://docs.ormilabs.com/subgraphs/quickstart)                             | 실시간 데이터 기능을 갖춘 차세대 서브그래프 인덱서.        |
+| [**Allium**](https://www.allium.so/)                                 | 분석 / 데이터 플랫폼     | [https://docs.allium.so/](https://docs.allium.so/)                                                                           | 정규화된 블록체인 데이터셋 및 분석 도구.                |
+| [**CoinMarketCap**](https://coinmarketcap.com/api/)                  | 시장 데이터 애그리게이터        | [https://coinmarketcap.com/api/documentation/v1/](https://coinmarketcap.com/api/documentation/v1/)                           | 시장 가격, 목록, 추적 도구.                       |
+| [**CoinGecko**](https://www.coingecko.com/en/api)                    | 시장 데이터 애그리게이터        | [https://docs.coingecko.com/](https://docs.coingecko.com/)                                                                   | 개발자 API를 갖춘 독립적인 시장 데이터.                       |
+| [**Dexscreener**](https://docs.dexscreener.com/)                     | DEX 분석                 | [https://docs.dexscreener.com/](https://docs.dexscreener.com/)                                                               | 실시간 DEX 차트, 유동성 분석, 대시보드.         |
+| [**DeBank**](https://debank.com/)                                    | 포트폴리오 / 지갑 분석  | [https://cloud.debank.com/](https://cloud.debank.com/)                                                                       | EVM 지갑 추적, 트랜잭션, 포트폴리오 인사이트.         |
+
+## 1. 인덱서
+
+인덱서는 원시 블록체인 데이터를 검색 가능하고 쿼리 가능한 형식으로 변환합니다. 대시보드, 분석, 지갑, 블록 익스플로러, 애플리케이션 백엔드를 구동합니다.
+
+### The Graph
+
+75,000개 이상의 프로젝트에 데이터 접근을 제공하는 탈중앙화 인덱싱 프로토콜.
+
+**기능**
+
+- Stable용 서브그래프
+- GraphQL 기반 쿼리
+- 분산 인덱싱 네트워크
+
+**문서**
+
+이 빠른 시작 가이드를 따라 몇 분 안에 서브그래프를 생성, 배포, 쿼리하세요:
+
+[https://thegraph.com/docs/en/developing/creating-a-subgraph/](https://thegraph.com/docs/en/developing/creating-a-subgraph/)
+
+### Ormi Labs
+
+Ormi는 실시간 및 과거 블록체인 데이터를 대규모로 제공하도록 구축된 차세대 인덱서입니다.
+
+**기능**
+
+- 체인 최신 시점 인덱싱
+- 1초 미만의 쿼리 지연 시간
+- 노코드 기능
+
+**문서**
+
+Ormi로 실시간 데이터 쿼리를 시작하세요:
+
+[https://docs.ormilabs.com/subgraphs/quickstart](https://docs.ormilabs.com/subgraphs/quickstart)
+
+Stable에서 USDT0 데이터를 실시간으로 쿼리하는 방법을 알아보세요:
+
+[https://docs.ormilabs.com/subgraphs/tutorials/query-usdt0](https://docs.ormilabs.com/subgraphs/tutorials/query-usdt0)
+
+### Goldsky
+
+즉시 사용 가능한 서브그래프와 개발자 도구를 갖춘 고성능 인덱싱 플랫폼.
+
+**기능**
+
+- 서브그래프 배포 및 관리
+- 실시간 이벤트 스트리밍을 위한 웹훅 생성
+- 외부 데이터베이스로의 다중 서브그래프 동기화
+
+**문서**
+
+[https://docs.goldsky.com/introduction](https://docs.goldsky.com/introduction)
+
+연중무휴 지원은 [support@goldsky.com](mailto:support@goldsky.com)으로 문의하세요.
+
+## 2. 분석 제공업체
+
+분석 도구는 팀이 네트워크 활동, 실제 결제, 대시보드, 사용 흐름, 컨트랙트 상호작용을 추적하는 데 도움을 줍니다.
+
+### Allium
+
+블록체인 생태계 전반의 엔지니어와 분석가를 위한 기초 데이터 플랫폼.
+
+**기능**
+
+- 정규화된 블록체인 데이터셋
+- 분석 팀을 위한 쿼리 도구
+- 엔터프라이즈 데이터 인프라
+
+**문서**
+
+Allium의 데이터 플랫폼 및 API 리소스로 시작하세요:
+
+[https://www.allium.so/](https://www.allium.so/)
+
+**시작하기**: [allium.so](https://www.allium.so/)에서 가입하여 API 접근 권한을 얻은 다음, REST API를 사용해 정규화된 Stable 온체인 데이터셋을 쿼리하세요.
+
+### CoinMarketCap
+
+암호화폐 자산을 위한 세계 최대의 글로벌 시장 추적 플랫폼.
+
+**기능**
+
+- Stable 자산 가격 추적
+- 포트폴리오 도구
+- 시장 데이터 API
+
+**문서**
+
+CMC API 및 통합 리소스를 살펴보세요:
+
+[https://coinmarketcap.com/api/](https://coinmarketcap.com/api/)
+
+**시작하기**: [coinmarketcap.com/api](https://coinmarketcap.com/api/)에서 API 키를 등록하고 REST API를 통해 Stable 자산 가격과 시장 데이터를 쿼리하세요.
+
+### CoinGecko
+
+세계 최대의 독립적인 암호화폐 데이터 애그리게이터.
+
+**기능**
+
+- 시장 목록 및 가격 데이터
+- 과거 분석
+- 개발자를 위한 API 접근
+
+**문서**
+
+CoinGecko의 API 문서에 접근하세요:
+
+[https://www.coingecko.com/en/api](https://www.coingecko.com/en/api)
+
+**시작하기**: [coingecko.com/en/api](https://www.coingecko.com/en/api)에서 무료 또는 Pro API 키를 받고 REST API를 통해 Stable 토큰 가격과 시장 데이터를 쿼리하세요.
+
+### Dexscreener
+
+탈중앙화 거래소를 위한 실시간 차트 및 분석.
+
+**기능**
+
+- 실시간 DEX 차트
+- 유동성 및 페어 분석
+- 트레이딩 대시보드
+
+**문서**
+
+Dexscreener의 API 엔드포인트 및 개발자 도구를 살펴보세요:
+
+[https://docs.dexscreener.com/](https://docs.dexscreener.com/)
+
+**시작하기**: [Dexscreener API 문서](https://docs.dexscreener.com/)를 둘러보고 Stable 기반 DEX 풀의 실시간 페어 데이터, 유동성, 트레이딩 활동을 쿼리하세요.
+
+### DeBank
+
+Ethereum 및 EVM 생태계를 위한 포트폴리오 추적기.
+
+**기능**
+
+- 지갑 분석
+- 트랜잭션 요약
+- 체인 전반의 포트폴리오 추적
+
+**문서**
+
+DeBank의 API 레퍼런스 및 통합 문서를 읽어보세요:
+
+[https://docs.debank.com/](https://docs.debank.com/)
+
+**시작하기**: [DeBank Cloud](https://cloud.debank.com/)에 가입하여 API 키에 접근하고 Stable 지갑 잔액, 트랜잭션 기록, 포트폴리오 데이터를 쿼리하세요.
+
+---
+
+Stable을 통합하는 인덱싱 또는 분석 플랫폼이 있으신가요? [bizdev@stable.xyz](mailto:bizdev@stable.xyz)로 문의하세요.

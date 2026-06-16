@@ -1,0 +1,133 @@
+---
+source_path: how-to/sdk-with-wagmi.mdx
+source_sha: d3266e146435bf079104ad0d84f274096f220701
+title: "在 wagmi 中使用 SDK"
+description: "使用 wagmi 的 useWalletClient、useAccount 和 useChainId hooks，将 @stablechain/sdk 接入 React 应用。"
+diataxis: "how-to"
+---
+
+# 在 wagmi 中使用 SDK
+
+`createStable` 接受一个 viem `WalletClient`，而这正是 wagmi 的 `useWalletClient` 所返回的内容。你像往常一样通过 wagmi 连接钱包，然后在钱包客户端发生变化时记忆化一个 `StableClient`。
+
+本指南假设你使用 wagmi v2 和 `@tanstack/react-query`。
+
+## 1. 配置 wagmi
+
+将 Stable 添加到 wagmi 配置中。viem 为两个网络都提供了链定义。
+
+```ts
+import { http, createConfig } from "wagmi";
+import { stable as stableMainnet, stableTestnet } from "viem/chains";
+import { injected } from "wagmi/connectors";
+
+export const wagmiConfig = createConfig({
+  chains: [stableMainnet, stableTestnet],
+  connectors: [injected()],
+  transports: {
+    [stableMainnet.id]: http(),
+    [stableTestnet.id]: http(),
+  },
+});
+```
+
+```text
+WagmiConfig { chains: [988, 2201], connectors: [injected] }
+```
+
+## 2. 构建一个返回 `StableClient` 的 hook
+
+针对当前的 `WalletClient` 记忆化一个 `StableClient`。当钱包客户端标识发生变化时重新创建它。
+
+```tsx
+import { useMemo } from "react";
+import { useWalletClient } from "wagmi";
+import { createStable, Network, type StableClient } from "@stablechain/sdk";
+
+export function useStable(network: Network = Network.Mainnet): StableClient | null {
+  const { data: walletClient } = useWalletClient();
+
+  return useMemo(() => {
+    if (!walletClient) return null;
+    return createStable({ network, walletClient });
+  }, [walletClient, network]);
+}
+```
+
+:::warning
+在用户连接之前，`useWalletClient()` 返回 `undefined`。在调用 SDK 方法之前务必进行守卫检查，否则解构得到的 `walletClient` 将为假值，`createStable` 将没有签名者。
+:::
+
+## 3. 在组件中使用它
+
+```tsx
+import { useAccount, useChainId } from "wagmi";
+import { Network } from "@stablechain/sdk";
+import { useStable } from "./useStable";
+
+export function PayButton() {
+  const { address } = useAccount();
+  const chainId = useChainId();
+  const stable = useStable(Network.Mainnet);
+
+  async function onClick() {
+    if (!stable || !address) return;
+    const { txHash } = await stable.transfer({
+      from: address,
+      to: "0xRecipient",
+      amount: 1,
+    });
+    console.log("Sent:", txHash);
+  }
+
+  return (
+    <button disabled={!stable} onClick={onClick}>
+      Pay 1 USDT0 (chain {chainId})
+    </button>
+  );
+}
+```
+
+```text
+Sent: 0x8f3a...2d41
+```
+
+## 4. 在 React 中进行桥接和兑换
+
+同一个 `stable` 实例可处理桥接和兑换。在 effect 或 `useQuery` 中获取报价，然后在点击时执行。
+
+```tsx
+const stable = useStable(Network.Mainnet);
+
+const onSwap = async () => {
+  if (!stable) return;
+  const quote = await stable.quoteSwap({
+    fromToken: "0x8a2B28364102Bea189D99A475C494330Ef2bDD0B",
+    toToken: "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
+    amount: 100,
+    fromDecimals: 6,
+  });
+  const { txHash, toAmount } = await stable.swap({
+    fromToken: quote.fromToken,
+    toToken: "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
+    amount: 100,
+    fromDecimals: 6,
+    quote,
+  });
+  console.log({ txHash, toAmount });
+};
+```
+
+```text
+{ txHash: "0xabcd...", toAmount: 99.81 }
+```
+
+:::note
+使用 `useQuery` 缓存报价效果很好：将 `quoteSwap` / `quoteBridge` 作为查询函数传入，并将缓存的 `quote` 转发给 `swap` / `bridge`。当提供了报价时，SDK 会跳过其内部的报价调用。
+:::
+
+## 推荐的下一步
+
+- [**SDK 参考**](/en/reference/sdk) — 每个方法、配置字段和错误类。
+- [**与 viem 一起使用**](/en/how-to/sdk-with-viem) — 并排比较三种签名模式。
+- [**SDK 快速入门**](/en/tutorial/sdk-quickstart) — 在测试网上运行你的第一笔转账、桥接和兑换。

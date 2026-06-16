@@ -1,0 +1,377 @@
+---
+source_path: how-to/use-node-snapshots.mdx
+source_sha: 9560891a991acf962e514bb5bc630f0db8012b79
+title: Snapshots & Sync Guide
+description: "스냅샷을 사용하여 Stable 풀 노드 및 아카이브 노드를 빠르게 동기화하는 방법."
+---
+
+This guide covers various methods to synchronize your Stable node quickly using snapshots and state sync.
+
+## Sync Methods Overview
+
+| Method | Sync Time | Storage Required | Use Case |
+|--------|-----------|------------------|----------|
+| **Pruned Snapshot** | ~10 min | < 5 GiB | Regular full nodes |
+| **Archive Snapshot** | ~1 hours | ~500 GB | Archive nodes, block explorers |
+
+## Official Snapshots
+
+Stable provides official snapshots updated daily (00:00 UTC).
+
+### Snapshot Information
+
+### Mainnet
+
+| Type | Compression | Size | URL | Update Frequency |
+  |------|-----------------|-------------|------|-----|
+| **Pruned** | LZ4 | < 5 GiB | [Download](https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/snapshots/snapshot.tar.lz4) | Daily |
+| **Archive** | ZSTD | ~300 GB | [Download](https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/snapshots/stable_archive.tar.zst) | Weekly |
+
+### Testnet
+
+| Type | Compression | Size | URL | Update Frequency |
+|------|-----------------|-------------|------|-----|
+| **Pruned** | LZ4 | < 5 GiB | [Download](https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/snapshots/snapshot.tar.lz4) | Daily |
+  | **Archive** | ZSTD | ~800 GB | [Download](https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/snapshots/stable_archive.tar.zst) | Weekly |
+
+## Using Pruned Snapshots
+
+Pruned snapshots contain recent blockchain state (last 100-1000 blocks).
+
+### Step 1: Set Environment Variable
+
+```bash
+# Set service name (default: stable)
+export SERVICE_NAME=stable
+```
+
+### Step 2: Stop Node Service
+
+```bash
+# Stop the running node
+sudo systemctl stop ${SERVICE_NAME}
+
+# Verify it's stopped
+sudo systemctl status ${SERVICE_NAME}
+```
+
+### Step 2: Backup Current Data (Optional)
+
+```bash
+# Create backup directory
+mkdir -p ~/stable-backup
+
+# Backup current state (optional, requires significant space)
+cp -r ~/.stabled/data ~/stable-backup/
+```
+
+### Step 3: Download and Extract Pruned Snapshot
+
+:::code-group
+```bash [Mainnet]
+# Install dependencies
+sudo apt install -y wget zstd pv
+
+# Create snapshot directory
+mkdir -p ~/snapshot
+cd ~/snapshot
+
+# Download pruned snapshot with progress
+wget -c https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/snapshots/snapshot.tar.lz4
+
+# Remove old data
+rm -rf ~/.stabled/data/*
+
+# Extract snapshot with progress indicator
+pv stable_pruned.tar.zst | zstd -d -c | tar -xf - -C ~/.stabled/
+
+# Alternative extraction without pv
+zstd -d stable_pruned.tar.zst -c | tar -xvf - -C ~/.stabled/
+
+# Clean up
+rm stable_pruned.tar.zst
+```
+```bash [Testnet]
+# Install dependencies
+sudo apt install -y wget lz4 pv
+
+# Create snapshot directory
+mkdir -p ~/snapshot
+cd ~/snapshot
+
+# Download pruned snapshot with progress
+wget -c https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/snapshots/snapshot.tar.lz4
+
+# Alternative: Download with resume support
+curl -C - -o snapshot.tar.lz4 https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/snapshots/snapshot.tar.lz4
+
+# Remove old data
+rm -rf ~/.stabled/data/*
+
+# Extract snapshot with progress indicator
+pv snapshot.tar.lz4 | tar -I lz4 -xf - -C ~/.stabled/
+
+# Alternative extraction without pv
+tar -I lz4 -xvf snapshot.tar.lz4 -C ~/.stabled/
+
+# Clean up
+rm snapshot.tar.lz4
+```
+:::
+
+### Step 4: Restart Node
+
+```bash
+# Start the node
+sudo systemctl start ${SERVICE_NAME}
+
+# Check status
+sudo systemctl status ${SERVICE_NAME}
+
+# Monitor logs
+sudo journalctl -u stabled -f
+```
+
+## Using Archive Snapshots
+
+Archive snapshots contain complete blockchain history.
+
+### Step 1: Prepare System
+
+```bash
+# Stop node
+sudo systemctl stop ${SERVICE_NAME}
+
+# Install dependencies
+sudo apt install -y wget zstd pv
+
+# Check available disk space (need 2x snapshot size)
+df -h ~/.stabled
+```
+
+### Step 2: Download and Extract Archive Snapshot
+
+:::code-group
+```bash [Mainnet]
+# Create working directory
+mkdir -p ~/snapshot
+cd ~/snapshot
+
+# Download archive snapshot
+wget -c https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/snapshots/stable_archive.tar.zst
+
+# Clear old data
+rm -rf ~/.stabled/data/*
+
+# Extract with high memory for better performance
+pv stable_archive.tar.zst | zstd -d --long=31 --memory=2048MB -c - | tar -xf - -C ~/.stabled/
+
+# Alternative: Standard extraction
+zstd -d --long=31 stable_archive.tar.zst -c | tar -xvf - -C ~/.stabled/
+
+# Clean up
+rm stable_archive.tar.zst
+```
+```bash [Testnet]
+# Create working directory
+mkdir -p ~/snapshot
+cd ~/snapshot
+
+# Download archive snapshot
+wget -c https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/snapshots/stable_archive.tar.zst
+
+# Clear old data
+rm -rf ~/.stabled/data/*
+
+# Extract with high memory for better performance
+pv archive.tar.zst | zstd -d --long=31 --memory=2048MB -c - | tar -xf - -C ~/.stabled/
+
+# Alternative: Standard extraction
+zstd -d --long=31 archive.tar.zst -c | tar -xvf - -C ~/.stabled/
+
+# Clean up
+rm archive.tar.zst
+```
+:::
+
+### Step 3: Start Node
+
+```bash
+# Start service
+sudo systemctl start ${SERVICE_NAME}
+
+# Verify sync status
+curl -s localhost:26657/status | jq '.result.sync_info'
+```
+
+## Creating Your Own Snapshots
+
+### Manual Snapshot Creation
+
+```bash
+# Stop node
+sudo systemctl stop ${SERVICE_NAME}
+
+# Create snapshot archive
+cd ~/.stabled
+tar -cf - data/ | lz4 -9 > ~/stable-snapshot-$(date +%Y%m%d).tar.lz4
+
+# Create checksum
+sha256sum ~/stable-snapshot-*.tar.lz4 > checksums.txt
+
+# Restart node
+sudo systemctl start ${SERVICE_NAME}
+```
+
+### Automated Snapshot Script
+
+```bash
+#!/bin/bash
+# snapshot.sh - Automated snapshot creation
+
+# Configuration
+SNAPSHOT_DIR="/var/snapshots"
+STABLED_HOME="$HOME/.stabled"
+KEEP_DAYS=7
+
+# Create snapshot directory
+mkdir -p $SNAPSHOT_DIR
+
+# Stop node
+sudo systemctl stop ${SERVICE_NAME}
+
+# Create snapshot
+SNAPSHOT_NAME="stable-snapshot-$(date +%Y%m%d-%H%M%S).tar.lz4"
+tar -cf - -C $STABLED_HOME data/ | lz4 -9 > $SNAPSHOT_DIR/$SNAPSHOT_NAME
+
+# Generate metadata
+cat > $SNAPSHOT_DIR/latest.json <<EOF
+{
+  "filename": "$SNAPSHOT_NAME",
+  "height": "$(cat $STABLED_HOME/data/cs.wal/wal | grep height | tail -1 | awk '{print $2}' | tr -d ',')",
+  "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+  "size": "$(du -h $SNAPSHOT_DIR/$SNAPSHOT_NAME | awk '{print $1}')",
+  "checksum": "$(sha256sum $SNAPSHOT_DIR/$SNAPSHOT_NAME | awk '{print $1}')"
+}
+EOF
+
+# Clean old snapshots
+find $SNAPSHOT_DIR -name "stable-snapshot-*.tar.lz4" -mtime +$KEEP_DAYS -delete
+
+# Restart node
+sudo systemctl start ${SERVICE_NAME}
+
+echo "Snapshot created: $SNAPSHOT_DIR/$SNAPSHOT_NAME"
+```
+
+### Schedule Automated Snapshots
+
+```bash
+# Add to crontab (weekly on Sunday at 2 AM)
+(crontab -l ; echo "0 2 * * 0 /usr/local/bin/snapshot.sh") | crontab -
+```
+
+## Verification and Troubleshooting
+
+### Verify Snapshot Integrity
+
+```bash
+# Check snapshot checksum
+sha256sum -c checksums.txt
+
+# Verify extraction
+tar -I lz4 -tvf snapshot.tar.lz4 | head -20
+
+# Test snapshot size
+tar -I lz4 -tvf snapshot.tar.lz4 | wc -l
+```
+
+### Common Issues
+
+#### Issue: Snapshot Extraction Fails
+
+```bash
+# Check disk space
+df -h
+
+# Verify file integrity
+lz4 -t snapshot.tar.lz4
+
+# Try alternative extraction
+lz4 -d snapshot.tar.lz4 snapshot.tar
+tar -xvf snapshot.tar -C ~/.stabled/
+```
+
+#### Issue: Node Won't Start After Snapshot
+
+```bash
+# Check permissions
+ls -la ~/.stabled/data/
+
+# Fix permissions
+sudo chown -R $USER:$USER ~/.stabled/
+
+# Verify genesis file
+sha256sum ~/.stabled/config/genesis.json
+
+# Reset and try again
+stabled comet unsafe-reset-all
+# Then restore snapshot
+```
+
+#### Issue: State Sync Fails
+
+```bash
+# Try different RPC servers
+# Update config.toml with alternative RPCs
+
+# Increase chunk fetchers
+sed -i 's/chunk_fetchers = .*/chunk_fetchers = 8/' ~/.stabled/config/config.toml
+
+# Clear and retry
+stabled comet unsafe-reset-all --keep-addr-book
+```
+
+## Performance Optimization
+
+### Download Optimization
+
+```bash
+# Use aria2 for parallel downloads
+aria2c -x 16 -s 16 https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/snapshots/snapshot.tar.lz4
+
+# Use wget with compression
+wget --header="Accept-Encoding: gzip" -c URL
+
+# Resume interrupted downloads
+curl -C - -o snapshot.tar.lz4 URL
+```
+
+### Extraction Optimization
+
+```bash
+# Use parallel extraction
+pigz -d -c snapshot.tar.gz | tar -xf - -C ~/.stabled/
+
+# Monitor extraction progress
+pv snapshot.tar.lz4 | tar -I lz4 -xf - -C ~/.stabled/
+
+# Use more memory for zstd
+zstd -d --long=31 --memory=4096MB archive.tar.zst
+```
+
+## Best Practices
+
+1. **Always backup validator keys** before replacing data
+2. **Verify checksums** before extracting snapshots
+3. **Monitor disk space** during extraction (need 2x snapshot size)
+4. **Use official snapshots** when possible
+5. **Test snapshots** in non-production environment first
+6. **Schedule regular snapshots** for your archive nodes
+7. **Document snapshot sources** for audit trail
+
+## Next Steps
+
+- [Configure your node](./configuration) for optimal performance
+- [Set up monitoring](./monitoring) to track sync progress
+- [Review troubleshooting](./troubleshooting) for common issues

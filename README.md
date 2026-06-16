@@ -43,9 +43,9 @@ npm run docs:preview  # preview the production build
 | Path | Purpose |
 | --- | --- |
 | `docs/pages/` | Content pages (`en`, `cn`, `ko` locales; `en` is the source of truth, Diátaxis structure) |
-| `docs/sidebar.json` | Navigation (hand-maintained; `cn`/`ko` mirror `/en/`) |
+| `docs/sidebar.json` | Navigation (`/en` hand-maintained; `/cn`+`/ko` generated from it — localized links + labels) |
 | `docs/lib/structured-data.ts` | Per-page JSON-LD / SEO `<head>` injection (see [DR001](./ADRs/DR001_SEO_Structured_Data.md)) |
-| `docs/lib/verify-i18n.mjs`, `docs/lib/i18n-translate.mjs` | i18n parity checker + translation engine (see [DR002](./ADRs/DR002_i18n_Sync_Pipeline.md)) |
+| `docs/lib/verify-i18n.mjs`, `docs/lib/i18n-translate.mjs`, `docs/lib/i18n-sidebar.mjs` | i18n parity checker + page translation engine + sidebar generator (see [DR002](./ADRs/DR002_i18n_Sync_Pipeline.md)) |
 | `docs/components/`, `docs/layout.tsx`, `docs/styles.css` | Theme and layout |
 | `vocs.config.ts` | Site config, theme, nav, socials |
 | `ADRs/` | Architectural Design Records |

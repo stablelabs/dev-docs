@@ -16,11 +16,13 @@ auto-generated translation, you're off-process.
 1. **Edit English only.** New page → create it under the right Diátaxis folder in
    `docs/pages/en/` (`explanation/`, `how-to/`, `reference/`, `tutorial/`,
    `resources/`) with `title` / `description` / `diataxis` frontmatter.
-2. **Update the sidebar if pages were added/moved/renamed.** Edit the `/en/` entries
-   in `docs/sidebar.json`; the `cn`/`ko` sidebars mirror it.
+2. **Update the sidebar if pages were added/moved/renamed.** Edit the `/en`
+   section of `docs/sidebar.json` only; the `/cn` and `/ko` sections are
+   generated from it (links re-prefixed, labels translated) — never hand-edit them.
 3. **Open a PR.** Two workflows run on it:
-   - **`i18n-translate`** diffs the en pages you changed, translates *just those*
-     into `cn` + `ko`, and commits the translations back to your PR branch.
+   - **`i18n-translate`** diffs the en content you changed, translates *just those*
+     pages into `cn` + `ko`, regenerates the `/cn`+`/ko` sidebars if the `/en`
+     sidebar changed, and commits the result back to your PR branch.
    - **`i18n-check`** enforces parity — every en page must have a same-path
      `cn`/`ko` file (missing = ❌ blocks merge), flags translations whose English
      source drifted (stale = ⚠ warns), and builds all three locales to catch broken
@@ -35,13 +37,16 @@ auto-generated translation, you're off-process.
 
 - **Deleting a page:** `git rm` it from `en` **and** the same path in `cn`/`ko`.
   No orphan translations — English is the source of truth.
-- **Renaming/moving:** `git mv` in `en`, mirror in `cn`/`ko`, and update
-  `docs/sidebar.json`.
+- **Renaming/moving:** `git mv` in `en`, mirror in `cn`/`ko`, and update the
+  `/en` section of `docs/sidebar.json`.
 - **Fork PRs:** the bot can't push to a fork, so translations won't auto-commit and
-  `i18n-check` will fail. A maintainer runs the engine locally and pushes:
+  `i18n-check` will fail. A maintainer runs the scripts locally and pushes:
   ```bash
   ANTHROPIC_API_KEY=… node docs/lib/i18n-translate.mjs cn <changed/page.mdx> …
   ANTHROPIC_API_KEY=… node docs/lib/i18n-translate.mjs ko <changed/page.mdx> …
+  # if the /en sidebar changed:
+  ANTHROPIC_API_KEY=… node docs/lib/i18n-sidebar.mjs cn
+  ANTHROPIC_API_KEY=… node docs/lib/i18n-sidebar.mjs ko
   ```
 - **Local checks:**
   ```bash
@@ -56,9 +61,10 @@ auto-generated translation, you're off-process.
 | --- | --- |
 | `docs/pages/en/**` | Canonical content (Diátaxis structure) |
 | `docs/lib/verify-i18n.mjs` (`npm run i18n:check`) | Parity gate (block on missing) + staleness (warn on drifted `source_sha`) |
-| `docs/lib/i18n-translate.mjs <cn\|ko> [--stale] [pages…]` | Translation engine (`claude-opus-4-8`); stamps `source_path`/`source_sha` |
+| `docs/lib/i18n-translate.mjs <cn\|ko> [--stale] [--relink] [pages…]` | Page translation engine (`claude-opus-4-8`); stamps `source_path`/`source_sha`. `--relink` = no-API link-prefix backfill |
+| `docs/lib/i18n-sidebar.mjs <cn\|ko>` | Regenerates the `/cn`+`/ko` sidebar sections from `/en` (localized links + labels) |
 | `.github/workflows/i18n-check.yml` | Runs the gate + build on every PR |
-| `.github/workflows/i18n-translate.yml` | Translates a PR's changed en pages into cn/ko, in-PR |
+| `.github/workflows/i18n-translate.yml` | Translates a PR's changed en pages + regenerates localized sidebars, in-PR |
 | `docs/i18n-allowlist.json` | en paths intentionally left untranslated |
 
 A translation is **fresh** when its frontmatter `source_sha` equals

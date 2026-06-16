@@ -15,6 +15,16 @@ the Diátaxis structure: `explanation/`, `how-to/`, `reference/`, `tutorial/`,
   pages were added/moved/renamed. The PR's `i18n-translate` workflow generates the
   `cn`/`ko` versions; `i18n-check` blocks the merge if any en page lacks a
   same-path translation.
+- **Sidebar** → edit only the `/en` section of `docs/sidebar.json`. The `/cn` and
+  `/ko` sections are **generated** from `/en` (links re-prefixed, labels
+  translated) — never hand-edit them. Regenerate after editing `/en`:
+  ```bash
+  ANTHROPIC_API_KEY=… node docs/lib/i18n-sidebar.mjs cn
+  ANTHROPIC_API_KEY=… node docs/lib/i18n-sidebar.mjs ko
+  ```
+- **Internal links** are absolute and locale-prefixed (`/en/...` in source). The
+  translation pipeline rewrites them to the target locale automatically; never
+  point a `cn`/`ko` page at `/en/...`.
 - **Delete a page** → `git rm` from `en` **and** the same path in `cn`/`ko`. No
   orphan translations.
 - **Generate/refresh translations locally** (e.g. when CI can't, or for a

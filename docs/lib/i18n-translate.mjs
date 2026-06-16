@@ -35,6 +35,7 @@ if (!LANGUAGE[locale]) {
   process.exit(2)
 }
 const includeStale = rest.includes('--stale')
+const relinkOnly = rest.includes('--relink')
 const limitIdx = rest.indexOf('--limit')
 const limit = limitIdx !== -1 ? Number(rest[limitIdx + 1]) : Infinity
 const explicit = rest.filter(
@@ -61,6 +62,12 @@ function frontmatterSha(file) {
 
 const blobSha = (file) =>
   execFileSync('git', ['hash-object', file], { encoding: 'utf8' }).trim()
+
+// en source links are absolute `/en/...`. Rewrite the markdown-link token
+// `](/en/` to the target locale so a translated page navigates within its own
+// language tree. External URLs that merely contain `/en/` start with `](http`
+// and are intentionally left alone. Idempotent.
+const localizeLinks = (body, locale) => body.replaceAll('](/en/', `](/${locale}/`)
 
 // Discover which en pages this locale needs.
 function discover() {
@@ -117,10 +124,28 @@ async function translateOne(rel) {
     body = `---\n${tracking}\n---\n\n${body}`
   }
 
+  body = localizeLinks(body, locale)
+
   const out = join(PAGES, locale, rel)
   mkdirSync(dirname(out), { recursive: true })
   writeFileSync(out, body.endsWith('\n') ? body : body + '\n')
   return out
+}
+
+// `--relink`: rewrite internal links in already-generated pages to this locale
+// without re-translating (no API call, no source_sha change). One-off backfill.
+if (relinkOnly) {
+  let changed = 0
+  for (const p of walk(join(PAGES, locale))) {
+    const before = readFileSync(p, 'utf8')
+    const after = localizeLinks(before, locale)
+    if (after !== before) {
+      writeFileSync(p, after)
+      changed++
+    }
+  }
+  console.log(`${locale}: relinked ${changed} file(s)`)
+  process.exit(0)
 }
 
 const pages = discover().slice(0, limit)

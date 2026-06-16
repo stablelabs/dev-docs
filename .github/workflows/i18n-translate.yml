@@ -1,18 +1,23 @@
 name: i18n auto-translate
 
-# Runs on the PR itself: translates the en pages changed in this PR into cn/ko
-# and commits them back to the PR branch, so translations land in the SAME PR
-# and the i18n-check parity gate passes without a separate post-merge step.
+# Runs on the PR itself: translates the en content changed in this PR into cn/ko
+# and commits it back to the PR branch, so translations land in the SAME PR and
+# the i18n-check parity gate passes without a separate post-merge step.
 #
-# Scoped to the PR's changed en pages (not a global sweep) so it won't churn
-# the whole site or re-touch the untracked re-homed pages on unrelated PRs.
-# For a global backfill/freshness pass, run docs/lib/i18n-translate.mjs locally
-# with --stale.
+# Handles two source-of-truth edits:
+#   - en pages (docs/pages/en/**)  -> i18n-translate.mjs translates changed pages
+#   - the /en sidebar section       -> i18n-sidebar.mjs regenerates /cn + /ko
+#                                       (links re-prefixed, labels translated)
+#
+# Scoped to the PR's changes (not a global sweep) so it won't churn the whole
+# site or re-touch the untracked re-homed pages on unrelated PRs. For a global
+# backfill/freshness pass, run the scripts locally (--stale / --relink).
 
 on:
   pull_request:
     paths:
       - 'docs/pages/en/**'
+      - 'docs/sidebar.json'
 
 permissions:
   contents: write
@@ -27,16 +32,34 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.head_ref }}
-          fetch-depth: 0 # need base history to diff changed en pages
+          fetch-depth: 0 # need base history to diff changed en content
+
+      # The job pushes a translation commit back to the branch, which re-triggers
+      # this workflow. If the tip commit is ours, there's nothing left to do —
+      # bail so we don't re-translate (LLM output isn't byte-stable) into a loop.
+      - name: Skip if tip commit is the i18n bot
+        id: guard
+        run: |
+          author=$(git log -1 --pretty=format:'%an')
+          if [ "$author" = 'github-actions[bot]' ]; then
+            echo 'Tip commit is the i18n bot — nothing to do.'
+            echo 'skip=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'skip=false' >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/setup-node@v4
+        if: steps.guard.outputs.skip != 'true'
         with:
           node-version-file: '.nvmrc'
           cache: npm
       - run: npm ci
+        if: steps.guard.outputs.skip != 'true'
 
       # en pages added/modified/renamed in this PR (relative to en/), excluding deletes.
       - name: Collect changed en pages
         id: changed
+        if: steps.guard.outputs.skip != 'true'
         run: |
           BASE="${{ github.event.pull_request.base.sha }}"
           pages=$(git diff --name-only --diff-filter=ACMR "$BASE"...HEAD -- 'docs/pages/en/**/*.mdx' \
@@ -48,8 +71,19 @@ jobs:
           } >> "$GITHUB_OUTPUT"
           echo "Changed en pages:"; echo "$pages"
 
+      - name: Detect sidebar change
+        id: sidebar
+        if: steps.guard.outputs.skip != 'true'
+        run: |
+          BASE="${{ github.event.pull_request.base.sha }}"
+          if git diff --name-only "$BASE"...HEAD -- docs/sidebar.json | grep -q .; then
+            echo 'changed=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'changed=false' >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Translate changed pages into cn + ko
-        if: steps.changed.outputs.pages != ''
+        if: steps.guard.outputs.skip != 'true' && steps.changed.outputs.pages != ''
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
@@ -57,14 +91,24 @@ jobs:
           node docs/lib/i18n-translate.mjs cn $pages
           node docs/lib/i18n-translate.mjs ko $pages
 
-      - name: Commit translations to the PR branch
-        if: steps.changed.outputs.pages != ''
+      # The /en section is the source of truth for sidebar structure; regenerate
+      # the /cn and /ko sections from it whenever sidebar.json changed.
+      - name: Regenerate localized sidebars
+        if: steps.guard.outputs.skip != 'true' && steps.sidebar.outputs.changed == 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
-          if [ -n "$(git status --porcelain docs/pages/cn docs/pages/ko)" ]; then
+          node docs/lib/i18n-sidebar.mjs cn
+          node docs/lib/i18n-sidebar.mjs ko
+
+      - name: Commit translations to the PR branch
+        if: steps.guard.outputs.skip != 'true' && (steps.changed.outputs.pages != '' || steps.sidebar.outputs.changed == 'true')
+        run: |
+          if [ -n "$(git status --porcelain docs/pages/cn docs/pages/ko docs/sidebar.json)" ]; then
             git config user.name 'github-actions[bot]'
             git config user.email 'github-actions[bot]@users.noreply.github.com'
-            git add docs/pages/cn docs/pages/ko
-            git commit -m 'i18n: auto-translate cn/ko for changed en pages'
+            git add docs/pages/cn docs/pages/ko docs/sidebar.json
+            git commit -m 'i18n: auto-translate cn/ko for changed en content'
             git push origin HEAD:${{ github.head_ref }}
           else
             echo 'No translation changes to commit.'

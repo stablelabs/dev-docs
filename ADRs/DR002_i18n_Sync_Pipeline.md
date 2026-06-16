@@ -90,16 +90,18 @@ stale.**
   the checker: runs `npm run i18n:check` (blocks on missing) then
   `npm run docs:build` (catches broken links / orphaned sidebar entries across
   all three locales).
-- **`i18n-translate.yml`** — on **pull requests** touching `docs/pages/en/**`:
-  diffs the PR's changed en pages against the base, translates *only those*
-  pages into cn/ko, and commits the result back to the PR branch. Translations
-  therefore land in the **same PR** as the en change, so the "block on missing"
-  gate passes within one PR — no separate post-merge step. The job is scoped to
-  the PR's changed pages (not a global sweep), so it doesn't churn the site or
-  re-touch the untracked re-homed pages on unrelated PRs. Fork PRs are skipped
-  (read-only token); a maintainer runs the engine locally for those. Pushing the
-  translation commit re-triggers the workflow once, which finds nothing changed
-  and exits — self-terminating.
+- **`i18n-translate.yml`** — on **pull requests** touching `docs/pages/en/**`
+  **or `docs/sidebar.json`**: diffs the PR against the base, translates *only*
+  the changed en pages into cn/ko, and — if the sidebar changed — regenerates the
+  `/cn`+`/ko` sidebar sections from `/en` (see §6). Both land in the **same PR**
+  as the source edit, so the "block on missing" gate passes within one PR — no
+  separate post-merge step. The job is scoped to the PR's changes (not a global
+  sweep), so it doesn't churn the site or re-touch the untracked re-homed pages
+  on unrelated PRs. Fork PRs are skipped (read-only token); a maintainer runs the
+  scripts locally for those. Pushing the bot's translation commit re-triggers the
+  workflow; a guard step bails when the tip commit's author is `github-actions[bot]`
+  (LLM output isn't byte-stable, so a "nothing changed" check isn't enough to stop
+  a loop) — self-terminating.
 
 ### 5. Translation engine (`docs/lib/i18n-translate.mjs`)
 
@@ -116,12 +118,18 @@ stamps `source_path` + `source_sha` into the output frontmatter so the page is
 tracked from creation. Discovers missing (and, with `--stale`, drifted) pages
 itself, or takes explicit paths.
 
-### 6. Sidebars
+### 6. Sidebars (`docs/lib/i18n-sidebar.mjs`)
 
-`/cn/` and `/ko/` were regenerated as clones of `/en/` with the link prefix
-swapped (`/en/` → `/cn/`/`/ko/`), giving 125 links each and guaranteeing the
-nav matches the new page paths. Section *labels* remain English pending a
-translation-polish follow-up; page titles come from the (translated) frontmatter.
+`en` is the source of truth for sidebar *structure* too: only the `/en` section
+of `docs/sidebar.json` is hand-maintained. `i18n-sidebar.mjs <cn|ko>` regenerates
+the `/cn` and `/ko` sections from `/en` — it deep-clones the tree, swaps each
+`link` prefix (`/en/` → `/<locale>/`, the same token as the page engine's
+`localizeLinks`), and **translates the `text` labels** in one batched, deduped
+Opus call (preserving identifiers — SDK, USDT0, x402, MPP, EIP-7702, …). Output
+is written with `JSON.stringify(…, 2)` and no trailing newline to match the
+existing file format and key order. Page titles still come from the (translated)
+frontmatter; the sidebar labels are now localized rather than English. Run after
+editing the `/en` section; CI regenerates them automatically (§4).
 
 ## Consequences
 
@@ -135,8 +143,7 @@ translation-polish follow-up; page titles come from the (translated) frontmatter
   pages that don't exist yet. It goes green once the translation run lands the
   files.
 - The 44 re-homed pages show as "untracked" warnings until a **freshness pass**
-  diffs them against current `en` and stamps `source_sha`. Translated section
-  labels in the cn/ko sidebars are the other open polish item.
+  diffs them against current `en` and stamps `source_sha`.
 - Running the full translation requires `ANTHROPIC_API_KEY` and incurs Opus API
   spend (~160 streamed calls); it is a deliberate, human-triggered operation,
   not part of CI on every push (CI only drafts deltas).
@@ -166,6 +173,16 @@ ANTHROPIC_API_KEY=... node docs/lib/i18n-translate.mjs ko
 Prints `→ <path> ... done`/`FAILED` per page. (Auth failures here mean the key
 isn't exported into the process environment — a `.env` that uses a different
 variable name or an un-exported `source` is the usual cause.)
+
+To localize the sidebar after editing its `/en` section:
+
+```bash
+ANTHROPIC_API_KEY=... node docs/lib/i18n-sidebar.mjs cn
+ANTHROPIC_API_KEY=... node docs/lib/i18n-sidebar.mjs ko
+```
+
+A no-API link-only backfill for existing translated pages is also available:
+`node docs/lib/i18n-translate.mjs <cn|ko> --relink`.
 
 ### Step 3 — Full build across all locales
 

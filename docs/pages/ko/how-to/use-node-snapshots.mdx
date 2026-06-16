@@ -1,51 +1,52 @@
 ---
 source_path: how-to/use-node-snapshots.mdx
 source_sha: 9560891a991acf962e514bb5bc630f0db8012b79
-title: Snapshots & Sync Guide
-description: "스냅샷을 사용하여 Stable 풀 노드 및 아카이브 노드를 빠르게 동기화하는 방법."
+title: 스냅샷 및 동기화 가이드
+description: "Stable 풀 노드와 아카이브 노드를 빠르게 부트스트랩하기 위한 스냅샷 기반 동기화 방법."
+diataxis: "how-to"
 ---
 
-This guide covers various methods to synchronize your Stable node quickly using snapshots and state sync.
+이 가이드는 스냅샷과 상태 동기화를 사용하여 Stable 노드를 빠르게 동기화하는 다양한 방법을 다룹니다.
 
-## Sync Methods Overview
+## 동기화 방법 개요
 
-| Method | Sync Time | Storage Required | Use Case |
+| 방법 | 동기화 시간 | 필요 저장 공간 | 사용 사례 |
 |--------|-----------|------------------|----------|
-| **Pruned Snapshot** | ~10 min | < 5 GiB | Regular full nodes |
-| **Archive Snapshot** | ~1 hours | ~500 GB | Archive nodes, block explorers |
+| **Pruned 스냅샷** | ~10분 | < 5 GiB | 일반 풀 노드 |
+| **아카이브 스냅샷** | ~1시간 | ~500 GB | 아카이브 노드, 블록 익스플로러 |
 
-## Official Snapshots
+## 공식 스냅샷
 
-Stable provides official snapshots updated daily (00:00 UTC).
+Stable은 매일(00:00 UTC) 업데이트되는 공식 스냅샷을 제공합니다.
 
-### Snapshot Information
+### 스냅샷 정보
 
-### Mainnet
+### 메인넷
 
-| Type | Compression | Size | URL | Update Frequency |
+| 유형 | 압축 | 크기 | URL | 업데이트 주기 |
   |------|-----------------|-------------|------|-----|
-| **Pruned** | LZ4 | < 5 GiB | [Download](https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/snapshots/snapshot.tar.lz4) | Daily |
-| **Archive** | ZSTD | ~300 GB | [Download](https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/snapshots/stable_archive.tar.zst) | Weekly |
+| **Pruned** | LZ4 | < 5 GiB | [다운로드](https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/snapshots/snapshot.tar.lz4) | 매일 |
+| **아카이브** | ZSTD | ~300 GB | [다운로드](https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/snapshots/stable_archive.tar.zst) | 매주 |
 
-### Testnet
+### 테스트넷
 
-| Type | Compression | Size | URL | Update Frequency |
+| 유형 | 압축 | 크기 | URL | 업데이트 주기 |
 |------|-----------------|-------------|------|-----|
-| **Pruned** | LZ4 | < 5 GiB | [Download](https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/snapshots/snapshot.tar.lz4) | Daily |
-  | **Archive** | ZSTD | ~800 GB | [Download](https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/snapshots/stable_archive.tar.zst) | Weekly |
+| **Pruned** | LZ4 | < 5 GiB | [다운로드](https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/snapshots/snapshot.tar.lz4) | 매일 |
+  | **아카이브** | ZSTD | ~800 GB | [다운로드](https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/snapshots/stable_archive.tar.zst) | 매주 |
 
-## Using Pruned Snapshots
+## Pruned 스냅샷 사용
 
-Pruned snapshots contain recent blockchain state (last 100-1000 blocks).
+Pruned 스냅샷은 최근 블록체인 상태(마지막 100~1000개 블록)를 포함합니다.
 
-### Step 1: Set Environment Variable
+### 1단계: 환경 변수 설정
 
 ```bash
 # Set service name (default: stable)
 export SERVICE_NAME=stable
 ```
 
-### Step 2: Stop Node Service
+### 2단계: 노드 서비스 중지
 
 ```bash
 # Stop the running node
@@ -55,7 +56,7 @@ sudo systemctl stop ${SERVICE_NAME}
 sudo systemctl status ${SERVICE_NAME}
 ```
 
-### Step 2: Backup Current Data (Optional)
+### 3단계: 현재 데이터 백업(선택 사항)
 
 ```bash
 # Create backup directory
@@ -65,7 +66,7 @@ mkdir -p ~/stable-backup
 cp -r ~/.stabled/data ~/stable-backup/
 ```
 
-### Step 3: Download and Extract Pruned Snapshot
+### 4단계: Pruned 스냅샷 다운로드 및 추출
 
 :::code-group
 ```bash [Mainnet]
@@ -119,7 +120,7 @@ rm snapshot.tar.lz4
 ```
 :::
 
-### Step 4: Restart Node
+### 5단계: 노드 재시작
 
 ```bash
 # Start the node
@@ -132,11 +133,11 @@ sudo systemctl status ${SERVICE_NAME}
 sudo journalctl -u stabled -f
 ```
 
-## Using Archive Snapshots
+## 아카이브 스냅샷 사용
 
-Archive snapshots contain complete blockchain history.
+아카이브 스냅샷은 전체 블록체인 기록을 포함합니다.
 
-### Step 1: Prepare System
+### 1단계: 시스템 준비
 
 ```bash
 # Stop node
@@ -149,7 +150,7 @@ sudo apt install -y wget zstd pv
 df -h ~/.stabled
 ```
 
-### Step 2: Download and Extract Archive Snapshot
+### 2단계: 아카이브 스냅샷 다운로드 및 추출
 
 :::code-group
 ```bash [Mainnet]
@@ -194,7 +195,7 @@ rm archive.tar.zst
 ```
 :::
 
-### Step 3: Start Node
+### 3단계: 노드 시작
 
 ```bash
 # Start service
@@ -204,9 +205,9 @@ sudo systemctl start ${SERVICE_NAME}
 curl -s localhost:26657/status | jq '.result.sync_info'
 ```
 
-## Creating Your Own Snapshots
+## 직접 스냅샷 만들기
 
-### Manual Snapshot Creation
+### 수동 스냅샷 생성
 
 ```bash
 # Stop node
@@ -223,7 +224,7 @@ sha256sum ~/stable-snapshot-*.tar.lz4 > checksums.txt
 sudo systemctl start ${SERVICE_NAME}
 ```
 
-### Automated Snapshot Script
+### 자동 스냅샷 스크립트
 
 ```bash
 #!/bin/bash
@@ -264,16 +265,16 @@ sudo systemctl start ${SERVICE_NAME}
 echo "Snapshot created: $SNAPSHOT_DIR/$SNAPSHOT_NAME"
 ```
 
-### Schedule Automated Snapshots
+### 자동 스냅샷 예약
 
 ```bash
 # Add to crontab (weekly on Sunday at 2 AM)
 (crontab -l ; echo "0 2 * * 0 /usr/local/bin/snapshot.sh") | crontab -
 ```
 
-## Verification and Troubleshooting
+## 검증 및 문제 해결
 
-### Verify Snapshot Integrity
+### 스냅샷 무결성 검증
 
 ```bash
 # Check snapshot checksum
@@ -286,9 +287,9 @@ tar -I lz4 -tvf snapshot.tar.lz4 | head -20
 tar -I lz4 -tvf snapshot.tar.lz4 | wc -l
 ```
 
-### Common Issues
+### 일반적인 문제
 
-#### Issue: Snapshot Extraction Fails
+#### 문제: 스냅샷 추출 실패
 
 ```bash
 # Check disk space
@@ -302,7 +303,7 @@ lz4 -d snapshot.tar.lz4 snapshot.tar
 tar -xvf snapshot.tar -C ~/.stabled/
 ```
 
-#### Issue: Node Won't Start After Snapshot
+#### 문제: 스냅샷 후 노드가 시작되지 않음
 
 ```bash
 # Check permissions
@@ -319,7 +320,7 @@ stabled comet unsafe-reset-all
 # Then restore snapshot
 ```
 
-#### Issue: State Sync Fails
+#### 문제: 상태 동기화 실패
 
 ```bash
 # Try different RPC servers
@@ -332,9 +333,9 @@ sed -i 's/chunk_fetchers = .*/chunk_fetchers = 8/' ~/.stabled/config/config.toml
 stabled comet unsafe-reset-all --keep-addr-book
 ```
 
-## Performance Optimization
+## 성능 최적화
 
-### Download Optimization
+### 다운로드 최적화
 
 ```bash
 # Use aria2 for parallel downloads
@@ -347,7 +348,7 @@ wget --header="Accept-Encoding: gzip" -c URL
 curl -C - -o snapshot.tar.lz4 URL
 ```
 
-### Extraction Optimization
+### 추출 최적화
 
 ```bash
 # Use parallel extraction
@@ -360,18 +361,18 @@ pv snapshot.tar.lz4 | tar -I lz4 -xf - -C ~/.stabled/
 zstd -d --long=31 --memory=4096MB archive.tar.zst
 ```
 
-## Best Practices
+## 모범 사례
 
-1. **Always backup validator keys** before replacing data
-2. **Verify checksums** before extracting snapshots
-3. **Monitor disk space** during extraction (need 2x snapshot size)
-4. **Use official snapshots** when possible
-5. **Test snapshots** in non-production environment first
-6. **Schedule regular snapshots** for your archive nodes
-7. **Document snapshot sources** for audit trail
+1. 데이터를 교체하기 전에 **항상 검증자 키를 백업하세요**
+2. 스냅샷을 추출하기 전에 **체크섬을 검증하세요**
+3. 추출 중에 **디스크 공간을 모니터링하세요**(스냅샷 크기의 2배 필요)
+4. 가능한 경우 **공식 스냅샷을 사용하세요**
+5. 비프로덕션 환경에서 먼저 **스냅샷을 테스트하세요**
+6. 아카이브 노드를 위해 **정기적인 스냅샷을 예약하세요**
+7. 감사 추적을 위해 **스냅샷 출처를 문서화하세요**
 
-## Next Steps
+## 다음 단계
 
-- [Configure your node](./configuration) for optimal performance
-- [Set up monitoring](./monitoring) to track sync progress
-- [Review troubleshooting](./troubleshooting) for common issues
+- 최적의 성능을 위해 [노드 구성하기](/en/reference/node-configuration)
+- 동기화 진행 상황을 추적하기 위해 [모니터링 설정하기](/en/how-to/monitor-node)
+- 일반적인 문제는 [문제 해결 검토하기](/en/how-to/troubleshoot-node)

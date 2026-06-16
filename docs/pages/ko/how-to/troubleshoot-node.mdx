@@ -2,14 +2,15 @@
 source_path: how-to/troubleshoot-node.mdx
 source_sha: f4b7701fdfef056c1aa8bd46ae494c7f6d73d775
 title: 문제 해결 가이드
-description: "일반적인 Stable 노드 연결, 동기화 및 성능 문제에 대한 진단 및 해결 방법."
+description: "일반적인 Stable 노드 연결, 동기화, 성능 문제에 대한 진단 스크립트와 해결책."
+diataxis: "how-to"
 ---
 
 이 종합 가이드는 Stable 노드의 일반적인 문제를 진단하고 해결하는 데 도움을 줍니다.
 
 ## 빠른 진단
 
-### 노드 상태 확인 스크립트
+### 노드 상태 점검 스크립트
 
 ```bash
 #!/bin/bash
@@ -51,7 +52,7 @@ ss -tulpn | grep ${SERVICE_NAME} || echo "No ${SERVICE_NAME} ports found"
 echo -e "\n=== Diagnostics Complete ==="
 ```
 
-## 일반적인 문제 및 해결 방법
+## 일반적인 문제와 해결책
 
 ### 노드가 시작되지 않음
 
@@ -62,7 +63,7 @@ echo -e "\n=== Diagnostics Complete ==="
 stabled: command not found
 ```
 
-**해결 방법:**
+**해결책:**
 ```bash
 # Check if binary exists
 ls -la /usr/bin/stabled
@@ -81,7 +82,7 @@ sudo chmod +x /usr/bin/stabled
 Error: open /home/user/.stabled/config/config.toml: permission denied
 ```
 
-**해결 방법:**
+**해결책:**
 ```bash
 # Fix ownership
 sudo chown -R $USER:$USER ~/.stabled/
@@ -99,7 +100,7 @@ chmod 644 ~/.stabled/config/*.toml
 Error: listen tcp 0.0.0.0:26657: bind: address already in use
 ```
 
-**해결 방법:**
+**해결책:**
 ```bash
 # Find process using port
 sudo lsof -i :26657
@@ -119,7 +120,7 @@ sed -i 's/laddr = "tcp:\/\/0.0.0.0:26657"/laddr = "tcp:\/\/0.0.0.0:26658"/' ~/.s
 - 블록 높이가 증가하지 않음
 - 1분 이상 새 블록이 없음
 
-**해결 방법:**
+**해결책:**
 ```bash
 # 1. Check peers
 curl localhost:26657/net_info | jq '.result.n_peers'
@@ -142,7 +143,7 @@ sudo systemctl start ${SERVICE_NAME}
 panic: Wrong Block.Header.AppHash. Expected XXXX, got YYYY
 ```
 
-**해결 방법:**
+**해결책:**
 ```bash
 # This indicates state corruption - rollback to previous block
 sudo systemctl stop ${SERVICE_NAME}
@@ -174,7 +175,7 @@ sudo systemctl start ${SERVICE_NAME}
 - 분당 100블록 미만
 - 높은 CPU/디스크 사용량
 
-**해결 방법:**
+**해결책:**
 ```bash
 # 1. Check disk I/O
 iostat -x 1 5
@@ -200,14 +201,14 @@ sudo systemctl restart ${SERVICE_NAME}
 
 ### 피어 연결 문제
 
-#### 문제: 피어가 연결되지 않음
+#### 문제: 연결되는 피어가 없음
 
 **증상:**
 ```
 "n_peers": 0
 ```
 
-**해결 방법:**
+**해결책:**
 ```bash
 # 1. Check firewall
 sudo ufw status
@@ -239,7 +240,7 @@ sudo systemctl restart ${SERVICE_NAME}
 panic: AppHash mismatch
 ```
 
-**해결 방법:**
+**해결책:**
 ```bash
 # This usually happens after failed upgrade
 # Must restore from backup or snapshot
@@ -267,7 +268,7 @@ sudo systemctl start ${SERVICE_NAME}
 Error initializing database: resource temporarily unavailable
 ```
 
-**해결 방법:**
+**해결책:**
 ```bash
 # 1. Stop node
 sudo systemctl stop ${SERVICE_NAME}
@@ -287,14 +288,14 @@ rm -rf ~/.stabled/data
 sudo systemctl start ${SERVICE_NAME}
 ```
 
-#### 문제: "Too many open files"
+#### 문제: "too many open files"
 
 **오류 메시지:**
 ```
 accept: too many open files
 ```
 
-**해결 방법:**
+**해결책:**
 ```bash
 # 1. Check current limits
 ulimit -n
@@ -313,14 +314,14 @@ sudo systemctl restart ${SERVICE_NAME}
 
 ### 메모리 문제
 
-#### 문제: 메모리 부족(OOM)으로 종료됨
+#### 문제: 메모리 부족(OOM) 종료
 
 **증상:**
 ```
 stabled.service: Main process exited, code=killed, status=9/KILL
 ```
 
-**해결 방법:**
+**해결책:**
 ```bash
 # 1. Check memory usage
 free -h
@@ -349,14 +350,14 @@ sudo systemctl edit stabled
 
 ### 디스크 공간 문제
 
-#### 문제: 디바이스에 남은 공간이 없음
+#### 문제: 장치에 남은 공간 없음
 
 **오류 메시지:**
 ```
 Error: write ~/.stabled/data/blockstore.db/001234.log: no space left on device
 ```
 
-**해결 방법:**
+**해결책:**
 ```bash
 # 1. Check disk usage
 df -h
@@ -406,20 +407,20 @@ go tool pprof http://localhost:6060/debug/pprof/heap
 curl http://localhost:6060/debug/pprof/goroutine?debug=1
 ```
 
-## 오류 메시지 참조
+## 오류 메시지 참고
 
-| 오류 | 원인 | 해결 방법 |
+| 오류 | 원인 | 해결책 |
 |-------|-------|----------|
 | `wrong Block.Header.AppHash` | 상태 손상 | 스냅샷에서 재동기화 |
 | `validator set is nil` | 제네시스 불일치 | 올바른 제네시스 다운로드 |
-| `connection refused` | 서비스가 실행되지 않음 | 서비스 시작 |
-| `timeout waiting for tx to be included` | 네트워크 혼잡 | 가스 가격 증가 |
-| `account sequence mismatch` | Nonce 오류 | 현재 nonce 조회 |
-| `insufficient fees` | 가스 가격이 너무 낮음 | 가스 가격 증가 |
+| `connection refused` | 서비스가 실행 중이 아님 | 서비스 시작 |
+| `timeout waiting for tx to be included` | 네트워크 혼잡 | 가스 가격 인상 |
+| `account sequence mismatch` | 논스 오류 | 현재 논스 조회 |
+| `insufficient fees` | 가스 가격이 너무 낮음 | 가스 가격 인상 |
 | `signature verification failed` | 키 불일치 | 키 구성 확인 |
 | `module account has not been set` | 초기화 오류 | 노드 재초기화 |
 
-## 도움받기
+## 도움 받기
 
 ### 디버그 정보 수집
 
@@ -462,5 +463,5 @@ echo "Share this file when requesting support"
 
 ## 다음 단계
 
-- 문제를 예방하기 위해 [모니터링 설정](./monitoring)을 검토하세요
-- 버전별 문제는 [업그레이드 가이드](./upgrades)를 확인하세요
+- 문제를 예방하려면 [모니터링 설정](/en/how-to/monitor-node)을 검토하세요
+- 버전별 문제는 [업그레이드 가이드](/en/how-to/upgrade-node)를 확인하세요

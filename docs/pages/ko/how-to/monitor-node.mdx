@@ -2,10 +2,11 @@
 source_path: how-to/monitor-node.mdx
 source_sha: da7558e7551a0adf21acfe9b156be2304ae6c837
 title: 모니터링 및 유지보수 가이드
-description: "Prometheus, Grafana, AlertManager를 사용하는 Stable 노드 모니터링 및 알림 설정."
+description: "Stable 노드의 가시성 및 알림을 위한 Prometheus, Grafana, AlertManager를 활용한 모니터링 설정."
+diataxis: "how-to"
 ---
 
-Stable 노드 모니터링 및 일상적인 유지보수 작업을 위한 종합 가이드입니다.
+Stable 노드를 모니터링하고 일상적인 유지보수 작업을 수행하기 위한 종합 가이드입니다.
 
 ## 모니터링 스택 개요
 
@@ -14,7 +15,7 @@ Stable 노드 모니터링 및 일상적인 유지보수 작업을 위한 종합
 - **Grafana**: 시각화 및 대시보드
 - **AlertManager**: 알림 라우팅 및 관리
 - **Node Exporter**: 시스템 메트릭
-- **Loki**: 로그 집계 (선택사항)
+- **Loki**: 로그 집계 (선택 사항)
 
 ## 빠른 모니터링 설정
 
@@ -104,7 +105,7 @@ sudo systemctl start grafana-server
 # Default login: admin/admin
 ```
 
-## 주요 모니터링 메트릭
+## 모니터링할 주요 메트릭
 
 ### 노드 상태 메트릭
 
@@ -112,11 +113,12 @@ sudo systemctl start grafana-server
 |--------|-------------|-----------------|
 | `up` | 노드 가용성 | 5분간 = 0 |
 | `stablebft_consensus_height` | 현재 블록 높이 | 5분간 증가 없음 |
-| `stablebft_consensus_validators` | 활성 검증자 수 | N/A |
+| `stablebft_consensus_validators` | 활성 검증자 | 해당 없음 |
 | `stablebft_consensus_rounds` | 합의 라운드 | > 3 |
+| `stablebft_consensus_block_interval` | 블록 시간 | > 10s |
 | `stablebft_p2p_peers` | 연결된 피어 | < 3 |
 | `stablebft_mempool_size` | 멤풀 크기 | > 1500 |
-| `stablebft_mempool_failed_txs` | 실패한 트랜잭션 총계 | > 100/분 |
+| `stablebft_mempool_failed_txs` | 실패한 트랜잭션 | > 100/분 |
 
 ### 시스템 메트릭
 
@@ -125,7 +127,7 @@ sudo systemctl start grafana-server
 | `node_cpu_seconds_total` | CPU 사용량 | 5분간 > 80% |
 | `node_memory_MemAvailable_bytes` | 사용 가능한 메모리 | < 10% |
 | `node_filesystem_avail_bytes` | 사용 가능한 디스크 | < 10% |
-| `node_network_receive_bytes_total` | 네트워크 RX | > 100MB/초 |
+| `node_network_receive_bytes_total` | 네트워크 RX | > 100MB/s |
 | `node_disk_io_time_seconds_total` | 디스크 I/O | > 80% |
 | `node_load15` | 시스템 부하 | > CPU 코어 수 * 2 |
 
@@ -177,14 +179,14 @@ sudo systemctl start grafana-server
 
 ### 커스텀 대시보드 가져오기
 
-Grafana UI를 통해 대시보드 가져오기:
+Grafana UI를 통해 대시보드를 가져옵니다:
 
 ```bash
 # Navigate to Dashboards > Import > Upload JSON file
 # Or use Dashboard ID in Grafana's dashboard library
 ```
 
-## AlertManager 구성
+## AlertManager 설정
 
 ### AlertManager 설치
 
@@ -328,7 +330,7 @@ echo "Memory warnings:"
 sudo journalctl -u ${SERVICE_NAME} --since "1 day ago" | grep -i memory
 ```
 
-### Loki 설정 (선택사항)
+### Loki 설정 (선택 사항)
 
 ```bash
 # Install Loki
@@ -365,7 +367,7 @@ EOF
 promtail -config.file=/etc/promtail-config.yml
 ```
 
-## 헬스 체크 엔드포인트
+## 상태 확인 엔드포인트
 
 ### HTTP 엔드포인트
 
@@ -386,7 +388,7 @@ curl -s http://localhost:26657/consensus_state | jq
 curl -s http://localhost:26657/num_unconfirmed_txs | jq
 ```
 
-### 헬스 체크 스크립트
+### 상태 확인 스크립트
 
 ```bash
 #!/bin/bash
@@ -450,6 +452,70 @@ echo
 echo "=== Health Check Complete ==="
 ```
 
+## 유지보수 작업
+
+### 일일 유지보수
+
+```bash
+#!/bin/bash
+# daily-maintenance.sh
+
+# Rotate logs
+sudo journalctl --rotate
+sudo journalctl --vacuum-time=7d
+
+# Clear cache
+sync && echo 3 | sudo tee /proc/sys/vm/drop_caches
+
+# Check for updates
+echo "Checking for updates..."
+curl -s https://api.github.com/repos/stable-chain/stable/releases/latest | jq -r '.tag_name'
+
+# Backup important config files
+cp ~/.stabled/config/node_key.json ~/backups/node_key_$(date +%Y%m%d).json
+
+# Generate report
+echo "Daily report generated: $(date)" > ~/reports/daily_$(date +%Y%m%d).log
+curl -s localhost:26657/status | jq >> ~/reports/daily_$(date +%Y%m%d).log
+```
+
+### 주간 유지보수
+
+```bash
+#!/bin/bash
+# weekly-maintenance.sh
+
+# Prune old data
+stabled prune
+
+# Compact database
+stabled compact
+
+# Update peer list
+wget https://raw.githubusercontent.com/stable-chain/networks/main/testnet/peers.txt
+cat peers.txt >> ~/.stabled/config/config.toml
+
+# Create snapshot (optional)
+./create-snapshot.sh
+
+# System updates
+sudo apt update
+sudo apt upgrade -y
+
+# Restart node (during low activity)
+sudo systemctl restart ${SERVICE_NAME}
+```
+
+### 데이터베이스 유지보수
+
+```bash
+# Check database size
+du -sh ~/.stabled/data/
+
+# Analyze database
+stabled debug db stats ~/.stabled/data
+```
+
 ## 성능 모니터링
 
 ### 리소스 사용량 추적
@@ -488,21 +554,31 @@ done
 
 1. **중복 모니터링 설정**
    - 외부 모니터링 서비스 사용
-   - 노드 간 교차 모니터링 구현
-   - Dead man's switch 알림 설정
+   - 크로스 노드 모니터링 구현
+   - 데드맨 스위치 알림 설정
 
-2. **알림 피로도 방지**
-   - 기준선을 바탕으로 알림 임계값 조정
+2. **알림 피로 방지**
+   - 기준치를 기반으로 알림 임계값 조정
    - 알림 그룹화 및 억제 사용
    - 에스컬레이션 정책 구현
 
 3. **데이터 보존**
-   - 최소 30일간 메트릭 보관
-   - 중요 로그 아카이빙
-   - 모니터링 설정 정기 백업
+   - 메트릭을 최소 30일간 유지
+   - 중요한 로그 아카이브
+   - 모니터링 설정의 정기 백업
+
+4. **보안**
+   - 강력한 비밀번호로 Grafana 보호
+   - 모든 엔드포인트에 HTTPS 사용
+   - prometheus 접근 제한
+
+5. **문서화**
+   - 모든 커스텀 메트릭 문서화
+   - 알림에 대한 런북 유지
+   - 대시보드 설명 최신 상태 유지
 
 ## 다음 단계
 
-- 문제 해결을 위한 [트러블슈팅 가이드](./troubleshooting) 검토
-- 모니터링과 함께 [업그레이드 구성](./upgrades)
-- 요구사항에 따른 커스텀 알림 설정
+- 문제 해결을 위해 [문제 해결 가이드 검토](/en/how-to/troubleshoot-node)
+- 모니터링을 포함한 [업그레이드 설정](/en/how-to/upgrade-node)
+- 요구 사항에 맞는 커스텀 알림 설정

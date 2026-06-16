@@ -1,51 +1,56 @@
 ---
 source_path: reference/testnet-information.mdx
 source_sha: a14fd8b8e7c039c5722219c6f50db8f72583dc87
-title: Testnet 정보
-description: "Stable 테스트넷의 체인 ID, RPC 엔드포인트, 수도꼭지 및 블록 탐색기 링크."
+title: 테스트넷 정보
+description: "Stable 테스트넷 네트워크의 Chain ID, RPC 엔드포인트, 포셋(faucet), 블록 익스플로러 링크입니다."
+diataxis: "reference"
 ---
 
-# Testnet 정보
+# 테스트넷 정보
 
-Stable testnet에 접근하기 위해 필요한 모든 정보입니다.
+Stable 테스트넷에 접속하기 위해 알아야 할 모든 것입니다.
 
 ## 네트워크 개요
 
-| 설정                   | 값                                                                                |
+| 구성 항목              | 값                                                                                 |
 |-----------------------|------------------------------------------------------------------------------------|
-| **네트워크 이름**      | Stable Testnet                                                                     |
+| **네트워크 이름**     | Stable Testnet                                                                     |
 | **Chain ID**          | `2201`                                                                             |
 | **가스 토큰**         | USDT0                                                                              |
-| **거버넌스 토큰**      | STABLE                                                                             |
-| **블록 타임**         | ~0.7 초                                                                            |
+| **거버넌스 토큰**     | STABLE                                                                             |
+| **블록 타임**         | 약 0.7초                                                                           |
 
-## Block Explorer
+## 블록 익스플로러
 
-| Explorer       | URL                                                              |
+| 익스플로러     | URL                                                              |
 |----------------|------------------------------------------------------------------|
 | **Stablescan** | [https://testnet.stablescan.xyz](https://testnet.stablescan.xyz) |
 
 ## RPC 엔드포인트
 
-### 주요 엔드포인트
+### 기본 엔드포인트
 
-| 타입 | 엔드포인트 | 목적 |
+| 유형 | 엔드포인트 | 용도 |
 |------|----------|---------|
 | **EVM JSON-RPC** | https://rpc.testnet.stable.xyz | EVM 트랜잭션 |
 | **WebSocket** | wss://rpc.testnet.stable.xyz | 실시간 업데이트 |
 
+:::note
+공개 RPC 엔드포인트는 **IP당 10초마다 1,000건의 요청**으로 속도가 제한됩니다. 한도를 초과한 요청은 `HTTP 429`를 반환합니다. 더 높은 처리량이 필요하면 [서드파티 RPC 제공자](/en/reference/rpc-providers)를 사용하세요.
+:::
+
 ## 체인 정보
 
-| 파라미터 | EVM |
+| 매개변수 | EVM |
 |-----------|-----|
 | **Chain ID** | `2201` |
 | **주소 형식** | `0x...` |
 | **가스 토큰** | `USDT0` |
-| **소수점** | 18 |
+| **소수 자릿수** | 18 |
 
-## Faucet 및 도구
+## 포셋 & 도구
 
 | 도구 | URL | 설명 |
 |------|-----|-------------|
-| **Faucet** | [https://faucet.stable.xyz](https://faucet.stable.xyz) | 테스트 토큰 받기 |
-| **Snapshots** | [Node Operators Guide](../node-operations/snapshots) 참조 | 체인 snapshot |
+| **포셋(Faucet)** | [https://faucet.stable.xyz](https://faucet.stable.xyz) | 테스트 토큰 받기 |
+| **스냅샷** | [노드 운영자 가이드](/en/how-to/use-node-snapshots) 참고 | 체인 스냅샷 |

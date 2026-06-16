@@ -1,24 +1,26 @@
 ---
 source_path: reference/node-configuration.mdx
 source_sha: b8b008a5ecbc30001cc5c5e528092a14410f2763
-title: Node Configuration Guide
-description: "Stable 노드의 config.toml 및 app.toml 설정 옵션에 대한 구성 참조 문서."
+title: 노드 구성 가이드
+description: "Stable 검증자 및 풀 노드의 config.toml과 app.toml 설정에 대한 구성 레퍼런스."
+diataxis: "reference"
+tag: "new"
 ---
 
-This guide covers all configuration options for Stable nodes, including optimization for different use cases.
+이 가이드는 다양한 사용 사례에 맞는 최적화를 포함하여 Stable 노드의 모든 구성 옵션을 다룹니다.
 
-## Configuration Files Overview
+## 구성 파일 개요
 
-Stable nodes use two main configuration files:
+Stable 노드는 두 개의 주요 구성 파일을 사용합니다:
 
-- **`config.toml`**: Core StableBFT configuration
-- **`app.toml`**: Application-specific configuration
+- **`config.toml`**: 핵심 StableBFT 구성
+- **`app.toml`**: 애플리케이션 전용 구성
 
-Both files are located in `~/.stabled/config/`
+두 파일 모두 `~/.stabled/config/`에 위치합니다.
 
-## Core Configuration (config.toml)
+## 핵심 구성 (config.toml)
 
-### Basic Settings
+### 기본 설정
 
 :::code-group
 ```toml [Mainnet]
@@ -43,7 +45,7 @@ db_backend = "goleveldb"
 ```
 :::
 
-### P2P Configuration
+### P2P 구성
 
 :::code-group
 ```toml [Mainnet]
@@ -76,7 +78,7 @@ persistent_peers = "5ed0f977a26ccf290e184e364fb04e268ef16430@peer1.testnet.stabl
 ```
 :::
 
-Additional P2P settings (same for both networks):
+추가 P2P 설정 (두 네트워크에서 동일):
 
 ```toml
 # Maximum number of inbound peers
@@ -109,7 +111,7 @@ seed_mode = false
 pex = true
 ```
 
-### RPC Server Configuration
+### RPC 서버 구성
 
 ```toml
 [rpc]
@@ -153,7 +155,7 @@ max_body_bytes = 1000000
 max_header_bytes = 1048576
 ```
 
-### Mempool Configuration
+### Mempool 구성
 
 ```toml
 [mempool]
@@ -185,7 +187,7 @@ max_tx_bytes = 1048576  # 1MB
 max_batch_bytes = 0
 ```
 
-### Consensus Configuration
+### 합의 구성
 
 ```toml
 [consensus]
@@ -222,9 +224,9 @@ peer_gossip_sleep_duration = "100ms"
 peer_query_maj23_sleep_duration = "2s"
 ```
 
-## Application Configuration (app.toml)
+## 애플리케이션 구성 (app.toml)
 
-### Basic Application Settings
+### 기본 애플리케이션 설정
 
 ```toml
 # Pruning strategy
@@ -249,7 +251,7 @@ index-events = []
 iavl-cache-size = 781250
 ```
 
-### API Configuration
+### API 구성
 
 ```toml
 [api]
@@ -269,7 +271,7 @@ max-open-connections = 1000
 enabled-unsafe-cors = true
 ```
 
-### gRPC Configuration
+### gRPC 구성
 
 ```toml
 [grpc]
@@ -281,7 +283,7 @@ address = "0.0.0.0:9090"
 
 ```
 
-### EVM JSON-RPC Configuration
+### EVM JSON-RPC 구성
 
 ```toml
 [json-rpc]
@@ -337,11 +339,11 @@ enable-indexer = false
 metrics = true
 ```
 
-## Configuration Profiles
+## 구성 프로파일
 
-### Full Node (Default)
+### 풀 노드 (기본값)
 
-Balanced configuration for full nodes:
+풀 노드를 위한 균형 잡힌 구성:
 
 ```bash
 # config.toml adjustments
@@ -354,9 +356,9 @@ sed -i 's/^pruning = ".*"/pruning = "default"/' ~/.stabled/config/app.toml
 sed -i 's/^snapshot-interval = .*/snapshot-interval = 1000/' ~/.stabled/config/app.toml
 ```
 
-### Archive Node
+### 아카이브 노드
 
-No pruning, full history:
+프루닝 없음, 전체 이력:
 
 ```bash
 # config.toml adjustments
@@ -366,9 +368,9 @@ sed -i 's/^indexer = ".*"/indexer = "kv"/' ~/.stabled/config/config.toml
 sed -i 's/^pruning = ".*"/pruning = "nothing"/' ~/.stabled/config/app.toml
 ```
 
-### RPC Node
+### RPC 노드
 
-Public RPC endpoint configuration:
+공개 RPC 엔드포인트 구성:
 
 ```bash
 # config.toml adjustments
@@ -383,9 +385,9 @@ sed -i 's/^enabled-unsafe-cors = .*/enabled-unsafe-cors = true/' ~/.stabled/conf
 
 ```
 
-## Monitoring Configuration
+## 모니터링 구성
 
-### Prometheus Metrics
+### Prometheus 메트릭
 
 ```toml
 # config.toml
@@ -400,7 +402,7 @@ prometheus_listen_addr = ":26660"
 namespace = "stablebft"
 ```
 
-### Logging
+### 로깅
 
 ```toml
 # config.toml
@@ -412,9 +414,9 @@ level = "info"
 format = "plain"
 ```
 
-## Applying Configuration Changes
+## 구성 변경 사항 적용
 
-After making configuration changes:
+구성을 변경한 후:
 
 ```bash
 # Restart the node
@@ -427,7 +429,7 @@ sudo journalctl -u ${SERVICE_NAME} -f
 curl localhost:26657/status | jq '.result.node_info'
 ```
 
-## Next Steps
+## 다음 단계
 
-- [Set up Monitoring](./monitoring) for your node
-- Review [Troubleshooting Guide](./troubleshooting) for common issues
+- 노드를 위한 [모니터링 설정](/en/how-to/monitor-node)
+- 일반적인 문제에 대해 [문제 해결 가이드](/en/how-to/troubleshoot-node) 검토

@@ -1,38 +1,43 @@
 ---
 source_path: reference/mainnet-information.mdx
 source_sha: dbe1fc67b45a5e1ab9a9c1426bbaf2a62855b2a1
-title: Mainnet 정보
-description: "Stable 메인넷의 체인 ID, RPC 엔드포인트, 블록 탐색기 및 네트워크 파라미터."
+title: 메인넷 정보
+description: "Stable 메인넷의 체인 ID, RPC 엔드포인트, 블록 익스플로러 및 네트워크 파라미터."
+diataxis: "reference"
 ---
 
-# Mainnet 정보
+# 메인넷 정보
 
-Stable mainnet에 접근하기 위해 필요한 모든 정보입니다.
+Stable 메인넷에 접속하기 위해 알아야 할 모든 정보입니다.
 
 ## 네트워크 개요
 
-| 설정                   | 값                                                                                |
+| 구성         | 값                                                                              |
 |-----------------------|------------------------------------------------------------------------------------|
 | **네트워크 이름**      | Stable Mainnet                                                                     |
 | **Chain ID**          | `988`                                                                              |
 | **가스 토큰**         | USDT0                                                                              |
-| **거버넌스 토큰**      | STABLE                                                                             |
-| **블록 타임**         | ~0.7 초                                                                            |
+| **거버넌스 토큰**         | STABLE                                                                             |
+| **블록 타임**        | 약 0.7초                                                                       |
 
-## Block Explorer
+## 블록 익스플로러
 
-| Explorer       | URL                                                      |
+| 익스플로러       | URL                                                      |
 |----------------|----------------------------------------------------------|
 | **Stablescan** | [https://stablescan.xyz](https://stablescan.xyz)         |
 
 ## RPC 엔드포인트
 
-### 주요 엔드포인트
+### 기본 엔드포인트
 
-| 타입 | 엔드포인트 | 목적 |
+| 유형 | 엔드포인트 | 용도 |
 |------|----------|---------|
 | **EVM JSON-RPC** | https://rpc.stable.xyz | EVM 트랜잭션 |
 | **WebSocket** | wss://rpc.stable.xyz | 실시간 업데이트 |
+
+:::note
+공개 RPC 엔드포인트는 **IP당 10초에 1,000건의 요청**으로 속도 제한이 적용됩니다. 제한을 초과하는 요청은 `HTTP 429`를 반환합니다. 더 높은 처리량이 필요하다면 [서드파티 RPC 제공자](/en/reference/rpc-providers)를 사용하세요.
+:::
 
 ## 체인 정보
 
@@ -40,10 +45,10 @@ Stable mainnet에 접근하기 위해 필요한 모든 정보입니다.
 |-----------|-----|
 | **Chain ID** | `988` |
 | **가스 토큰** | `USDT0` |
-| **소수점** | 18 |
+| **소수점 자리수** | 18 |
 
 ## 도구
 
 | 도구 | URL | 설명 |
 |------|-----|-------------|
-| **Snapshots** | [Node Operators Guide](../node-operations/snapshots) 참조 | 체인 snapshot |
+| **스냅샷** | [노드 운영자 가이드](/en/how-to/use-node-snapshots) 참조 | 체인 스냅샷 |

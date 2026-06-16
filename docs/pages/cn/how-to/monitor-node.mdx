@@ -2,26 +2,27 @@
 source_path: how-to/monitor-node.mdx
 source_sha: da7558e7551a0adf21acfe9b156be2304ae6c837
 title: 监控与维护指南
-description: "使用 Prometheus、Grafana 和 AlertManager 搭建 Stable 节点监控与告警的指南。"
+description: "使用 Prometheus、Grafana 和 AlertManager 进行 Stable 节点可观测性与告警的监控配置。"
+diataxis: "how-to"
 ---
 
-用于监控 Stable 节点和执行常规维护任务的综合指南。
+监控 Stable 节点并执行日常维护任务的综合指南。
 
-## 监控堆栈概览
+## 监控栈概览
 
-### 推荐堆栈
-- **Prometheus**：指标收集
-- **Grafana**：可视化和仪表板
-- **AlertManager**：告警路由和管理
+### 推荐技术栈
+- **Prometheus**：指标采集
+- **Grafana**：可视化与仪表盘
+- **AlertManager**：告警路由与管理
 - **Node Exporter**：系统指标
 - **Loki**：日志聚合（可选）
 
-## 快速监控设置
+## 快速监控配置
 
 ### 步骤 1：启用 Prometheus 指标
 
 ```toml
-# 编辑 ~/.stabled/config/config.toml
+# Edit ~/.stabled/config/config.toml
 [instrumentation]
 prometheus = true
 prometheus_listen_addr = ":26660"
@@ -36,12 +37,12 @@ sudo systemctl restart ${SERVICE_NAME}
 ### 步骤 2：安装 Prometheus
 
 ```bash
-# 下载 Prometheus
+# Download Prometheus
 wget https://github.com/prometheus/prometheus/releases/download/v2.45.0/prometheus-2.45.0.linux-amd64.tar.gz
 tar xvf prometheus-2.45.0.linux-amd64.tar.gz
 sudo mv prometheus-2.45.0.linux-amd64 /opt/prometheus
 
-# 创建配置
+# Create config
 sudo tee /opt/prometheus/prometheus.yml > /dev/null <<EOF
 global:
   scrape_interval: 15s
@@ -59,7 +60,7 @@ scrape_configs:
       - targets: ['localhost:9100']
 EOF
 
-# 创建 systemd 服务
+# Create systemd service
 sudo tee /etc/systemd/system/prometheus.service > /dev/null <<EOF
 [Unit]
 Description=Prometheus
@@ -77,7 +78,7 @@ ExecStart=/opt/prometheus/prometheus \
 WantedBy=multi-user.target
 EOF
 
-# 启动 Prometheus
+# Start Prometheus
 sudo useradd -rs /bin/false prometheus
 sudo chown -R prometheus:prometheus /opt/prometheus
 sudo systemctl enable prometheus
@@ -87,60 +88,60 @@ sudo systemctl start prometheus
 ### 步骤 3：安装 Grafana
 
 ```bash
-# 添加 Grafana 仓库
+# Add Grafana repository
 sudo apt-get install -y software-properties-common
 sudo add-apt-repository "deb https://packages.grafana.com/oss/deb stable main"
 wget -q -O - https://packages.grafana.com/gpg.key | sudo apt-key add -
 
-# 安装 Grafana
+# Install Grafana
 sudo apt-get update
 sudo apt-get install grafana
 
-# 启动 Grafana
+# Start Grafana
 sudo systemctl enable grafana-server
 sudo systemctl start grafana-server
 
-# 访问 http://your-ip:3000
-# 默认登录：admin/admin
+# Access at http://your-ip:3000
+# Default login: admin/admin
 ```
 
-## 关键监控指标
+## 需要监控的关键指标
 
 ### 节点健康指标
 
 | 指标 | 描述 | 告警阈值 |
 |--------|-------------|-----------------|
-| `up` | 节点可用性 | = 0 持续 5 分钟 |
-| `stablebft_consensus_height` | 当前区块高度 | 5 分钟内无增长 |
-| `stablebft_consensus_validators` | 活跃验证者 | 不适用 |
+| `up` | 节点可用性 | = 0 持续 5m |
+| `stablebft_consensus_height` | 当前区块高度 | 5m 内无增长 |
+| `stablebft_consensus_validators` | 活跃验证者 | N/A |
 | `stablebft_consensus_rounds` | 共识轮次 | > 3 |
-| `stablebft_consensus_block_interval` | 区块时间 | > 10 秒 |
-| `stablebft_p2p_peers` | 连接的对等节点 | < 3 |
+| `stablebft_consensus_block_interval` | 出块时间 | > 10s |
+| `stablebft_p2p_peers` | 已连接对等节点 | < 3 |
 | `stablebft_mempool_size` | 内存池大小 | > 1500 |
-| `stablebft_mempool_failed_txs` | 失败的交易 | > 100/分钟 |
+| `stablebft_mempool_failed_txs` | 失败交易 | > 100/min |
 
 ### 系统指标
 
 | 指标 | 描述 | 告警阈值 |
 |--------|-------------|-----------------|
-| `node_cpu_seconds_total` | CPU 使用率 | > 80% 持续 5 分钟 |
+| `node_cpu_seconds_total` | CPU 使用率 | > 80% 持续 5m |
 | `node_memory_MemAvailable_bytes` | 可用内存 | < 10% |
 | `node_filesystem_avail_bytes` | 可用磁盘 | < 10% |
 | `node_network_receive_bytes_total` | 网络接收 | > 100MB/s |
 | `node_disk_io_time_seconds_total` | 磁盘 I/O | > 80% |
 | `node_load15` | 系统负载 | > CPU 核心数 * 2 |
 
-## Grafana 仪表板设置
+## Grafana 仪表盘配置
 
-### 导入 Stable 仪表板
+### 导入 Stable 仪表盘
 
 ```json
 {
   "dashboard": {
-    "title": "Stable 节点监控",
+    "title": "Stable Node Monitoring",
     "panels": [
       {
-        "title": "区块高度",
+        "title": "Block Height",
         "targets": [
           {
             "expr": "stablebft_consensus_height{chain_id=\"stabletestnet_2201-1\"}"
@@ -148,7 +149,7 @@ sudo systemctl start grafana-server
         ]
       },
       {
-        "title": "对等节点",
+        "title": "Peers",
         "targets": [
           {
             "expr": "stablebft_p2p_peers"
@@ -156,7 +157,7 @@ sudo systemctl start grafana-server
         ]
       },
       {
-        "title": "区块时间",
+        "title": "Block Time",
         "targets": [
           {
             "expr": "rate(stablebft_consensus_height[1m]) * 60"
@@ -164,7 +165,7 @@ sudo systemctl start grafana-server
         ]
       },
       {
-        "title": "内存池大小",
+        "title": "Mempool Size",
         "targets": [
           {
             "expr": "stablebft_mempool_size"
@@ -176,17 +177,26 @@ sudo systemctl start grafana-server
 }
 ```
 
+### 自定义仪表盘导入
+
+通过 Grafana UI 导入仪表盘：
+
+```bash
+# Navigate to Dashboards > Import > Upload JSON file
+# Or use Dashboard ID in Grafana's dashboard library
+```
+
 ## AlertManager 配置
 
 ### 安装 AlertManager
 
 ```bash
-# 下载 AlertManager
+# Download AlertManager
 wget https://github.com/prometheus/alertmanager/releases/download/v0.26.0/alertmanager-0.26.0.linux-amd64.tar.gz
 tar xvf alertmanager-0.26.0.linux-amd64.tar.gz
 sudo mv alertmanager-0.26.0.linux-amd64 /opt/alertmanager
 
-# 配置
+# Configure
 sudo tee /opt/alertmanager/alertmanager.yml > /dev/null <<EOF
 global:
   resolve_timeout: 5m
@@ -209,7 +219,18 @@ receivers:
         smarthost: 'smtp.gmail.com:587'
         auth_username: 'your@gmail.com'
         auth_password: 'app-specific-password'
+
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'dev', 'instance']
 EOF
+
+# Start AlertManager
+sudo systemctl enable alertmanager
+sudo systemctl start alertmanager
 ```
 
 ### 告警规则
@@ -219,40 +240,155 @@ EOF
 groups:
   - name: stable_alerts
     rules:
-      - alert: 节点宕机
+      - alert: NodeDown
         expr: up{job="stable-node"} == 0
         for: 5m
         labels:
           severity: critical
         annotations:
-          summary: "节点 {{ $labels.instance }} 已宕机"
+          summary: "Node {{ $labels.instance }} is down"
 
-      - alert: 区块生产停止
+      - alert: BlockProductionStopped
         expr: increase(stablebft_consensus_height[5m]) == 0
         for: 5m
         labels:
           severity: critical
         annotations:
-          summary: "区块生产已停止"
+          summary: "Block production stopped"
 
-      - alert: 对等节点数量过低
+      - alert: LowPeerCount
         expr: stablebft_p2p_peers < 3
         for: 5m
         labels:
           severity: warning
         annotations:
-          summary: "对等节点数量过低：{{ $value }}"
+          summary: "Low peer count: {{ $value }}"
 
-      - alert: 内存池过载
+      - alert: HighMempool
         expr: stablebft_mempool_size > 1500
         for: 10m
         labels:
           severity: warning
         annotations:
-          summary: "内存池大小过高：{{ $value }}"
+          summary: "High mempool size: {{ $value }}"
+
+      - alert: DiskSpaceLow
+        expr: node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"} < 0.1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Low disk space: {{ $value | humanizePercentage }}"
+
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage: {{ $value }}%"
 ```
 
-## 健康检查脚本
+## 日志监控
+
+### Systemd 日志
+
+```bash
+# View recent logs
+sudo journalctl -u ${SERVICE_NAME} -n 100
+
+# Follow logs
+sudo journalctl -u ${SERVICE_NAME} -f
+
+# Filter by time
+sudo journalctl -u ${SERVICE_NAME} --since "1 hour ago"
+
+# Export logs
+sudo journalctl -u ${SERVICE_NAME} --since today > stable-logs-$(date +%Y%m%d).log
+```
+
+### 日志分析脚本
+
+```bash
+#!/bin/bash
+# analyze-logs.sh
+
+# Count errors in last hour
+echo "Errors in last hour:"
+sudo journalctl -u ${SERVICE_NAME} --since "1 hour ago" | grep -c ERROR
+
+# Show peer connections
+echo "Peer connections:"
+sudo journalctl -u ${SERVICE_NAME} --since "10 minutes ago" | grep "Peer connection" | tail -10
+
+# Check for consensus issues
+echo "Consensus rounds:"
+sudo journalctl -u ${SERVICE_NAME} --since "30 minutes ago" | grep -E "enterNewRound|Timeout" | tail -20
+
+# Memory usage patterns
+echo "Memory warnings:"
+sudo journalctl -u ${SERVICE_NAME} --since "1 day ago" | grep -i memory
+```
+
+### Loki 配置（可选）
+
+```bash
+# Install Loki
+wget https://github.com/grafana/loki/releases/download/v2.9.0/loki-linux-amd64.zip
+unzip loki-linux-amd64.zip
+sudo mv loki-linux-amd64 /usr/local/bin/loki
+
+# Install Promtail
+wget https://github.com/grafana/loki/releases/download/v2.9.0/promtail-linux-amd64.zip
+unzip promtail-linux-amd64.zip
+sudo mv promtail-linux-amd64 /usr/local/bin/promtail
+
+# Configure Promtail
+sudo tee /etc/promtail-config.yml > /dev/null <<EOF
+server:
+  http_listen_port: 9080
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://localhost:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: stable
+    systemd_journal:
+      matches: "_SYSTEMD_UNIT=stabled.service"
+      labels:
+        job: stable
+        host: localhost
+EOF
+
+# Start services
+promtail -config.file=/etc/promtail-config.yml
+```
+
+## 健康检查端点
+
+### HTTP 端点
+
+```bash
+# Basic health check
+curl -s http://localhost:26657/health
+
+# Node status
+curl -s http://localhost:26657/status | jq
+
+# Net info
+curl -s http://localhost:26657/net_info | jq
+
+# Consensus state
+curl -s http://localhost:26657/consensus_state | jq
+
+# Unconfirmed transactions
+curl -s http://localhost:26657/num_unconfirmed_txs | jq
+```
+
+### 健康检查脚本
 
 ```bash
 #!/bin/bash
@@ -260,94 +396,189 @@ groups:
 
 set -e
 
-# 颜色输出
+# Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 export SERVICE_NAME="stable"
 
-echo "=== Stable 节点健康检查 ==="
+echo "=== Stable Node Health Check ==="
 echo
 
-# 检查服务是否运行
+# Check if service is running
 if systemctl is-active --quiet ${SERVICE_NAME}; then
-    echo -e "${GREEN}✓${NC} 服务正在运行"
+    echo -e "${GREEN}✓${NC} Service is running"
 else
-    echo -e "${RED}✗${NC} 服务未运行"
+    echo -e "${RED}✗${NC} Service is not running"
     exit 1
 fi
 
-# 检查节点同步状态
+# Check node sync status
 SYNC_STATUS=$(curl -s localhost:26657/status | jq -r '.result.sync_info.catching_up')
 if [ "$SYNC_STATUS" = "false" ]; then
-    echo -e "${GREEN}✓${NC} 节点已同步"
+    echo -e "${GREEN}✓${NC} Node is synced"
 else
-    echo -e "${YELLOW}⚠${NC} 节点正在同步"
+    echo -e "${YELLOW}⚠${NC} Node is syncing"
 fi
 
-# 检查对等节点数量
+# Check peer count
 PEERS=$(curl -s localhost:26657/net_info | jq -r '.result.n_peers')
 if [ "$PEERS" -ge 3 ]; then
-    echo -e "${GREEN}✓${NC} 连接的对等节点：$PEERS"
+    echo -e "${GREEN}✓${NC} Connected peers: $PEERS"
 else
-    echo -e "${YELLOW}⚠${NC} 对等节点数量过低：$PEERS"
+    echo -e "${YELLOW}⚠${NC} Low peer count: $PEERS"
 fi
 
-# 检查磁盘空间
+# Check disk space
 DISK_USAGE=$(df -h / | awk 'NR==2 {print $5}' | sed 's/%//')
 if [ "$DISK_USAGE" -lt 80 ]; then
-    echo -e "${GREEN}✓${NC} 磁盘使用率：${DISK_USAGE}%"
+    echo -e "${GREEN}✓${NC} Disk usage: ${DISK_USAGE}%"
 else
-    echo -e "${YELLOW}⚠${NC} 磁盘使用率过高：${DISK_USAGE}%"
+    echo -e "${YELLOW}⚠${NC} High disk usage: ${DISK_USAGE}%"
+fi
+
+# Check memory
+MEM_AVAILABLE=$(free -m | awk 'NR==2 {print $7}')
+MEM_TOTAL=$(free -m | awk 'NR==2 {print $2}')
+MEM_PERCENT=$((100 - (MEM_AVAILABLE * 100 / MEM_TOTAL)))
+if [ "$MEM_PERCENT" -lt 80 ]; then
+    echo -e "${GREEN}✓${NC} Memory usage: ${MEM_PERCENT}%"
+else
+    echo -e "${YELLOW}⚠${NC} High memory usage: ${MEM_PERCENT}%"
 fi
 
 echo
-echo "=== 健康检查完成 ==="
+echo "=== Health Check Complete ==="
 ```
 
 ## 维护任务
 
-### 日常维护
+### 每日维护
 
 ```bash
 #!/bin/bash
 # daily-maintenance.sh
 
-# 轮换日志
+# Rotate logs
 sudo journalctl --rotate
 sudo journalctl --vacuum-time=7d
 
-# 清理缓存
+# Clear cache
 sync && echo 3 | sudo tee /proc/sys/vm/drop_caches
 
-# 检查更新
-echo "检查更新..."
+# Check for updates
+echo "Checking for updates..."
 curl -s https://api.github.com/repos/stable-chain/stable/releases/latest | jq -r '.tag_name'
 
-# 备份重要配置文件
+# Backup important config files
 cp ~/.stabled/config/node_key.json ~/backups/node_key_$(date +%Y%m%d).json
+
+# Generate report
+echo "Daily report generated: $(date)" > ~/reports/daily_$(date +%Y%m%d).log
+curl -s localhost:26657/status | jq >> ~/reports/daily_$(date +%Y%m%d).log
+```
+
+### 每周维护
+
+```bash
+#!/bin/bash
+# weekly-maintenance.sh
+
+# Prune old data
+stabled prune
+
+# Compact database
+stabled compact
+
+# Update peer list
+wget https://raw.githubusercontent.com/stable-chain/networks/main/testnet/peers.txt
+cat peers.txt >> ~/.stabled/config/config.toml
+
+# Create snapshot (optional)
+./create-snapshot.sh
+
+# System updates
+sudo apt update
+sudo apt upgrade -y
+
+# Restart node (during low activity)
+sudo systemctl restart ${SERVICE_NAME}
+```
+
+### 数据库维护
+
+```bash
+# Check database size
+du -sh ~/.stabled/data/
+
+# Analyze database
+stabled debug db stats ~/.stabled/data
+```
+
+## 性能监控
+
+### 资源使用追踪
+
+```bash
+#!/bin/bash
+# track-resources.sh
+
+while true; do
+    TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
+    CPU=$(top -bn1 | grep "stabled" | awk '{print $9}')
+    MEM=$(top -bn1 | grep "stabled" | awk '{print $10}')
+    IO=$(iostat -x 1 2 | tail -n2 | awk '{print $14}')
+
+    echo "$TIMESTAMP,CPU:$CPU,MEM:$MEM,IO:$IO" >> ~/metrics/resources.csv
+
+    sleep 60
+done
+```
+
+### 查询性能
+
+```bash
+# Monitor RPC response times
+while true; do
+    START=$(date +%s%N)
+    curl -s http://localhost:26657/status > /dev/null
+    END=$(date +%s%N)
+    DIFF=$((($END - $START) / 1000000))
+    echo "RPC response time: ${DIFF}ms"
+    sleep 5
+done
 ```
 
 ## 监控最佳实践
 
-1. **设置冗余监控**
+1. **建立冗余监控**
    - 使用外部监控服务
-   - 实现跨节点监控
-   - 设置死人开关告警
+   - 实施跨节点监控
+   - 设置死信开关（dead man's switch）告警
 
-2. **防止告警疲劳**
+2. **预防告警疲劳**
    - 基于基线调整告警阈值
-   - 使用告警分组和抑制
-   - 实现升级策略
+   - 使用告警分组与抑制
+   - 实施升级策略
 
 3. **数据保留**
-   - 至少保留 30 天指标
+   - 指标至少保留 30 天
    - 归档重要日志
    - 定期备份监控配置
 
-## 下一步
+4. **安全性**
+   - 使用强密码保护 Grafana
+   - 所有端点使用 HTTPS
+   - 限制 Prometheus 的访问
 
-- [查看故障排除指南](./troubleshooting)以解决问题
-- [配置升级](./upgrades)并监控
-- 根据您的要求设置自定义告警
+5. **文档**
+   - 记录所有自定义指标
+   - 为告警维护操作手册（runbook）
+   - 保持仪表盘描述的更新
+
+## 后续步骤
+
+- [查阅故障排查指南](/en/how-to/troubleshoot-node) 以解决问题
+- [配置升级](/en/how-to/upgrade-node) 并结合监控
+- 根据您的需求设置自定义告警

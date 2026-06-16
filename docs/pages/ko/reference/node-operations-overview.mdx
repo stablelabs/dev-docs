@@ -1,58 +1,71 @@
 ---
 source_path: reference/node-operations-overview.mdx
 source_sha: 292d91190bd4c06f8a2e4e87f9253a9bb856c28a
-title: Overview
-description: "Stable 네트워크 노드 운영을 위한 노드 유형, 빠른 시작 링크 및 운영 가이드 개요."
+title: "운영"
+description: "Stable 노드를 실행하세요. 설치, 구성, 모니터링 및 업그레이드."
+diataxis: "reference"
 ---
 
-# Overview
+# 운영
 
-This comprehensive guide covers everything you need to know about running and maintaining Stable nodes.
+운영은 Stable 노드 실행을 다룹니다: 풀 노드 또는 아카이브 노드, 테스트넷 또는 메인넷, 설치부터 모니터링까지. 노드가 적용하는 체인 수준 동작(수수료 모델, 파이널리티, 가스로서의 USDT0)에 대해서는 [가스 가격 책정](/en/explanation/gas-pricing), [파이널리티](/en/explanation/finality), [아키텍처 개요](/en/explanation/core-optimization-overview)를 참조하세요.
 
-## Quick Links
+## 빠른 링크
 
-- **[System Requirements](./system-requirements)** - Hardware and software requirements for different node types
-- **[Installation Guide](./installation)** - Step-by-step installation instructions for various platforms
-- **[Configuration](./configuration)** - Detailed configuration options and best practices
-- **[Snapshots & Sync](./snapshots)** - Fast sync options using snapshots
-- **[Upgrade Guide](./upgrades)** - Node upgrade procedures and version history
-- **[Monitoring](./monitoring)** - Tools and metrics for node monitoring
-- **[Troubleshooting](./troubleshooting)** - Common issues and solutions
+- **[시스템 요구사항](/en/reference/node-system-requirements)** - 다양한 노드 유형에 대한 하드웨어 및 소프트웨어 요구사항
+- **[설치 가이드](/en/how-to/install-node)** - 다양한 플랫폼에 대한 단계별 설치 지침
+- **[구성](/en/reference/node-configuration)** - 상세한 구성 옵션 및 모범 사례
+- **[스냅샷 및 동기화](/en/how-to/use-node-snapshots)** - 스냅샷을 사용한 빠른 동기화 옵션
+- **[밸리데이터 생성](/en/how-to/run-validator)** - 동기화된 노드를 밸리데이터로 등록하고 자체 위임
+- **[업그레이드 가이드](/en/how-to/upgrade-node)** - 노드 업그레이드 절차 및 버전 기록
+- **[모니터링](/en/how-to/monitor-node)** - 노드 모니터링을 위한 도구 및 메트릭
+- **[문제 해결](/en/how-to/troubleshoot-node)** - 일반적인 문제 및 해결책
 
-## Node Types
+`stabled`를 실행하는 대신 체인에서 밸리데이터 데이터(스테이크, 가동 시간, 투표 기록)를 읽으려면 [밸리데이터 데이터 인덱싱](/en/how-to/index-validator-data)을 참조하세요.
 
-### Full Node
-A full node maintains a complete copy of the blockchain and validates all transactions and blocks. Full nodes:
-- Verify all transactions and blocks
-- Maintain the entire blockchain history
-- Can serve data to other nodes
-- Support the network's decentralization
+## 노드 유형
 
-### Archive Node
-An archive node stores the complete history of all states and can serve historical queries. Archive nodes:
-- Store all historical states
-- Support historical queries at any block height
-- Require significantly more storage
-- Essential for block explorers and analytics
+### 풀 노드
+풀 노드는 블록체인의 완전한 복사본을 유지하며 모든 트랜잭션과 블록을 검증합니다. 풀 노드는:
+- 모든 트랜잭션과 블록을 검증
+- 전체 블록체인 기록을 유지
+- 다른 노드에 데이터를 제공할 수 있음
+- 네트워크의 탈중앙화를 지원
 
-## Network Information
+### 아카이브 노드
+아카이브 노드는 모든 상태의 완전한 기록을 저장하며 과거 쿼리를 제공할 수 있습니다. 아카이브 노드는:
+- 모든 과거 상태를 저장
+- 모든 블록 높이에서 과거 쿼리를 지원
+- 상당히 더 많은 스토리지를 요구
+- 블록 탐색기 및 분석에 필수적
 
-For complete network details including RPC endpoints, block explorers, and chain parameters, see:
-- **[Mainnet](#TODO)** - Mainnet details
-- **[Testnet](#TODO)** - Testnet details
+## 네트워크 정보
 
-## Support and Community
+RPC 엔드포인트, 블록 탐색기, 체인 파라미터를 포함한 전체 네트워크 세부 정보는 다음을 참조하세요:
+- **[메인넷](/en/reference/mainnet-information)** - 메인넷 세부 정보
+- **[테스트넷](/en/reference/testnet-information)** - 테스트넷 세부 정보
 
-- **Discord**: [Join our Discord](https://discord.gg/stablexyz)
+## 지원 및 커뮤니티
 
-## Quick Start
+- **Discord**: [Stable Discord 참여하기](https://discord.gg/stablexyz)
 
-For experienced operators who want to get started quickly:
+## 빠른 시작
 
-1. Check [System Requirements](./system-requirements)
-2. Follow the [Installation Guide](./installation)
-3. Configure your node using [Configuration Guide](./configuration)
-4. Speed up sync with [Snapshots](./snapshots)
-5. Monitor your node with [Monitoring Guide](./monitoring)
+빠르게 시작하고자 하는 숙련된 운영자를 위해:
 
-For network parameters and RPC endpoints, see [Mainnet Information](#TODO) or [Testnet Information](#TODO).
+1. [시스템 요구사항](/en/reference/node-system-requirements) 확인
+2. [설치 가이드](/en/how-to/install-node) 따르기
+3. [구성 가이드](/en/reference/node-configuration)를 사용하여 노드 구성
+4. [스냅샷](/en/how-to/use-node-snapshots)으로 동기화 속도 향상
+5. [모니터링 가이드](/en/how-to/monitor-node)로 노드 모니터링
+
+네트워크 파라미터 및 RPC 엔드포인트는 [메인넷 정보](/en/reference/mainnet-information) 또는 [테스트넷 정보](/en/reference/testnet-information)를 참조하세요.
+
+## 노드 운영이 체인과 연결되는 방식
+
+노드를 실행한다는 것은 Stable의 체인 수준 규칙을 적용한다는 의미입니다. 다음 페이지에서는 노드가 구현하는 동작을 설명합니다:
+
+- **[컨트랙트 개요](/en/explanation/contracts-overview)** 는 노드가 제공하는 수수료 모델, JSON-RPC 표면, 시스템 모듈을 다룹니다.
+- **[파이널리티](/en/explanation/finality)** 는 단일 슬롯 파이널리티와 합의 계층에서 "확정"이 무엇을 의미하는지 설명합니다.
+- **[아키텍처 개요](/en/explanation/core-optimization-overview)** 는 합의, 실행, 데이터베이스, RPC 계층을 살펴봅니다.
+- **[가스 가격 책정](/en/explanation/gas-pricing)** 은 USDT0 단위 수수료가 어떻게 책정되고 징수되는지 설명합니다.

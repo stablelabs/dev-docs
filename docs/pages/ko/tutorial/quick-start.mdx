@@ -1,215 +1,122 @@
 ---
 source_path: tutorial/quick-start.mdx
 source_sha: ac60005c171579369156d04b03a48434c2e6bbba
-title: Stable에 첫 번째 스마트 컨트랙트 배포하기
-description: 개발 환경을 설정하고, USDT0으로 지갑에 자금을 충전하고, Stable 테스트넷에 컨트랙트를 배포하는 방법을 알아보세요.
+title: "빠른 시작"
+description: "Stable 테스트넷에 연결하고, 포셋에서 지갑에 자금을 충전하고, 첫 USDT0 트랜잭션을 전송하세요"
+diataxis: "tutorial"
 ---
 
-# Stable에 첫 번째 스마트 컨트랙트 배포하기
+# 빠른 시작
 
-이 튜토리얼에서는 Stable 테스트넷에 간단한 스마트 컨트랙트를 배포하고 체인에서 상태를 읽어옵니다. 이 과정에서 Stable 네트워크 구성 방식, USDT0이 가스 토큰으로 작동하는 방식, 표준 EVM 도구를 Stable에 연결하는 방법을 배웁니다.
+필요한 도구는 Node.js, 포셋에서 받은 USDT0, 그리고 개인 키뿐입니다. Stable은 USDT0를 가스 토큰으로 사용하므로, 트랜잭션을 처리하는 데 USDT0만 있으면 됩니다. 별도로 충전해야 할 가스 자산은 없습니다.
 
-Solidity와 Unix 계열 터미널에 대한 기본 지식이 있다고 가정합니다. Stable 사용 경험은 필요하지 않습니다.
+:::note
+타입이 지정된 클라이언트를 선호하시나요? [Stable SDK](/en/explanation/sdk-overview)는 `transfer`, `bridge`, `swap` 메서드로 viem을 감싸므로 수동 ABI 및 소수점 작업을 건너뛸 수 있습니다.
+:::
 
-## 사전 요구사항
+## 사전 준비
 
-- [Foundry](https://book.getfoundry.sh/getting-started/installation) 설치 (`forge`, `cast`, `anvil`이 PATH에서 사용 가능해야 함)
-- 개인 키를 소유한 지갑 (새 테스트 키도 괜찮습니다 — 실제 자금이 있는 키는 절대 테스트넷에서 사용하지 마세요)
-- 테스트넷 RPC 및 수도꼭지에 접근할 수 있는 인터넷 연결
+- Node.js 20 이상
+- 직접 관리하는 개인 키 (새로운 테스트 키도 괜찮습니다)
 
----
+## 1. 설치 및 구성
 
-## 1. 새 Foundry 프로젝트 생성
-
-다음 명령어로 새 프로젝트를 생성합니다:
-
-```bash
-forge init stable-hello && cd stable-hello
-```
-
-Foundry는 `src/` 디렉토리에 샘플 `Counter.sol` 컨트랙트와 테스트 파일을 생성합니다. 이 컨트랙트를 그대로 배포합니다 — 목표는 새 Solidity 코드를 작성하는 것이 아니라 실제로 체인에 올리는 것입니다.
-
-## 2. 배포할 컨트랙트 확인
-
-[src/Counter.sol](src/Counter.sol)을 열어보세요. 두 개의 함수가 있습니다:
-
-```solidity
-// SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
-
-contract Counter {
-    uint256 public number;
-
-    function setNumber(uint256 newNumber) public {
-        number = newNumber;
-    }
-
-    function increment() public {
-        number++;
-    }
-}
-```
-
-`number`는 체인에 저장되는 공개 상태 변수입니다. `increment()`와 `setNumber()`는 이를 변경하는 두 가지 방법입니다. `number`를 읽는 것은 가스가 들지 않습니다 — 무료 `eth_call`입니다.
-
-## 3. Stable 테스트넷 구성
-
-프로젝트 루트에 네트워크 자격증명을 저장할 [.env](.env) 파일을 생성합니다:
+프로젝트를 생성하고, `ethers`를 설치한 후, 테스트넷 구성을 저장하세요.
 
 ```bash
-touch .env
+mkdir stable-quickstart && cd stable-quickstart
+npm init -y && npm install ethers
 ```
 
-다음 내용을 추가하고, 플레이스홀더를 실제 개인 키로 교체합니다:
+```text
+added 1 package, audited 2 packages in 1s
+```
+
+개인 키를 `.env`에 저장하세요:
 
 ```bash
-PRIVATE_KEY=0xYOUR_PRIVATE_KEY_HERE
+echo "PRIVATE_KEY=0xYOUR_PRIVATE_KEY_HERE" > .env
 ```
 
-다음으로 [foundry.toml](foundry.toml)을 열고 Stable 테스트넷을 명명된 네트워크 프로필로 추가합니다. 기존 `[profile.default]` 섹션 아래에 다음 블록을 추가합니다:
+`config.ts`를 생성하세요:
 
-```toml
-[rpc_endpoints]
-stable_testnet = "https://rpc.testnet.stable.xyz"
+```typescript
+// config.ts
+import { ethers } from "ethers";
+import "dotenv/config";
+
+export const STABLE_TESTNET_RPC = "https://rpc.testnet.stable.xyz";
+export const CHAIN_ID = 2201;
+
+export const provider = new ethers.JsonRpcProvider(STABLE_TESTNET_RPC);
+export const wallet = new ethers.Wallet(process.env.PRIVATE_KEY!, provider);
 ```
 
-이렇게 하면 `stable_testnet`을 대상으로 할 때 Foundry가 트랜잭션을 어디로 보낼지 알게 됩니다. Stable은 EVM 호환이므로 다른 구성은 필요하지 않습니다.
+## 2. 지갑에 자금 충전
 
----
+주소를 출력한 다음, 포셋에서 테스트넷 USDT0를 요청하세요.
 
-**체크포인트:** RPC 엔드포인트에 접근 가능한지 확인합니다:
+```typescript
+// address.ts
+import { wallet } from "./config";
+
+console.log("Wallet address:", wallet.address);
+```
 
 ```bash
-cast chain-id --rpc-url https://rpc.testnet.stable.xyz
+npx tsx address.ts
 ```
 
-예상 출력:
-
-```
-2201
+```text
+Wallet address: 0x1234...abcd
 ```
 
-체인 ID `2201`은 Stable 테스트넷입니다. 이 숫자가 보이면 네트워크에 접근할 수 있는 것입니다.
+[https://faucet.stable.xyz](https://faucet.stable.xyz)로 이동하여 주소를 붙여넣고, 버튼을 선택하여 테스트넷 USDT0를 받으세요. 포셋은 1 USDT0를 전송하며, 이는 수천 건의 네이티브 전송에 충분합니다.
 
----
+## 3. 첫 트랜잭션 전송
 
-## 4. 지갑 주소 가져오기
+0.001 USDT0를 네이티브로 전송하세요. Stable에서 USDT0는 네이티브 자산이므로, 간단한 값 전송이 가장 저렴한 경로입니다(21,000 가스).
 
-개인 키에서 배포자 주소를 도출하여 어떤 계정에 자금을 충전해야 하는지 확인합니다:
+```typescript
+// send.ts
+import { ethers } from "ethers";
+import { provider, wallet } from "./config";
+
+const recipient = "0xRecipientAddress"; // replace with any address
+const amount = ethers.parseEther("0.001"); // 0.001 USDT0 (18 decimals, native)
+
+const block = await provider.getBlock("latest");
+const baseFee = block!.baseFeePerGas!;
+
+const tx = await wallet.sendTransaction({
+  to: recipient,
+  value: amount,
+  maxFeePerGas: baseFee * 2n,
+  maxPriorityFeePerGas: 0n, // always 0 on Stable
+});
+
+const receipt = await tx.wait(1);
+console.log("Tx:", receipt!.hash);
+console.log("Explorer:", `https://testnet.stablescan.xyz/tx/${receipt!.hash}`);
+```
 
 ```bash
-source .env
-cast wallet address $PRIVATE_KEY
+npx tsx send.ts
 ```
 
-출력된 주소를 복사합니다. 다음 단계에서 필요합니다.
-
-## 5. USDT0으로 지갑에 자금 충전
-
-Stable은 **USDT0**을 가스 토큰으로 사용합니다 — 상품과 서비스 결제에 사용하는 것과 동일한 자산이 컴퓨팅 비용 지불에 직접 사용됩니다. 별도의 네이티브 토큰은 없습니다.
-
-테스트넷 수도꼭지를 방문하여 자금을 요청합니다:
-
-```
-https://faucet.stable.xyz
+```text
+Tx: 0x8f3a...2d41
+Explorer: https://testnet.stablescan.xyz/tx/0x8f3a...2d41
 ```
 
-이전 단계의 주소를 붙여넣습니다. 수도꼭지는 지갑에 1 USDT0을 전송하며, 이는 여러 컨트랙트를 배포하고 상호작용하기에 충분합니다.
+익스플로러 링크를 열어 트랜잭션을 확인하세요. 블록 생성 시간은 약 0.7초이므로, 이미 최종 확정되었을 것입니다.
 
----
+:::warning
+`maxPriorityFeePerGas`는 Stable에서 무시되며 반드시 `0`으로 설정해야 합니다. base-fee-only 모델이 트랜잭션 구성을 어떻게 변경하는지는 [가스 가격 책정](/en/reference/gas-pricing-api)을 참조하세요.
+:::
 
-**체크포인트:** 잔액이 도착했는지 확인합니다:
+## 다음 단계
 
-```bash
-cast balance $PRIVATE_KEY --rpc-url https://rpc.testnet.stable.xyz
-```
-
-0이 아닌 값이 보여야 합니다. 잔액이 여전히 `0`이라면 몇 초 후 다시 실행하세요 — Stable은 약 0.7초마다 새 블록을 생성하므로 자금이 빨리 정산됩니다.
-
----
-
-## 6. 컨트랙트 배포
-
-`forge create`로 배포를 실행합니다:
-
-```bash
-source .env
-forge create src/Counter.sol:Counter \
-  --rpc-url https://rpc.testnet.stable.xyz \
-  --private-key $PRIVATE_KEY \
-  --broadcast
-```
-
-Foundry가 컨트랙트를 컴파일하고, 배포 트랜잭션을 브로드캐스트하고, 영수증을 기다립니다. 블록 시간이 ~0.7초이므로 잠깐이면 됩니다.
-
----
-
-**체크포인트:** 출력이 다음과 같아야 합니다:
-
-```
-[⠒] Compiling...
-No files changed, compilation skipped
-Deployer: 0xYourAddress
-Deployed to: 0xSomeContractAddress
-Transaction hash: 0xSomeTxHash
-```
-
-`Deployed to` 주소를 복사합니다. 다음 두 단계에서 필요합니다.
-
----
-
-## 7. 쓰기 함수 호출
-
-이제 `setNumber()`를 호출하여 체인에 값을 저장합니다:
-
-```bash
-cast send 0xSomeContractAddress "setNumber(uint256)" 42 \
-  --rpc-url https://rpc.testnet.stable.xyz \
-  --private-key $PRIVATE_KEY
-```
-
-이것은 트랜잭션을 전송합니다. 상태 변경에 대해 소량의 USDT0 수수료를 지불합니다. 값 `42`가 이제 Stable 테스트넷의 `number` 변수에 저장되었습니다.
-
-## 8. 체인에서 상태 읽기
-
-`number()`를 호출하여 값을 읽어옵니다. 이것은 무료 읽기 — 트랜잭션 없음, 가스 없음:
-
-```bash
-cast call 0xSomeContractAddress "number()(uint256)" \
-  --rpc-url https://rpc.testnet.stable.xyz
-```
-
-예상 출력:
-
-```
-42
-```
-
-Stable 테스트넷에 쓰고 읽는 것을 완료했습니다. 배포, 쓰기, 읽기의 전체 사이클은 EVM 개발의 핵심 루프이며, 다른 EVM 체인과 동일하게 작동합니다.
-
-## 9. Stablescan에서 배포 확인
-
-Stable 테스트넷 블록 탐색기를 열고 컨트랙트 주소를 붙여넣습니다:
-
-```
-https://testnet.stablescan.xyz
-```
-
-배포 트랜잭션과 `setNumber` 호출을 볼 수 있습니다. Stablescan은 Stable에서 온체인 상태를 검사하고, 컨트랙트 소스 코드를 검증하고, 트랜잭션 히스토리를 읽는 공식 도구입니다.
-
----
-
-## 배운 내용
-
-컨트랙트를 배포하고, 상태 변경 트랜잭션을 전송하고, 온체인 상태를 읽었습니다 — 모두 Stable 테스트넷에서 완료했습니다. 이제 다음을 할 수 있습니다:
-
-- 표준 RPC 엔드포인트를 사용하여 Stable을 대상으로 Foundry(또는 다른 EVM 도구체인) 구성하기
-- USDT0 수도꼭지를 사용하여 지갑에 자금 충전하기
-- USDT0을 가스 토큰으로 사용하여 트랜잭션 비용 지불하기
-- Stablescan에서 작업 내용 확인하기
-
-**다음 단계:**
-
-- [JSON-RPC API](/ko/developers/core-mechanics/json-rpc-api) — Stable이 지원하는 `eth_` 메서드와 이더리움 메인넷과의 차이점 확인
-- [가스 & 가격 책정](/ko/developers/core-mechanics/gas-pricing) — USDT0 기반 수수료 계산 방식 이해
-- [테스트넷 정보](/ko/developers/testnet/testnet-information) — 전체 네트워크 파라미터, 컨트랙트 주소, 브리지 세부사항
+- [**스마트 컨트랙트 배포**](/en/tutorial/smart-contract) — Foundry 프로젝트를 스캐폴딩하고 Stable 테스트넷에 배포하세요.
+- [**결제 앱 구축**](/en/how-to/build-p2p-payments) — 지갑 생성, 전송, 수신, 결제 내역 조회를 만들어보세요.
+- [**AI로 개발하기**](/en/how-to/develop-with-ai) — MCP 서버와 에이전트 스킬을 AI 에디터에 연결하세요.

@@ -1,24 +1,26 @@
 ---
 source_path: reference/node-configuration.mdx
 source_sha: b8b008a5ecbc30001cc5c5e528092a14410f2763
-title: Node Configuration Guide
-description: "Stable 节点 config.toml 和 app.toml 配置选项的参考文档。"
+title: 节点配置指南
+description: "Stable 验证者节点和全节点上 config.toml 和 app.toml 设置的配置参考。"
+diataxis: "reference"
+tag: "new"
 ---
 
-This guide covers all configuration options for Stable nodes, including optimization for different use cases.
+本指南涵盖 Stable 节点的所有配置选项，包括针对不同使用场景的优化。
 
-## Configuration Files Overview
+## 配置文件概述
 
-Stable nodes use two main configuration files:
+Stable 节点使用两个主要配置文件：
 
-- **`config.toml`**: Core StableBFT configuration
-- **`app.toml`**: Application-specific configuration
+- **`config.toml`**：核心 StableBFT 配置
+- **`app.toml`**：应用程序专属配置
 
-Both files are located in `~/.stabled/config/`
+这两个文件都位于 `~/.stabled/config/`
 
-## Core Configuration (config.toml)
+## 核心配置 (config.toml)
 
-### Basic Settings
+### 基本设置
 
 :::code-group
 ```toml [Mainnet]
@@ -43,7 +45,7 @@ db_backend = "goleveldb"
 ```
 :::
 
-### P2P Configuration
+### P2P 配置
 
 :::code-group
 ```toml [Mainnet]
@@ -76,7 +78,7 @@ persistent_peers = "5ed0f977a26ccf290e184e364fb04e268ef16430@peer1.testnet.stabl
 ```
 :::
 
-Additional P2P settings (same for both networks):
+其他 P2P 设置（两个网络相同）：
 
 ```toml
 # Maximum number of inbound peers
@@ -109,7 +111,7 @@ seed_mode = false
 pex = true
 ```
 
-### RPC Server Configuration
+### RPC 服务器配置
 
 ```toml
 [rpc]
@@ -153,7 +155,7 @@ max_body_bytes = 1000000
 max_header_bytes = 1048576
 ```
 
-### Mempool Configuration
+### 内存池配置
 
 ```toml
 [mempool]
@@ -185,7 +187,7 @@ max_tx_bytes = 1048576  # 1MB
 max_batch_bytes = 0
 ```
 
-### Consensus Configuration
+### 共识配置
 
 ```toml
 [consensus]
@@ -222,9 +224,9 @@ peer_gossip_sleep_duration = "100ms"
 peer_query_maj23_sleep_duration = "2s"
 ```
 
-## Application Configuration (app.toml)
+## 应用程序配置 (app.toml)
 
-### Basic Application Settings
+### 基本应用程序设置
 
 ```toml
 # Pruning strategy
@@ -249,7 +251,7 @@ index-events = []
 iavl-cache-size = 781250
 ```
 
-### API Configuration
+### API 配置
 
 ```toml
 [api]
@@ -269,7 +271,7 @@ max-open-connections = 1000
 enabled-unsafe-cors = true
 ```
 
-### gRPC Configuration
+### gRPC 配置
 
 ```toml
 [grpc]
@@ -281,7 +283,7 @@ address = "0.0.0.0:9090"
 
 ```
 
-### EVM JSON-RPC Configuration
+### EVM JSON-RPC 配置
 
 ```toml
 [json-rpc]
@@ -337,11 +339,11 @@ enable-indexer = false
 metrics = true
 ```
 
-## Configuration Profiles
+## 配置方案
 
-### Full Node (Default)
+### 全节点（默认）
 
-Balanced configuration for full nodes:
+适用于全节点的均衡配置：
 
 ```bash
 # config.toml adjustments
@@ -354,9 +356,9 @@ sed -i 's/^pruning = ".*"/pruning = "default"/' ~/.stabled/config/app.toml
 sed -i 's/^snapshot-interval = .*/snapshot-interval = 1000/' ~/.stabled/config/app.toml
 ```
 
-### Archive Node
+### 归档节点
 
-No pruning, full history:
+不进行修剪，保留完整历史记录：
 
 ```bash
 # config.toml adjustments
@@ -366,9 +368,9 @@ sed -i 's/^indexer = ".*"/indexer = "kv"/' ~/.stabled/config/config.toml
 sed -i 's/^pruning = ".*"/pruning = "nothing"/' ~/.stabled/config/app.toml
 ```
 
-### RPC Node
+### RPC 节点
 
-Public RPC endpoint configuration:
+公共 RPC 端点配置：
 
 ```bash
 # config.toml adjustments
@@ -383,9 +385,9 @@ sed -i 's/^enabled-unsafe-cors = .*/enabled-unsafe-cors = true/' ~/.stabled/conf
 
 ```
 
-## Monitoring Configuration
+## 监控配置
 
-### Prometheus Metrics
+### Prometheus 指标
 
 ```toml
 # config.toml
@@ -400,7 +402,7 @@ prometheus_listen_addr = ":26660"
 namespace = "stablebft"
 ```
 
-### Logging
+### 日志记录
 
 ```toml
 # config.toml
@@ -412,9 +414,9 @@ level = "info"
 format = "plain"
 ```
 
-## Applying Configuration Changes
+## 应用配置更改
 
-After making configuration changes:
+进行配置更改后：
 
 ```bash
 # Restart the node
@@ -427,7 +429,7 @@ sudo journalctl -u ${SERVICE_NAME} -f
 curl localhost:26657/status | jq '.result.node_info'
 ```
 
-## Next Steps
+## 后续步骤
 
-- [Set up Monitoring](./monitoring) for your node
-- Review [Troubleshooting Guide](./troubleshooting) for common issues
+- 为您的节点[设置监控](/en/how-to/monitor-node)
+- 查阅[故障排除指南](/en/how-to/troubleshoot-node)以了解常见问题

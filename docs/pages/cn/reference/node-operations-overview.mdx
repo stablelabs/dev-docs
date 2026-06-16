@@ -1,58 +1,71 @@
 ---
 source_path: reference/node-operations-overview.mdx
 source_sha: 292d91190bd4c06f8a2e4e87f9253a9bb856c28a
-title: Overview
-description: "运行 Stable 网络节点的节点类型、快速入口链接与运维指南概述。"
+title: "运维"
+description: "运行 Stable 节点。安装、配置、监控与升级。"
+diataxis: "reference"
 ---
 
-# Overview
+# 运维
 
-This comprehensive guide covers everything you need to know about running and maintaining Stable nodes.
+运维涵盖运行 Stable 节点的方方面面：全节点或归档节点、测试网或主网，从安装到监控。关于您的节点所强制执行的链级行为（费用模型、最终性、USDT0 作为 gas），请参阅 [Gas 定价](/en/explanation/gas-pricing)、[最终性](/en/explanation/finality) 和 [架构概览](/en/explanation/core-optimization-overview)。
 
-## Quick Links
+## 快速链接
 
-- **[System Requirements](./system-requirements)** - Hardware and software requirements for different node types
-- **[Installation Guide](./installation)** - Step-by-step installation instructions for various platforms
-- **[Configuration](./configuration)** - Detailed configuration options and best practices
-- **[Snapshots & Sync](./snapshots)** - Fast sync options using snapshots
-- **[Upgrade Guide](./upgrades)** - Node upgrade procedures and version history
-- **[Monitoring](./monitoring)** - Tools and metrics for node monitoring
-- **[Troubleshooting](./troubleshooting)** - Common issues and solutions
+- **[系统要求](/en/reference/node-system-requirements)** - 不同节点类型的硬件和软件要求
+- **[安装指南](/en/how-to/install-node)** - 各种平台的分步安装说明
+- **[配置](/en/reference/node-configuration)** - 详细的配置选项和最佳实践
+- **[快照与同步](/en/how-to/use-node-snapshots)** - 使用快照的快速同步选项
+- **[创建验证者](/en/how-to/run-validator)** - 将已同步的节点注册为验证者并进行自委托
+- **[升级指南](/en/how-to/upgrade-node)** - 节点升级流程和版本历史
+- **[监控](/en/how-to/monitor-node)** - 节点监控的工具和指标
+- **[故障排查](/en/how-to/troubleshoot-node)** - 常见问题和解决方案
 
-## Node Types
+如需从链上读取验证者数据（质押、在线时长、投票历史）而不运行 `stabled`，请参阅 [索引验证者数据](/en/how-to/index-validator-data)。
 
-### Full Node
-A full node maintains a complete copy of the blockchain and validates all transactions and blocks. Full nodes:
-- Verify all transactions and blocks
-- Maintain the entire blockchain history
-- Can serve data to other nodes
-- Support the network's decentralization
+## 节点类型
 
-### Archive Node
-An archive node stores the complete history of all states and can serve historical queries. Archive nodes:
-- Store all historical states
-- Support historical queries at any block height
-- Require significantly more storage
-- Essential for block explorers and analytics
+### 全节点
+全节点维护区块链的完整副本，并验证所有交易和区块。全节点：
+- 验证所有交易和区块
+- 维护整个区块链历史
+- 可以向其他节点提供数据
+- 支持网络的去中心化
 
-## Network Information
+### 归档节点
+归档节点存储所有状态的完整历史，并能提供历史查询。归档节点：
+- 存储所有历史状态
+- 支持在任意区块高度进行历史查询
+- 需要显著更多的存储空间
+- 对区块浏览器和分析工具至关重要
 
-For complete network details including RPC endpoints, block explorers, and chain parameters, see:
-- **[Mainnet](#TODO)** - Mainnet details
-- **[Testnet](#TODO)** - Testnet details
+## 网络信息
 
-## Support and Community
+如需完整的网络详情，包括 RPC 端点、区块浏览器和链参数，请参阅：
+- **[主网](/en/reference/mainnet-information)** - 主网详情
+- **[测试网](/en/reference/testnet-information)** - 测试网详情
 
-- **Discord**: [Join our Discord](https://discord.gg/stablexyz)
+## 支持与社区
 
-## Quick Start
+- **Discord**：[加入 Stable Discord](https://discord.gg/stablexyz)
 
-For experienced operators who want to get started quickly:
+## 快速开始
 
-1. Check [System Requirements](./system-requirements)
-2. Follow the [Installation Guide](./installation)
-3. Configure your node using [Configuration Guide](./configuration)
-4. Speed up sync with [Snapshots](./snapshots)
-5. Monitor your node with [Monitoring Guide](./monitoring)
+面向希望快速上手的经验丰富的运维人员：
 
-For network parameters and RPC endpoints, see [Mainnet Information](#TODO) or [Testnet Information](#TODO).
+1. 查看 [系统要求](/en/reference/node-system-requirements)
+2. 遵循 [安装指南](/en/how-to/install-node)
+3. 使用 [配置指南](/en/reference/node-configuration) 配置您的节点
+4. 通过 [快照](/en/how-to/use-node-snapshots) 加快同步
+5. 使用 [监控指南](/en/how-to/monitor-node) 监控您的节点
+
+如需了解网络参数和 RPC 端点，请参阅 [主网信息](/en/reference/mainnet-information) 或 [测试网信息](/en/reference/testnet-information)。
+
+## 节点运维如何与链关联
+
+运行节点意味着强制执行 Stable 的链级规则。以下页面解释了您的节点所实现的行为：
+
+- **[合约概览](/en/explanation/contracts-overview)** 涵盖费用模型、JSON-RPC 接口以及您的节点所服务的系统模块。
+- **[最终性](/en/explanation/finality)** 解释单槽最终性以及在共识层"已确认"的含义。
+- **[架构概览](/en/explanation/core-optimization-overview)** 详细介绍共识、执行、数据库和 RPC 各层。
+- **[Gas 定价](/en/explanation/gas-pricing)** 解释以 USDT0 计价的费用如何定价和收取。

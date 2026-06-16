@@ -1,51 +1,52 @@
 ---
 source_path: how-to/use-node-snapshots.mdx
 source_sha: 9560891a991acf962e514bb5bc630f0db8012b79
-title: Snapshots & Sync Guide
-description: "通过快照快速同步 Stable 全节点和归档节点的方法。"
+title: 快照与同步指南
+description: "用于快速引导 Stable 全节点和归档节点的基于快照的同步方法。"
+diataxis: "how-to"
 ---
 
-This guide covers various methods to synchronize your Stable node quickly using snapshots and state sync.
+本指南介绍了使用快照和状态同步快速同步 Stable 节点的各种方法。
 
-## Sync Methods Overview
+## 同步方法概览
 
-| Method | Sync Time | Storage Required | Use Case |
+| 方法 | 同步时间 | 所需存储 | 使用场景 |
 |--------|-----------|------------------|----------|
-| **Pruned Snapshot** | ~10 min | < 5 GiB | Regular full nodes |
-| **Archive Snapshot** | ~1 hours | ~500 GB | Archive nodes, block explorers |
+| **裁剪快照** | ~10 分钟 | < 5 GiB | 常规全节点 |
+| **归档快照** | ~1 小时 | ~500 GB | 归档节点、区块浏览器 |
 
-## Official Snapshots
+## 官方快照
 
-Stable provides official snapshots updated daily (00:00 UTC).
+Stable 提供每日更新的官方快照（00:00 UTC）。
 
-### Snapshot Information
+### 快照信息
 
-### Mainnet
+### 主网
 
-| Type | Compression | Size | URL | Update Frequency |
+| 类型 | 压缩格式 | 大小 | URL | 更新频率 |
   |------|-----------------|-------------|------|-----|
-| **Pruned** | LZ4 | < 5 GiB | [Download](https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/snapshots/snapshot.tar.lz4) | Daily |
-| **Archive** | ZSTD | ~300 GB | [Download](https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/snapshots/stable_archive.tar.zst) | Weekly |
+| **裁剪** | LZ4 | < 5 GiB | [下载](https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/snapshots/snapshot.tar.lz4) | 每日 |
+| **归档** | ZSTD | ~300 GB | [下载](https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/snapshots/stable_archive.tar.zst) | 每周 |
 
-### Testnet
+### 测试网
 
-| Type | Compression | Size | URL | Update Frequency |
+| 类型 | 压缩格式 | 大小 | URL | 更新频率 |
 |------|-----------------|-------------|------|-----|
-| **Pruned** | LZ4 | < 5 GiB | [Download](https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/snapshots/snapshot.tar.lz4) | Daily |
-  | **Archive** | ZSTD | ~800 GB | [Download](https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/snapshots/stable_archive.tar.zst) | Weekly |
+| **裁剪** | LZ4 | < 5 GiB | [下载](https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/snapshots/snapshot.tar.lz4) | 每日 |
+  | **归档** | ZSTD | ~800 GB | [下载](https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/snapshots/stable_archive.tar.zst) | 每周 |
 
-## Using Pruned Snapshots
+## 使用裁剪快照
 
-Pruned snapshots contain recent blockchain state (last 100-1000 blocks).
+裁剪快照包含最近的区块链状态（最后 100-1000 个区块）。
 
-### Step 1: Set Environment Variable
+### 第 1 步：设置环境变量
 
 ```bash
 # Set service name (default: stable)
 export SERVICE_NAME=stable
 ```
 
-### Step 2: Stop Node Service
+### 第 2 步：停止节点服务
 
 ```bash
 # Stop the running node
@@ -55,7 +56,7 @@ sudo systemctl stop ${SERVICE_NAME}
 sudo systemctl status ${SERVICE_NAME}
 ```
 
-### Step 2: Backup Current Data (Optional)
+### 第 3 步：备份当前数据（可选）
 
 ```bash
 # Create backup directory
@@ -65,7 +66,7 @@ mkdir -p ~/stable-backup
 cp -r ~/.stabled/data ~/stable-backup/
 ```
 
-### Step 3: Download and Extract Pruned Snapshot
+### 第 4 步：下载并解压裁剪快照
 
 :::code-group
 ```bash [Mainnet]
@@ -119,7 +120,7 @@ rm snapshot.tar.lz4
 ```
 :::
 
-### Step 4: Restart Node
+### 第 5 步：重启节点
 
 ```bash
 # Start the node
@@ -132,11 +133,11 @@ sudo systemctl status ${SERVICE_NAME}
 sudo journalctl -u stabled -f
 ```
 
-## Using Archive Snapshots
+## 使用归档快照
 
-Archive snapshots contain complete blockchain history.
+归档快照包含完整的区块链历史。
 
-### Step 1: Prepare System
+### 第 1 步：准备系统
 
 ```bash
 # Stop node
@@ -149,7 +150,7 @@ sudo apt install -y wget zstd pv
 df -h ~/.stabled
 ```
 
-### Step 2: Download and Extract Archive Snapshot
+### 第 2 步：下载并解压归档快照
 
 :::code-group
 ```bash [Mainnet]
@@ -194,7 +195,7 @@ rm archive.tar.zst
 ```
 :::
 
-### Step 3: Start Node
+### 第 3 步：启动节点
 
 ```bash
 # Start service
@@ -204,9 +205,9 @@ sudo systemctl start ${SERVICE_NAME}
 curl -s localhost:26657/status | jq '.result.sync_info'
 ```
 
-## Creating Your Own Snapshots
+## 创建你自己的快照
 
-### Manual Snapshot Creation
+### 手动创建快照
 
 ```bash
 # Stop node
@@ -223,7 +224,7 @@ sha256sum ~/stable-snapshot-*.tar.lz4 > checksums.txt
 sudo systemctl start ${SERVICE_NAME}
 ```
 
-### Automated Snapshot Script
+### 自动化快照脚本
 
 ```bash
 #!/bin/bash
@@ -264,16 +265,16 @@ sudo systemctl start ${SERVICE_NAME}
 echo "Snapshot created: $SNAPSHOT_DIR/$SNAPSHOT_NAME"
 ```
 
-### Schedule Automated Snapshots
+### 调度自动化快照
 
 ```bash
 # Add to crontab (weekly on Sunday at 2 AM)
 (crontab -l ; echo "0 2 * * 0 /usr/local/bin/snapshot.sh") | crontab -
 ```
 
-## Verification and Troubleshooting
+## 验证与故障排查
 
-### Verify Snapshot Integrity
+### 验证快照完整性
 
 ```bash
 # Check snapshot checksum
@@ -286,9 +287,9 @@ tar -I lz4 -tvf snapshot.tar.lz4 | head -20
 tar -I lz4 -tvf snapshot.tar.lz4 | wc -l
 ```
 
-### Common Issues
+### 常见问题
 
-#### Issue: Snapshot Extraction Fails
+#### 问题：快照解压失败
 
 ```bash
 # Check disk space
@@ -302,7 +303,7 @@ lz4 -d snapshot.tar.lz4 snapshot.tar
 tar -xvf snapshot.tar -C ~/.stabled/
 ```
 
-#### Issue: Node Won't Start After Snapshot
+#### 问题：快照后节点无法启动
 
 ```bash
 # Check permissions
@@ -319,7 +320,7 @@ stabled comet unsafe-reset-all
 # Then restore snapshot
 ```
 
-#### Issue: State Sync Fails
+#### 问题：状态同步失败
 
 ```bash
 # Try different RPC servers
@@ -332,9 +333,9 @@ sed -i 's/chunk_fetchers = .*/chunk_fetchers = 8/' ~/.stabled/config/config.toml
 stabled comet unsafe-reset-all --keep-addr-book
 ```
 
-## Performance Optimization
+## 性能优化
 
-### Download Optimization
+### 下载优化
 
 ```bash
 # Use aria2 for parallel downloads
@@ -347,7 +348,7 @@ wget --header="Accept-Encoding: gzip" -c URL
 curl -C - -o snapshot.tar.lz4 URL
 ```
 
-### Extraction Optimization
+### 解压优化
 
 ```bash
 # Use parallel extraction
@@ -360,18 +361,18 @@ pv snapshot.tar.lz4 | tar -I lz4 -xf - -C ~/.stabled/
 zstd -d --long=31 --memory=4096MB archive.tar.zst
 ```
 
-## Best Practices
+## 最佳实践
 
-1. **Always backup validator keys** before replacing data
-2. **Verify checksums** before extracting snapshots
-3. **Monitor disk space** during extraction (need 2x snapshot size)
-4. **Use official snapshots** when possible
-5. **Test snapshots** in non-production environment first
-6. **Schedule regular snapshots** for your archive nodes
-7. **Document snapshot sources** for audit trail
+1. 在替换数据之前**始终备份验证者密钥**
+2. 在解压快照之前**验证校验和**
+3. 在解压期间**监控磁盘空间**（需要 2 倍快照大小）
+4. 尽可能**使用官方快照**
+5. 先在非生产环境中**测试快照**
+6. 为你的归档节点**调度定期快照**
+7. **记录快照来源**以便审计追踪
 
-## Next Steps
+## 后续步骤
 
-- [Configure your node](./configuration) for optimal performance
-- [Set up monitoring](./monitoring) to track sync progress
-- [Review troubleshooting](./troubleshooting) for common issues
+- [配置你的节点](/en/reference/node-configuration)以获得最佳性能
+- [设置监控](/en/how-to/monitor-node)以跟踪同步进度
+- [查看故障排查](/en/how-to/troubleshoot-node)了解常见问题

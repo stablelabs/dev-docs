@@ -273,3 +273,32 @@ English is the source of truth. Edit only `docs/pages/en/`; the `cn` and `ko` pa
 
 - Do not alter technical content, code samples, contract addresses, or API references when fixing style.
 - If you are unsure whether something is a style issue or intentional, leave it as-is.
+
+## Automated checks
+
+The mechanical rules above are enforced on every PR by `npm run style:check`
+([`docs/lib/verify-style.mjs`](./docs/lib/verify-style.mjs)), which scans the `en`
+source pages only. Run it locally before pushing.
+
+- **Blocking** (fails CI): missing or empty `title` / `description` / `diataxis`
+  frontmatter, a `diataxis` value outside the four types, a page in a folder that
+  doesn't match its `diataxis`, a `description` over 160 characters, a code fence
+  with no language tag, or an em dash in prose.
+- **Warnings** (advisory, never block): marketing adjectives with no technical
+  meaning (e.g. "robust", "seamless", "comprehensive").
+
+On a PR, the `docs style` workflow surfaces results two ways:
+
+- **A summary comment** listing every finding, grouped by file. Each path is a
+  link to the file at the PR's head commit, and line-locatable findings carry a
+  `#L` anchor so you can jump straight to the line. The comment is sticky — it is
+  updated in place on each push, not duplicated.
+- **Inline suggested changes** for fixes that have a safe mechanical correction
+  (currently em dashes → colon). These appear as GitHub suggestions you can apply
+  with **Commit suggestion**, or edit first (a comma or two sentences may read
+  better). Suggestions can only attach to lines your PR changed; findings on
+  untouched lines appear in the summary comment only. Re-running replaces prior
+  suggestions rather than stacking them.
+
+A suggestion is a starting point, not a mandate — apply it, edit it, or fix the
+line by hand. CI passes once no blocking issues remain.

@@ -19,8 +19,8 @@ the Diátaxis structure: `explanation/`, `how-to/`, `reference/`, `tutorial/`,
   `/ko` sections are **generated** from `/en` (links re-prefixed, labels
   translated) — never hand-edit them. Regenerate after editing `/en`:
   ```bash
-  ANTHROPIC_API_KEY=… node docs/lib/i18n-sidebar.mjs cn
-  ANTHROPIC_API_KEY=… node docs/lib/i18n-sidebar.mjs ko
+  LLM_API_KEY=… node docs/lib/i18n-sidebar.mjs cn
+  LLM_API_KEY=… node docs/lib/i18n-sidebar.mjs ko
   ```
 - **Internal links** are absolute and locale-prefixed (`/en/...` in source). The
   translation pipeline rewrites them to the target locale automatically; never
@@ -30,13 +30,26 @@ the Diátaxis structure: `explanation/`, `how-to/`, `reference/`, `tutorial/`,
 - **Generate/refresh translations locally** (e.g. when CI can't, or for a
   freshness pass):
   ```bash
-  ANTHROPIC_API_KEY=… node docs/lib/i18n-translate.mjs cn [--stale] [pages…]
-  ANTHROPIC_API_KEY=… node docs/lib/i18n-translate.mjs ko [--stale] [pages…]
+  LLM_API_KEY=… node docs/lib/i18n-translate.mjs cn [--stale] [pages…]
+  LLM_API_KEY=… node docs/lib/i18n-translate.mjs ko [--stale] [pages…]
   ```
+- **LLM provider/model are env-swappable** (one seam, [`docs/lib/llm.mjs`](./docs/lib/llm.mjs)).
+  `LLM_API_KEY` (or `OPENROUTER_API_KEY`) is required; `LLM_BASE_URL` defaults to
+  OpenRouter; `TRANSLATE_MODEL` picks the translator and an optional `REVIEW_MODEL`
+  enables a second QA pass; `MAX_OUTPUT_TOKENS` (default 8000) must fit the chosen
+  model's output cap. Changing provider or model is config, never a code edit.
 - **Verify** before finishing: `npm run i18n:check` (expect `0 missing`) and
   `npm run docs:build`.
 
 Full rationale: [`ADRs/DR002_i18n_Sync_Pipeline.md`](./ADRs/DR002_i18n_Sync_Pipeline.md).
+
+## Writing style
+
+Before editing or adding a page, read [`STYLEGUIDE.md`](./STYLEGUIDE.md). It is the
+authority on voice, frontmatter (`title` / `description` / `diataxis`), file/folder
+rules, callout directives, code blocks, and the Vocs authoring features to use. The
+mechanical rules are enforced on every PR by `npm run style:check`
+([`docs/lib/verify-style.mjs`](./docs/lib/verify-style.mjs)) — run it before finishing.
 
 ## Build
 

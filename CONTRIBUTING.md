@@ -15,7 +15,9 @@ auto-generated translation, you're off-process.
 
 1. **Edit English only.** New page → create it under the right Diátaxis folder in
    `docs/pages/en/` (`explanation/`, `how-to/`, `reference/`, `tutorial/`,
-   `resources/`) with `title` / `description` / `diataxis` frontmatter.
+   `resources/`) with `title` / `description` / `diataxis` frontmatter. Follow
+   [`STYLEGUIDE.md`](./STYLEGUIDE.md) for voice, structure, frontmatter, callouts, and
+   code-block conventions; `npm run style:check` enforces the mechanical rules in CI.
 2. **Update the sidebar if pages were added/moved/renamed.** Edit the `/en`
    section of `docs/sidebar.json` only; the `/cn` and `/ko` sections are
    generated from it (links re-prefixed, labels translated) — never hand-edit them.

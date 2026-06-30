@@ -1,8 +1,105 @@
 ---
 title: "Network upgrades"
-description: "Release notes and upgrade history for Stable network protocol versions."
+description: "Release notes for Stable network protocol versions: what changed in each release and who needs to act."
 diataxis: "reference"
 ---
 
 # Network upgrades
 
+Each entry below describes what changed in a StableChain release, why it matters, and whether you need to do anything. Releases are listed newest first. For binaries, commit hashes, and upgrade block heights, see the [Mainnet version history](/en/reference/mainnet-version-history) and [Testnet version history](/en/reference/testnet-version-history).
+
+## How to read these notes
+
+A few terms appear throughout. Here is what they mean:
+
+- **State-breaking upgrade**: every node must run the new binary at the same block height, coordinated through a governance proposal. These releases have an upgrade height in the version history table. If you run a validator, you have to upgrade on schedule or your node stops following the chain.
+- **Backward-compatible upgrade**: the new binary works with the old one, so there is no coordinated cutover. These releases have no upgrade height. You can upgrade whenever it suits you by replacing the binary.
+- **Gas waiver**: a StableChain feature that lets a sponsor cover a transaction's fees, so the sender can transact without holding the gas token.
+- **System transaction**: a special transaction the protocol itself issues, rather than a regular user, to run internal operations.
+- **Precompile**: a built-in contract at a fixed address that runs native code instead of EVM bytecode, used for common operations that need to be fast.
+
+To check which version your node runs:
+
+```bash
+stabled version
+```
+
+```text
+v1.3.1
+```
+
+## v1.4.0 (upcoming) :badge[Testnet]{warning}
+
+A performance and predictability release, currently live on Testnet as a release candidate and not yet on Mainnet. It groups four changes under two themes: making blocks process faster, and making transaction inclusion more predictable for priority traffic.
+
+**What's coming:**
+
+- **Optimistic parallel execution (OPE)**: executes the transactions in a block in parallel instead of one at a time, then reconciles the results. This is based on Block-STM.
+- **Selective RecheckTx**: after a new block, only re-validates the pending transactions actually affected by it, rather than the entire mempool (the pool of transactions waiting to be included).
+- **MemIAVL**: a memory-mapped storage layer that replaces the previous LevelDB-based store, reducing a major bottleneck in the block lifecycle.
+- **2D nonce and guaranteed blockspace**: parallel nonce channels let one account send transactions on multiple independent lanes, and guaranteed blockspace reserves block capacity for priority workloads instead of leaving inclusion to chance.
+
+:::note
+v1.4.0 is still in audit and testing. Scope and timing may change before the Mainnet upgrade. Track the [Testnet version history](/en/reference/testnet-version-history) for the latest release candidate.
+:::
+
+## v1.3.1 :badge[Current]{success}
+
+A backward-compatible patch and the current Mainnet version. It ships with no coordinated upgrade height, so node operators can adopt it by replacing the binary at any time.
+
+## v1.3.0
+
+A security-focused, state-breaking upgrade that also made the gas waiver feature more flexible. The gas waiver change lets new partners such as wallets and exchanges be onboarded through a governance proposal later, instead of requiring another state-breaking upgrade each time.
+
+**Who needs to act:** all node operators upgrade at the scheduled height. See the [Mainnet version history](/en/reference/mainnet-version-history) for the exact height.
+
+**Security improvements:**
+
+- Non-public JSON-RPC namespaces are no longer registered, and signing APIs are enabled only when `AllowInsecureUnlock=true`.
+- Gas waiver inputs are hardened: addresses must use the EIP-55 canonical format, query inputs are length- and format-restricted, and wrapper type, chain-id, and EIP-7702 inner-transaction validation are strengthened.
+- System transactions are now validated against the `to` address and method selector, not just the `from` address. This closes a path that could trigger fee-free execution.
+- The Prague precompile address range is added to the blocked-address list, and unknown precompile methods now require query gas.
+
+**Bug fixes and stability:**
+
+- Corrected gas accounting for failed stateful precompile calls.
+- Resolved a refund-disable state leak after an ERC-20 internal call failure.
+- Fixed precompile warm-set tracking and `COINBASE` opcode behavior.
+- Aligned EIP-7702 authorization rollback with the spec.
+- Fixed system transaction responses that reported `from=0x0`, `feeHistory` error logging, and chain-id consistency in historical full-transaction responses.
+
+## v1.2.2
+
+A backward-compatible, optional upgrade that aligns StableChain with the official upstream consensus release and cleans up two query behaviors.
+
+**Who needs to act:** no one is required to. This upgrade needs no governance proposal. Node operators can adopt it by replacing the binary whenever convenient.
+
+**Changes:**
+
+- Upgraded CometBFT to the official `v0.38.21`. This follows the security patch shipped earlier in v1.1.4 and lets external partners verify the exact consensus version the network runs.
+- Removed a duplicate log index in gas waiver transaction queries.
+- Added safeguards to RPC responses for system-transaction queries.
+
+## v1.2.1
+
+A backward-compatible hotfix that remediated two issues which, if exploited, could halt the chain.
+
+**Who needs to act:** validators are required to upgrade. For other node operators, including RPC providers, the upgrade is optional. It needs no governance proposal.
+
+**Fixes:**
+
+- Closed a system-transaction spoofing path where a user could set `MsgEthereumTx.From == 0x1` to bypass authentication and call a system-only precompile, then use the spoofed transaction to repeatedly force `ProcessProposal` to reject blocks and stall consensus.
+- Fixed a mempool-poisoning chain-halt where `ExtensionOptionsWaiver` transactions could pass `CheckTx` but cause `ProcessProposal` to reject the entire block.
+
+## Earlier releases
+
+Detailed release notes start at v1.2.1. For v1.2.0 and earlier, including the genesis release, see the version history tables for binaries, commit hashes, and upgrade heights:
+
+- [Mainnet version history](/en/reference/mainnet-version-history): every Mainnet version with its binary and upgrade height.
+- [Testnet version history](/en/reference/testnet-version-history): every Testnet version, including release candidates.
+
+## Where to go next
+
+- [**Upgrade a node**](/en/how-to/upgrade-node): Follow the step-by-step procedure to move your node to a new version.
+- [**Mainnet version history**](/en/reference/mainnet-version-history): Look up commit hashes, binaries, and upgrade heights for every Mainnet release.
+- [**Mainnet information**](/en/reference/mainnet-information): Get the chain ID, RPC endpoints, and current network parameters.

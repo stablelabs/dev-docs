@@ -183,15 +183,15 @@
           "collapsed": true,
           "items": [
             {
-              "text": "SDK Overview",
+              "text": "Overview",
               "link": "/en/explanation/sdk-overview"
             },
             {
-              "text": "SDK Quickstart",
+              "text": "Quickstart",
               "link": "/en/tutorial/sdk-quickstart"
             },
             {
-              "text": "SDK",
+              "text": "Reference",
               "link": "/en/reference/sdk"
             },
             {
@@ -199,11 +199,11 @@
               "link": "/en/how-to/earn-yield"
             },
             {
-              "text": "SDK With Viem",
+              "text": "Viem Integration",
               "link": "/en/how-to/sdk-with-viem"
             },
             {
-              "text": "SDK With Wagmi",
+              "text": "Wagmi Integration",
               "link": "/en/how-to/sdk-with-wagmi"
             }
           ]
@@ -845,15 +845,15 @@
           "collapsed": true,
           "items": [
             {
-              "text": "SDK 개요",
+              "text": "개요",
               "link": "/ko/explanation/sdk-overview"
             },
             {
-              "text": "SDK 빠른 시작",
+              "text": "빠른 시작",
               "link": "/ko/tutorial/sdk-quickstart"
             },
             {
-              "text": "SDK",
+              "text": "레퍼런스",
               "link": "/ko/reference/sdk"
             },
             {
@@ -861,11 +861,11 @@
               "link": "/ko/how-to/earn-yield"
             },
             {
-              "text": "viem과 함께하는 SDK",
+              "text": "viem 통합",
               "link": "/ko/how-to/sdk-with-viem"
             },
             {
-              "text": "wagmi와 함께하는 SDK",
+              "text": "wagmi 통합",
               "link": "/ko/how-to/sdk-with-wagmi"
             }
           ]
@@ -1507,15 +1507,15 @@
           "collapsed": true,
           "items": [
             {
-              "text": "SDK 概览",
+              "text": "概览",
               "link": "/cn/explanation/sdk-overview"
             },
             {
-              "text": "SDK 快速入门",
+              "text": "快速入门",
               "link": "/cn/tutorial/sdk-quickstart"
             },
             {
-              "text": "SDK",
+              "text": "参考",
               "link": "/cn/reference/sdk"
             },
             {
@@ -1523,11 +1523,11 @@
               "link": "/cn/how-to/earn-yield"
             },
             {
-              "text": "带 viem 的 SDK",
+              "text": "viem 集成",
               "link": "/cn/how-to/sdk-with-viem"
             },
             {
-              "text": "带 wagmi 的 SDK",
+              "text": "wagmi 集成",
               "link": "/cn/how-to/sdk-with-wagmi"
             }
           ]

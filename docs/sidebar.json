@@ -183,15 +183,15 @@
           "collapsed": true,
           "items": [
             {
-              "text": "Sdk Overview",
+              "text": "SDK Overview",
               "link": "/en/explanation/sdk-overview"
             },
             {
-              "text": "Sdk Quickstart",
+              "text": "SDK Quickstart",
               "link": "/en/tutorial/sdk-quickstart"
             },
             {
-              "text": "Sdk",
+              "text": "SDK",
               "link": "/en/reference/sdk"
             },
             {
@@ -199,11 +199,11 @@
               "link": "/en/how-to/earn-yield"
             },
             {
-              "text": "Sdk With Viem",
+              "text": "SDK With Viem",
               "link": "/en/how-to/sdk-with-viem"
             },
             {
-              "text": "Sdk With Wagmi",
+              "text": "SDK With Wagmi",
               "link": "/en/how-to/sdk-with-wagmi"
             }
           ]

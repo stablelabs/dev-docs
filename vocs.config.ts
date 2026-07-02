@@ -64,7 +64,7 @@ export default defineConfig({
     },
   },
 
-  // Sidebar is generated from the Mintlify docs.json by migrate.py.
+  // Sidebar navigation is hand-maintained in docs/sidebar.json.
   sidebar,
 
   // Locale-scope search results to the script the user typed: Latin → English,

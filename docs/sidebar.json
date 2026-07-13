@@ -209,6 +209,20 @@
           ]
         },
         {
+          "text": "Enterprise SDK",
+          "collapsed": true,
+          "items": [
+            {
+              "text": "Overview",
+              "link": "/en/explanation/enterprise-sdk"
+            },
+            {
+              "text": "Reference",
+              "link": "/en/reference/enterprise-sdk"
+            }
+          ]
+        },
+        {
           "text": "Onboard users",
           "collapsed": true,
           "items": [

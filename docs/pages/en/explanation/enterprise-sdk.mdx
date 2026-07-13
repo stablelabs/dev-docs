@@ -28,13 +28,13 @@ The call returns `H_inner`, the hash of the user's transaction, not the wrapper 
 
 ## What the SDK does
 
-The SDK exposes three modules. Each is optional and independently configured, and each carries its own signing account so you can use separate keys.
+The SDK exposes three features, one per module. Each is optional and independently configured, and each carries its own signing account so you can use separate keys.
 
-- **`gasWaiver`**: build, sign, and relay a gas-waived transaction. A whitelisted waiver account wraps a user's zero-gas transaction so the user transacts without holding any USDT0. See [Gas waiver](/en/explanation/gas-waiver).
-- **`guaranteedBlock`**: relay a GuaranteedTx through the Enterprise RPC gateway so it lands in reserved Enterprise-lane blockspace. Unlike gas waiver, the signer pays its own gas. See [Guaranteed blockspace](/en/explanation/guaranteed-blockspace).
-- **`guaranteedWaiver`**: the composition of both. A gas-waived transaction routed through guaranteed blockspace, so the user needs no balance and the transaction still lands in the Enterprise lane.
+- **Relay with gas waiver** (`gasWaiver`): build, sign, and relay a gas-waived transaction. A whitelisted waiver account wraps a user's zero-gas transaction so the user transacts without holding any USDT0. See [Gas waiver](/en/explanation/gas-waiver).
+- **Guaranteed blockspace** (`guaranteedBlock`): relay a transaction through the Enterprise RPC gateway so it lands in reserved Enterprise-lane blockspace. Unlike gas waiver, the signer pays its own gas. See [Guaranteed blockspace](/en/explanation/guaranteed-blockspace).
+- **Guaranteed relay transactions** (`guaranteedWaiver`): both combined. A gas-waived transaction routed through guaranteed blockspace, so the user needs no balance and the transaction still lands in the Enterprise lane.
 
-Every module offers the same four methods: `send` and `sendBatch` for the custodial path where the SDK signs, and `relay` and `relayBatch` for the non-custodial path where the user signs elsewhere and hands you only the signed hex.
+Every feature offers the same four methods: `send` and `sendBatch` for the custodial path where the SDK signs, and `relay` and `relayBatch` for the non-custodial path where the user signs elsewhere and hands you only the signed hex.
 
 ## Access
 
@@ -56,9 +56,9 @@ Reach for the Enterprise SDK when you operate a backend and want to sponsor user
 
 ## Start here
 
+- [**Relay with gas waiver**](/en/how-to/relay-with-gas-waiver): Sponsor a user's gas so they transact without holding USDT0.
+- [**Send guaranteed transactions**](/en/how-to/send-guaranteed-transactions): Land transactions in reserved Enterprise-lane blockspace, and combine it with gas waiver.
 - [**Enterprise SDK reference**](/en/reference/enterprise-sdk): Every module, method, config option, and error class.
-- [**Gas waiver**](/en/explanation/gas-waiver): How zero-gas transactions work at the protocol level.
-- [**Guaranteed blockspace**](/en/explanation/guaranteed-blockspace): How Stable reserves block capacity for enterprise workloads.
 
 ## Next recommended
 

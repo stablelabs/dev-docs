@@ -6,10 +6,10 @@ diataxis: "reference"
 
 # Enterprise SDK reference
 
-Full surface of `@stablechain/enterprise`. This covers the client from [`createStableEnterprise`](#createstableenterpriseconfig), its three modules ([gas waiver](#gaswaiver-module), [guaranteed blockspace](#guaranteedblock-module), and [the composed waiver](#guaranteedwaiver-module)), the low-level build helpers, and the shared result and error types. For what these rails are, see [Stable Enterprise SDK](/en/explanation/enterprise-sdk), [Gas waiver](/en/explanation/gas-waiver), and [Guaranteed blockspace](/en/explanation/guaranteed-blockspace).
+Full surface of `@stablechain/enterprise`. This covers the client from [`createStableEnterprise`](#createstableenterpriseconfig), its three features ([relay with gas waiver](#relay-with-gas-waiver), [guaranteed blockspace](#guaranteed-blockspace), and [guaranteed relay transactions](#guaranteed-relay-transactions)), the low-level build helpers, and the shared result and error types. For what these rails are, see [Stable Enterprise SDK](/en/explanation/enterprise-sdk), [Gas waiver](/en/explanation/gas-waiver), and [Guaranteed blockspace](/en/explanation/guaranteed-blockspace).
 
 :::note
-The Enterprise SDK is available on Stable Testnet only, and both rails are gated. To integrate, [contact Stable](https://discord.gg/stablexyz) to get a governance-registered waiver key and an Enterprise RPC gateway API key.
+The Enterprise SDK is available on Stable Testnet only for now, and access is on request. To integrate, [contact Stable](https://discord.gg/stablexyz) to get a governance-registered waiver key and an Enterprise RPC gateway API key.
 :::
 
 :::warning
@@ -54,9 +54,9 @@ StableEnterpriseClient { gasWaiver, guaranteedBlock: undefined, guaranteedWaiver
 | `rpcEndpoints` | `string[]?` | Chain's built-in RPC | One or more Stable RPC endpoints, tried in order on failure. Override only to point at a private endpoint. |
 | `enterpriseRpcEndpoints` | `string[]?` |  | One or more Enterprise RPC gateway endpoints, tried in order on failure. Required for `guaranteedBlock` and `guaranteedWaiver`. |
 | `batchSizeLimit` | `number?` | `100` | Maximum transactions per batched RPC call. |
-| `gasWaiver` | `GasWaiverConfig?` |  | Enable the [gas waiver module](#gaswaiver-module). |
-| `guaranteedBlock` | `GuaranteedBlockConfig?` |  | Enable the [guaranteed blockspace module](#guaranteedblock-module). |
-| `guaranteedWaiver` | `GuaranteedWaiverConfig?` |  | Enable the [composed waiver module](#guaranteedwaiver-module). |
+| `gasWaiver` | `GasWaiverConfig?` |  | Enable [relay with gas waiver](#relay-with-gas-waiver). |
+| `guaranteedBlock` | `GuaranteedBlockConfig?` |  | Enable [guaranteed blockspace](#guaranteed-blockspace). |
+| `guaranteedWaiver` | `GuaranteedWaiverConfig?` |  | Enable [guaranteed relay transactions](#guaranteed-relay-transactions). |
 
 ### `StableEnterpriseClient`
 
@@ -68,9 +68,9 @@ interface StableEnterpriseClient {
 }
 ```
 
-## `gasWaiver` module
+## Relay with gas waiver
 
-Relay gas-waived transactions. A whitelisted waiver account wraps a user's zero-gas transaction (the InnerTx) into a WaiverTx and broadcasts it. The user needs no USDT0. Every method returns `H_inner`, the InnerTx hash, not the wrapper hash.
+The `gasWaiver` module relays gas-waived transactions. A whitelisted waiver account wraps a user's zero-gas transaction (the InnerTx) into a WaiverTx and broadcasts it. The user needs no USDT0. Every method returns `H_inner`, the InnerTx hash, not the wrapper hash.
 
 Enable it with `gasWaiver` in the config:
 
@@ -157,9 +157,9 @@ const results = await gw.relayBatch([signed0, signed1]);
 [ { index: 0, success: true, txHash: "0x..." }, { index: 1, success: false, error: { code: "TARGET_NOT_ALLOWED", message: "..." } } ]
 ```
 
-## `guaranteedBlock` module
+## Guaranteed blockspace
 
-Relay GuaranteedTx (type `0x3F` CustomTx) through the Enterprise RPC gateway so they land in reserved Enterprise-lane blockspace. Unlike gas waiver, the signer pays its own gas and must be funded. Each transaction carries a 2D nonce keyed to an Enterprise lane, and broadcasting goes only through the gateway.
+The `guaranteedBlock` module relays GuaranteedTx (type `0x3F` CustomTx) through the Enterprise RPC gateway so they land in reserved Enterprise-lane blockspace. Unlike gas waiver, the signer pays its own gas and must be funded. Each transaction carries a 2D nonce keyed to an Enterprise lane, and broadcasting goes only through the gateway.
 
 Enable it with `guaranteedBlock` plus `enterpriseRpcEndpoints`:
 
@@ -243,9 +243,9 @@ const { txHash } = await gb.relay(signed);
 { txHash: "0xabcd...7890" }
 ```
 
-## `guaranteedWaiver` module
+## Guaranteed relay transactions
 
-The composition of the two rails above: a gas-waived transaction routed through guaranteed blockspace. Both the inner and outer transaction are `0x3F` CustomTxs sharing one Enterprise `nonceKey`, so it broadcasts through the gateway like `guaranteedBlock`. The waiver sponsors gas, so the user needs no balance and no fee fields, like `gasWaiver`. Every method returns `H_inner`.
+The `guaranteedWaiver` module combines the two rails above: a gas-waived transaction routed through guaranteed blockspace. Both the inner and outer transaction are `0x3F` CustomTxs sharing one Enterprise `nonceKey`, so it broadcasts through the gateway like `guaranteedBlock`. The waiver sponsors gas, so the user needs no balance and no fee fields, like `gasWaiver`. Every method returns `H_inner`.
 
 Enable it with `guaranteedWaiver` plus `enterpriseRpcEndpoints`:
 

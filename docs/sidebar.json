@@ -218,11 +218,11 @@
             },
             {
               "text": "Gas Waiver",
-              "link": "/en/explanation/gas-waiver"
+              "link": "/en/how-to/relay-with-gas-waiver"
             },
             {
               "text": "Guaranteed Blockspace",
-              "link": "/en/explanation/guaranteed-blockspace"
+              "link": "/en/how-to/send-guaranteed-transactions"
             },
             {
               "text": "Reference",

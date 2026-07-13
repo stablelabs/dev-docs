@@ -1,0 +1,151 @@
+---
+title: "Relay with gas waiver"
+description: "Sponsor a user's gas with the Enterprise SDK: relay a zero-gas transaction, batch relays, enforce policy limits, and relay pre-signed transactions."
+diataxis: "how-to"
+---
+
+# Relay with gas waiver
+
+Sponsor your users' gas with `@stablechain/enterprise`. A whitelisted waiver account wraps a user's zero-gas transaction (the InnerTx) and broadcasts it, so the user transacts without holding any USDT0. The `gasWaiver` module builds, signs, and relays in one call, so you call one method per action.
+
+Every method returns `H_inner`, the hash of the user's transaction, not the wrapper that carried it.
+
+## Prerequisites
+
+- Node.js 20 or later, and `@stablechain/enterprise` plus `viem` installed. See the [Enterprise SDK reference](/en/reference/enterprise-sdk#install).
+- A governance-registered waiver key. The Enterprise SDK is testnet only for now, and access is gated: [contact Stable](https://discord.gg/stablexyz) to get a whitelisted waiver key.
+
+:::warning
+This is a server-side library that signs with private keys. Never run it in a browser. Keep the waiver key on your backend.
+:::
+
+## 1. Create a client with the gas waiver module
+
+Pass `gasWaiver: { account }` to `createStableEnterprise`, where `account` is your whitelisted waiver key. The module is present on the client only when you configure it.
+
+```ts
+import { createStableEnterprise, stableTestnet } from "@stablechain/enterprise";
+import { privateKeyToAccount } from "viem/accounts";
+
+const enterprise = createStableEnterprise({
+  chain: stableTestnet,
+  gasWaiver: { account: privateKeyToAccount(process.env.WAIVER_PRIVATE_KEY as `0x${string}`) },
+});
+
+const gw = enterprise.gasWaiver!;
+```
+
+```text
+StableEnterpriseClient { gasWaiver, guaranteedBlock: undefined, guaranteedWaiver: undefined }
+```
+
+The `rpcEndpoints` option is optional. Left unset, the client uses the chain's built-in RPC.
+
+## 2. Relay a single transaction
+
+Call `send` with the user's account and the fields that vary. The `gasPrice: 0`, legacy type, `chainId`, and pending nonce are handled for you, so you pass only `to`, and optionally `data`, `value`, and `gas`.
+
+```ts
+const user = privateKeyToAccount(process.env.USER_PRIVATE_KEY as `0x${string}`);
+
+const { txHash } = await gw.send(user, { to: token, data, gas: 150_000n });
+console.log("H_inner:", txHash);
+```
+
+```text
+H_inner: 0x8f3a...2d41
+```
+
+The user needs no USDT0: the waiver account sponsors the gas. `gas` defaults to `150_000n` (`DEFAULT_INNER_GAS`), which covers a token transfer or approval. Pass an explicit `gas` for heavier calls.
+
+## 3. Relay a batch
+
+Call `sendBatch` to relay several transactions from one account. Nonces are auto-sequenced from the account's pending nonce, and you get one result per input, in input order.
+
+```ts
+const results = await gw.sendBatch(user, [
+  { to: token, data: dataA, gas: 150_000n },
+  { to: token, data: dataB, gas: 150_000n },
+]);
+
+for (const r of results) {
+  console.log(r.success ? `[${r.index}] ✔ ${r.txHash}` : `[${r.index}] ✖ ${r.error?.code}`);
+}
+```
+
+```text
+[0] ✔ 0x8f3a...2d41
+[1] ✔ 0x2b7c...9e04
+```
+
+A batch reports failures per item in `result.error` instead of throwing, so one bad transaction doesn't sink the rest.
+
+## 4. Enforce per-partner policy limits
+
+Restrict what the waiver key may sponsor by adding policy limits to the config. An InnerTx that violates a limit is rejected before broadcast.
+
+```ts
+const enterprise = createStableEnterprise({
+  chain: stableTestnet,
+  gasWaiver: {
+    account: privateKeyToAccount(process.env.WAIVER_PRIVATE_KEY as `0x${string}`),
+    maxGasLimit: 500_000n,
+    maxDataLength: 4_096,
+    allowedTargets: [
+      { address: token, selectors: ["0xa9059cbb"] }, // ERC-20 transfer only
+    ],
+  },
+});
+```
+
+A transaction to a contract outside `allowedTargets` fails with `TARGET_NOT_ALLOWED`; one over `maxGasLimit` fails with `GAS_LIMIT_EXCEEDED`. Use `"*"` as the `address` to allow any contract, and omit `selectors` to allow any method.
+
+## 5. Relay a pre-signed transaction
+
+For a non-custodial flow, the user signs the InnerTx in their own environment and hands you only the signed hex, so you never see their key. Build it with `buildWaiverInnerTx`, then relay it with `relay`.
+
+```ts
+import { buildWaiverInnerTx } from "@stablechain/enterprise";
+
+// on the user's side
+const signed = await buildWaiverInnerTx(user, stableTestnet.id, { to: token, data, gas: 150_000n, nonce });
+
+// on your backend
+const { txHash } = await gw.relay(signed);
+console.log("H_inner:", txHash);
+```
+
+```text
+H_inner: 0x8f3a...2d41
+```
+
+For several pre-signed transactions, use `relayBatch`, which returns one result per input like `sendBatch`.
+
+## Handle rejections
+
+`send` and `relay` throw `StableEnterpriseRelayError` on rejection, carrying a `code` you can branch on.
+
+```ts
+import { StableEnterpriseRelayError } from "@stablechain/enterprise";
+
+try {
+  await gw.send(user, { to: token, data });
+} catch (err) {
+  if (err instanceof StableEnterpriseRelayError && err.code === "TARGET_NOT_ALLOWED") {
+    // the InnerTx target is outside the configured allowlist
+  }
+  throw err;
+}
+```
+
+```text
+StableEnterpriseRelayError: relay failed [TARGET_NOT_ALLOWED]: target 0x... not allowed
+```
+
+See the full [`ErrorCode`](/en/reference/enterprise-sdk#errorcode) table for every rejection reason.
+
+## Where to go next
+
+- [**Send guaranteed transactions**](/en/how-to/send-guaranteed-transactions): Land transactions in reserved Enterprise-lane blockspace, and combine it with gas waiver.
+- [**Enterprise SDK reference**](/en/reference/enterprise-sdk#relay-with-gas-waiver): Every method, config option, and error class in full.
+- [**Gas waiver**](/en/explanation/gas-waiver): How zero-gas transactions work at the protocol level.

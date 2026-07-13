@@ -217,6 +217,14 @@
               "link": "/en/explanation/enterprise-sdk"
             },
             {
+              "text": "Gas Waiver",
+              "link": "/en/explanation/gas-waiver"
+            },
+            {
+              "text": "Guaranteed Blockspace",
+              "link": "/en/explanation/guaranteed-blockspace"
+            },
+            {
               "text": "Reference",
               "link": "/en/reference/enterprise-sdk"
             }

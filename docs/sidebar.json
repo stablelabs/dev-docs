@@ -225,6 +225,10 @@
               "link": "/en/how-to/send-guaranteed-transactions"
             },
             {
+              "text": "Guaranteed Relayed Transactions",
+              "link": "/en/how-to/guaranteed-relayed-transactions"
+            },
+            {
               "text": "Reference",
               "link": "/en/reference/enterprise-sdk"
             }

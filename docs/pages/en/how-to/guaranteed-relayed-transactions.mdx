@@ -1,0 +1,135 @@
+---
+title: "Guaranteed relayed transactions"
+description: "Relay gas-waived transactions through guaranteed blockspace with the Enterprise SDK, so users need no balance and still land in the Enterprise lane."
+diataxis: "how-to"
+---
+
+# Guaranteed relayed transactions
+
+Combine both Enterprise rails with `@stablechain/enterprise`. A guaranteed relayed transaction is a [gas-waived transaction](/en/how-to/relay-with-gas-waiver) routed through [guaranteed blockspace](/en/how-to/send-guaranteed-transactions): the waiver sponsors gas, so the user needs no balance and no fee fields, and the transaction still lands in the reserved Enterprise lane.
+
+The `guaranteedWaiver` module handles both sides. The user signs an inner `0x3F` CustomTx, the whitelisted waiver account wraps it in an outer `0x3F` CustomTx sharing the same Enterprise `nonceKey`, and it broadcasts through the Enterprise RPC gateway. Every method returns `H_inner`, the user's transaction hash.
+
+## Prerequisites
+
+- Node.js 20 or later, and `@stablechain/enterprise` plus `viem` installed. See the [Enterprise SDK reference](/en/reference/enterprise-sdk#install).
+- A governance-registered waiver key and an Enterprise RPC gateway API key. The Enterprise SDK is testnet only for now, and access is on request: [contact Stable](https://discord.gg/stablexyz) to get both.
+
+:::warning
+This is a server-side library. Keep the waiver key and the Enterprise RPC gateway URL on your backend: the gateway URL embeds your API key.
+:::
+
+## 1. Create a client with the guaranteed waiver module
+
+Pass `guaranteedWaiver` and `enterpriseRpcEndpoints` to `createStableEnterprise`. The module takes the whitelisted waiver account (which signs the outer wrapper) plus the Enterprise lane. It also accepts the same `allowedTargets`, `maxGasLimit`, and `maxDataLength` policy limits as `gasWaiver`.
+
+```ts
+import { createStableEnterprise, stableTestnet } from "@stablechain/enterprise";
+import { privateKeyToAccount } from "viem/accounts";
+
+const enterprise = createStableEnterprise({
+  chain: stableTestnet,
+  enterpriseRpcEndpoints: [process.env.ENTERPRISE_RPC_URL!], // the gateway URL Stable provisions
+  guaranteedWaiver: {
+    waiverAccount: privateKeyToAccount(process.env.WAIVER_PRIVATE_KEY as `0x${string}`),
+    laneId: 0n, // Enterprise lane
+  },
+});
+
+const gw = enterprise.guaranteedWaiver!;
+```
+
+```text
+StableEnterpriseClient { gasWaiver: undefined, guaranteedBlock: undefined, guaranteedWaiver }
+```
+
+## 2. Relay a single transaction
+
+Call `send` with the user's account and the fields that vary. Gas is waived, so the user needs no balance and no fee fields. The inner `0x3F` CustomTx, its Enterprise `nonceKey`, and the 2D nonce (discovered from the gateway) are handled for you.
+
+```ts
+const user = privateKeyToAccount(process.env.USER_PRIVATE_KEY as `0x${string}`);
+
+const { txHash } = await gw.send(user, { to: recipient });
+console.log("H_inner:", txHash);
+```
+
+```text
+H_inner: 0x8f3a...2d41
+```
+
+`gas` defaults to the shared inner-gas default; pass it only to override. Value transfers are allowed, so you can also pass `value`.
+
+## 3. Relay a batch
+
+Call `sendBatch` to relay several transactions from one user. Inner nonces are auto-sequenced from a discovered base, and you get one result per input, in input order. A failure strands its successors.
+
+```ts
+const results = await gw.sendBatch(user, [{ to: a }, { to: b }]);
+
+for (const r of results) {
+  console.log(r.success ? `[${r.index}] ✔ ${r.txHash}` : `[${r.index}] ✖ ${r.error?.code}`);
+}
+```
+
+```text
+[0] ✔ 0x8f3a...2d41
+[1] ✔ 0x2b7c...9e04
+```
+
+## 4. Relay a pre-signed transaction
+
+For a non-custodial flow, the user signs the inner `0x3F` CustomTx in their own environment and hands you only the signed hex. Build it with `buildGuaranteedTx`, using `nonceKeyForLane` for the Enterprise nonce key and zero fees (gas is waived). Your backend wraps it with the waiver key and relays it with `relay`.
+
+```ts
+import { buildGuaranteedTx, nonceKeyForLane } from "@stablechain/enterprise";
+
+// on the user's side
+const signedInner = await buildGuaranteedTx(user, stableTestnet.id, {
+  to: recipient,
+  gas: 100_000n,
+  gasFeeCap: 0n, // waived
+  gasTipCap: 0n,
+  nonce, // the user's current 2D-lane nonce
+  nonceKey: nonceKeyForLane(0n), // Enterprise lane 0
+});
+
+// on your backend
+const { txHash } = await gw.relay(signedInner); // waiver wraps + broadcasts → H_inner
+console.log("H_inner:", txHash);
+```
+
+```text
+H_inner: 0x8f3a...2d41
+```
+
+For several pre-signed transactions, use `relayBatch`.
+
+## Handle rejections
+
+`send` and `relay` throw `StableEnterpriseRelayError` on rejection. Because this flow routes through the gateway, gateway codes like `GATEWAY_UNAUTHORIZED` and `QUOTA_EXCEEDED` apply alongside the waiver policy codes such as `TARGET_NOT_ALLOWED`.
+
+```ts
+import { StableEnterpriseRelayError } from "@stablechain/enterprise";
+
+try {
+  await gw.send(user, { to: recipient });
+} catch (err) {
+  if (err instanceof StableEnterpriseRelayError && err.code === "GATEWAY_UNAUTHORIZED") {
+    // the Enterprise RPC gateway rejected the API key
+  }
+  throw err;
+}
+```
+
+```text
+StableEnterpriseRelayError: relay failed [GATEWAY_UNAUTHORIZED]: invalid api key
+```
+
+See the full [`ErrorCode`](/en/reference/enterprise-sdk#errorcode) table for every rejection reason.
+
+## Where to go next
+
+- [**Relay with gas waiver**](/en/how-to/relay-with-gas-waiver): Sponsor a user's gas without the guaranteed lane.
+- [**Send guaranteed transactions**](/en/how-to/send-guaranteed-transactions): Use guaranteed blockspace on its own, where the signer pays gas.
+- [**Enterprise SDK reference**](/en/reference/enterprise-sdk#guaranteed-relay-transactions): Every method, config option, and error class in full.

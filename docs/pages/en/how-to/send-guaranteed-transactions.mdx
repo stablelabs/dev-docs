@@ -8,7 +8,7 @@ diataxis: "how-to"
 
 Route transactions through reserved Enterprise-lane blockspace with `@stablechain/enterprise`. The `guaranteedBlock` module relays a GuaranteedTx (a type `0x3F` CustomTx) through the Enterprise RPC gateway so it lands in capacity reserved for enterprise workloads. Unlike gas waiver, the signer pays its own gas, so it must be funded.
 
-You can combine this with gas waiver to get [guaranteed relay transactions](#combine-with-gas-waiver): gas-waived transactions that still land in the Enterprise lane.
+You can combine this with gas waiver to get [guaranteed relayed transactions](/en/how-to/guaranteed-relayed-transactions): gas-waived transactions that still land in the Enterprise lane.
 
 ## Prerequisites
 
@@ -117,30 +117,7 @@ For several pre-signed transactions, use `relayBatch`.
 
 ## Combine with gas waiver
 
-Guaranteed relay transactions compose both rails: a gas-waived transaction routed through guaranteed blockspace. The user needs no balance and no fee fields, and the transaction still lands in the Enterprise lane. Enable it with `guaranteedWaiver`, which takes the whitelisted waiver account plus the lane.
-
-```ts
-const enterprise = createStableEnterprise({
-  chain: stableTestnet,
-  enterpriseRpcEndpoints: [process.env.ENTERPRISE_RPC_URL!],
-  guaranteedWaiver: {
-    waiverAccount: privateKeyToAccount(process.env.WAIVER_PRIVATE_KEY as `0x${string}`),
-    laneId: 0n,
-  },
-});
-
-const gw = enterprise.guaranteedWaiver!;
-
-// gas is waived, so the user needs no balance and no fee fields
-const { txHash } = await gw.send(user, { to: recipient });
-console.log("H_inner:", txHash);
-```
-
-```text
-H_inner: 0x8f3a...2d41
-```
-
-Like gas waiver, `send` returns `H_inner`, and `sendBatch`, `relay`, and `relayBatch` work the same way. The `guaranteedWaiver` config also accepts the same `allowedTargets`, `maxGasLimit`, and `maxDataLength` policy limits as `gasWaiver`.
+To waive the user's gas and still land in the Enterprise lane, compose both rails with the `guaranteedWaiver` module. The user needs no balance and no fee fields, and the transaction routes through the same gateway. See [Guaranteed relayed transactions](/en/how-to/guaranteed-relayed-transactions).
 
 ## Handle rejections
 
@@ -165,6 +142,6 @@ StableEnterpriseRelayError: relay failed [GATEWAY_UNAUTHORIZED]: invalid api key
 
 ## Where to go next
 
+- [**Guaranteed relayed transactions**](/en/how-to/guaranteed-relayed-transactions): Waive the user's gas and land in the Enterprise lane in one call.
 - [**Relay with gas waiver**](/en/how-to/relay-with-gas-waiver): Sponsor a user's gas so they transact without holding USDT0.
 - [**Enterprise SDK reference**](/en/reference/enterprise-sdk#guaranteed-blockspace): Every method, config option, and error class in full.
-- [**Guaranteed blockspace**](/en/explanation/guaranteed-blockspace): How Stable reserves block capacity for enterprise workloads.

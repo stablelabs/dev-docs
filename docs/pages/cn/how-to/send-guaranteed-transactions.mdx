@@ -1,0 +1,172 @@
+---
+source_path: how-to/send-guaranteed-transactions.mdx
+source_sha: 22dc49ff9b3a53eff2271c3e3b8d393f7543446c
+title: "发送保障交易"
+description: "使用 Enterprise SDK 在预留的企业通道区块空间中进行交易，并将保障区块空间与免 Gas 费结合使用，以实现免 Gas 传输交易。"
+diataxis: "how-to"
+---
+
+# 发送保障交易
+
+使用 `@stablechain/enterprise` 通过预留的企业通道区块空间路由交易。`guaranteedBlock` 模块通过企业 RPC 网关中继 GuaranteedTx（一种 `0x3F` 类型的 CustomTx），使其落在企业工作负载预留的容量中。与免 Gas 费不同，签名者支付自己的 Gas，因此必须提供资金。
+
+您可以将此功能与免 Gas 费结合使用，以获得[保障中继交易](#combine-with-gas-waiver)：免 Gas 费的交易仍可进入企业通道。
+
+## 先决条件
+
+- Node.js 20 或更高版本，并安装 `@stablechain/enterprise` 和 `viem`。请参阅 [企业 SDK 参考](/cn/reference/enterprise-sdk#install)。
+- 企业 RPC 网关 API 密钥。企业 SDK 目前仅支持测试网，并且访问受限：请[联系 Stable](https://discord.gg/stablexyz) 获取网关端点。
+- 一个有资金的签名者，因为 GuaranteedTx 会支付自己的 Gas。
+
+:::warning
+这是一个服务器端库。将企业 RPC 网关 URL 保留在您的后端：它会嵌入您的 API 密钥。
+:::
+
+## 1. 使用保障区块空间模块创建客户端
+
+将 `guaranteedBlock` 和 `enterpriseRpcEndpoints` 传递给 `createStableEnterprise`。网关是唯一接受 `0x3F` GuaranteedTxs 的端点，并且它持有您的 API 密钥。无效的 `laneId` 会被立即拒绝。
+
+```ts
+import { createStableEnterprise, stableTestnet } from "@stablechain/enterprise";
+import { privateKeyToAccount } from "viem/accounts";
+
+const enterprise = createStableEnterprise({
+  chain: stableTestnet,
+  enterpriseRpcEndpoints: [process.env.ENTERPRISE_RPC_URL!], // the gateway URL Stable provisions
+  guaranteedBlock: {
+    account: privateKeyToAccount(process.env.SIGNER_PRIVATE_KEY as `0x${string}`), // must be funded
+    laneId: 0n, // Enterprise lane
+  },
+});
+
+const gb = enterprise.guaranteedBlock!;
+```
+
+```text
+StableEnterpriseClient { gasWaiver: undefined, guaranteedBlock, guaranteedWaiver: undefined }
+```
+
+## 2. 发送单笔交易
+
+使用签名者和可变字段调用 `send`。由于签名者支付 Gas，因此 1559 费用字段是必需的。`chainId`、企业 `nonceKey` 和 2D nouce（从网关发现）都会为您处理。
+
+```ts
+import { createPublicClient, http } from "viem";
+
+const publicClient = createPublicClient({ chain: stableTestnet, transport: http() });
+const gasPrice = await publicClient.getGasPrice();
+
+const { txHash } = await gb.send(signer, {
+  to: recipient,
+  gas: 21_000n,
+  gasFeeCap: gasPrice * 2n,
+  gasTipCap: gasPrice,
+});
+console.log("Guaranteed tx:", txHash);
+```
+
+```text
+Guaranteed tx: 0xabcd...7890
+```
+
+签名者支付 Gas，因此在进行中继之前请确认账户余额。零余额账户发出的 GuaranteedTx 会失败。
+
+## 3. 发送批量交易
+
+调用 `sendBatch` 发送多笔交易。Nonce 会从发现的基数自动排序，并且您会为每个输入获得一个结果，按输入顺序。如果其中一个失败，则其后续交易也会失败。
+
+```ts
+const results = await gb.sendBatch(signer, [
+  { to: a, gas: 21_000n, gasFeeCap: gasPrice * 2n, gasTipCap: gasPrice },
+  { to: b, gas: 21_000n, gasFeeCap: gasPrice * 2n, gasTipCap: gasPrice },
+]);
+
+for (const r of results) {
+  console.log(r.success ? `[${r.index}] ✔ ${r.txHash}` : `[${r.index}] ✖ ${r.error?.code}`);
+}
+```
+
+```text
+[0] ✔ 0xabcd...7890
+[1] ✔ 0x1f2e...66a1
+```
+
+## 4. 发送预签名交易
+
+对于非托管流程，使用 `buildGuaranteedTx` 在其他地方构建和签署 GuaranteedTx，然后只将签名十六进制交给运营商。企业 nonce 密钥来自 `nonceKeyForLane`。
+
+```ts
+import { buildGuaranteedTx, nonceKeyForLane } from "@stablechain/enterprise";
+
+const signed = await buildGuaranteedTx(signer, stableTestnet.id, {
+  to: recipient,
+  gas: 21_000n,
+  gasFeeCap,
+  gasTipCap,
+  nonce, // the account's current 2D-lane nonce
+  nonceKey: nonceKeyForLane(0n), // Enterprise lane 0
+});
+
+const { txHash } = await gb.relay(signed);
+console.log("Guaranteed tx:", txHash);
+```
+
+```text
+Guaranteed tx: 0xabcd...7890
+```
+
+对于多笔预签名交易，请使用 `relayBatch`。
+
+## 与免 Gas 费结合使用
+
+保障中继交易结合了两种功能：通过保障区块空间路由的免 Gas 费交易。用户无需余额和费用字段，交易仍可进入企业通道。通过 `guaranteedWaiver` 启用此功能，它接受白名单豁免账户和通道。
+
+```ts
+const enterprise = createStableEnterprise({
+  chain: stableTestnet,
+  enterpriseRpcEndpoints: [process.env.ENTERPRISE_RPC_URL!],
+  guaranteedWaiver: {
+    waiverAccount: privateKeyToAccount(process.env.WAIVER_PRIVATE_KEY as `0x${string}`),
+    laneId: 0n,
+  },
+});
+
+const gw = enterprise.guaranteedWaiver!;
+
+// gas is waived, so the user needs no balance and no fee fields
+const { txHash } = await gw.send(user, { to: recipient });
+console.log("H_inner:", txHash);
+```
+
+```text
+H_inner: 0x8f3a...2d41
+```
+
+与免 Gas 费类似，`send` 返回 `H_inner`，并且 `sendBatch`、`relay` 和 `relayBatch` 的工作方式相同。`guaranteedWaiver` 配置也接受与 `gasWaiver` 相同的 `allowedTargets`、`maxGasLimit` 和 `maxDataLength` 策略限制。
+
+## 处理拒绝
+
+`send` 和 `relay` 在拒绝时会抛出 `StableEnterpriseRelayError`。网关特定的代码包括 `GATEWAY_UNAUTHORIZED`（API 密钥缺失或无效）和 `QUOTA_EXCEEDED`（网关 Gas 配额已用尽）。
+
+```ts
+import { StableEnterpriseRelayError } from "@stablechain/enterprise";
+
+try {
+  await gb.send(signer, { to: recipient, gas: 21_000n, gasFeeCap, gasTipCap });
+} catch (err) {
+  if (err instanceof StableEnterpriseRelayError && err.code === "GATEWAY_UNAUTHORIZED") {
+    // the Enterprise RPC gateway rejected the API key
+  }
+  throw err;
+}
+```
+
+```text
+StableEnterpriseRelayError: relay failed [GATEWAY_UNAUTHORIZED]: invalid api key
+```
+
+## 接下来去哪儿
+
+- [**使用免 Gas 费中继**](/cn/how-to/relay-with-gas-waiver)：赞助用户的 Gas 费，让他们无需持有 USDT0 即可进行交易。
+- [**企业 SDK 参考**](/cn/reference/enterprise-sdk#guaranteed-blockspace)：所有方法、配置选项和错误类的完整说明。
+- [**保障区块空间**](/cn/explanation/guaranteed-blockspace)：Stable 如何为企业工作负载预留区块容量。

@@ -1,14 +1,14 @@
 ---
 source_path: explanation/enterprise-sdk.mdx
-source_sha: c851ff041a812cf877db582b540a0369d4777566
+source_sha: 3925dc600289afa0a771b5b508728ee1b20bcb01
 title: "Stable 企业版 SDK"
-description: "通过类型化的 @stablechain/enterprise SDK，从您的后端中继免 gas 费和保证区块空间的交易。"
+description: "使用类型化的 @stablechain/enterprise SDK 从您的后端中继免 Gas 费和保证区块空间的交易。"
 diataxis: "explanation"
 ---
 
 # Stable 企业版 SDK
 
-`@stablechain/enterprise` 是 Stable 企业交易轨道的服务器端 TypeScript 客户端。它签署并中继两种特权交易：免 gas 费交易（您为用户的 gas 费提供担保）和保证区块空间交易（它们进入预留的企业通道）。您可以在一个客户端上启用任一轨道，或两者都启用。
+`@stablechain/enterprise` 是一个用于 Stable 企业级交易轨道的服务器端 TypeScript 客户端。它会签署并中继两种特权交易：一种是免 Gas 费交易，由您为用户支付 Gas 费；另一种是保证区块空间交易，它们会进入预留的企业级通道。您可以在一个客户端上启用其中一个或两个轨道。
 
 ```ts
 import { createStableEnterprise, stableTestnet } from "@stablechain/enterprise";
@@ -26,44 +26,44 @@ const { txHash } = await enterprise.gasWaiver!.send(user, { to: token, data });
 txHash: 0x8f3a...2d41
 ```
 
-此调用返回 `H_inner`，即用户交易的哈希值，而不是承载它的包装交易的哈希值。
+此调用返回 `H_inner`，即用户交易的哈希值，而不是承载它的包装器交易的哈希值。
 
-## SDK 的功能
+## SDK 的作用
 
-SDK 暴露了三个模块。每个模块都是可选的，可以独立配置，并且每个模块都带有自己的签名账户，因此您可以使用不同的密钥。
+SDK 暴露了三个功能，每个模块一个。每个功能都是可选的，可以独立配置，并且每个功能都有自己的签名账户，因此您可以使用单独的密钥。
 
-- **`gasWaiver`**：构建、签署并中继免 gas 费交易。一个白名单豁免账户包装了用户的零 gas 交易，因此用户在没有持有任何 USDT0 的情况下进行交易。请参阅[Gas 豁免](/cn/explanation/gas-waiver)。
-- **`guaranteedBlock`**：通过企业 RPC 网关中继 GuaranteedTx，使其进入预留的企业通道区块空间。与 gas 豁免不同，签名者支付自己的 gas 费。请参阅[保证区块空间](/cn/explanation/guaranteed-blockspace)。
-- **`guaranteedWaiver`**：两者的组合。通过保证区块空间路由的免 gas 费交易，因此用户无需余额，且交易仍进入企业通道。
+- **免 Gas 费中继** (`gasWaiver`)：构建、签署并中继免 Gas 费交易。一个白名单豁免账户会包装用户的零 Gas 交易，以便用户在不持有任何 USDT0 的情况下进行交易。请参阅[免 Gas 费](/cn/explanation/gas-waiver)。
+- **保证区块空间** (`guaranteedBlock`)：通过企业版 RPC 网关中继交易，使其进入预留的企业级通道区块空间。与免 Gas 费不同，签名者支付自己的 Gas 费。请参阅[保证区块空间](/cn/explanation/guaranteed-blockspace)。
+- **保证中继交易** (`guaranteedWaiver`)：两者结合。通过保证区块空间路由的免 Gas 费交易，因此用户无需余额，交易仍能进入企业级通道。
 
-每个模块都提供相同的四种方法：`send` 和 `sendBatch` 用于 SDK 签名的托管路径，`relay` 和 `relayBatch` 用于用户在其他地方签名并只向您提供已签名十六进制的非托管路径。
+每个功能都提供相同的四种方法：`send` 和 `sendBatch` 用于 SDK 签名的托管路径，以及 `relay` 和 `relayBatch` 用于用户在其他地方签名并只向您提供签名十六进制字符串的非托管路径。
 
 ## 访问权限
 
 企业版 SDK 目前仅在 Stable 测试网上可用。
 
-这两个轨道都受限。Gas 豁免需要一个治理注册的豁免密钥，而保证区块空间需要一个企业 RPC 网关 API 密钥。要进行集成，请[联系 Stable](https://discord.gg/stablexyz) 以获取访问权限。Stable 会提供您所需的豁免密钥和网关端点。
+这两个轨道都受限。免 Gas 费需要治理注册的豁免密钥，而保证区块空间需要企业版 RPC 网关 API 密钥。要进行集成，请[联系 Stable](https://discord.gg/stablexyz) 以获取访问权限。Stable 会提供您需要的豁免密钥和网关端点。
 
 ## 仅限服务器端
 
 :::warning
-企业版 SDK 是一个无状态的服务器端库，它使用私钥进行签名。切勿在浏览器中运行它。将豁免密钥和企业 RPC 网关 URL 保存在您的后端。
+企业版 SDK 是一个无状态的服务器端库，使用私钥进行签名。切勿在浏览器中运行它。将豁免密钥和企业版 RPC 网关 URL 保留在您的后端。
 :::
 
-豁免密钥是一个白名单，治理注册的账户：任何持有它的人都可以根据您的策略赞助 gas 费。企业 RPC 网关 URL 嵌入了您的 API 密钥。请将两者都视为秘密。
+豁免密钥是一个白名单的、治理注册的账户：任何持有它的人都可以根据您的策略支付 Gas 费。企业版 RPC 网关 URL 嵌入了您的 API 密钥。请将两者都视为秘密。
 
 ## 何时使用它
 
-当您运营后端并希望为用户赞助 gas 费或保证您的流量被包含时，请使用企业版 SDK。对于日常转账、桥接、交换和来自后端或浏览器的金库收益，请改用通用[Stable SDK](/cn/explanation/sdk-overview)。
+当您运营后端并希望为用户支付 Gas 费或保证自己的流量包含在区块中时，请使用企业版 SDK。对于日常传输、桥接、交换和来自后端或浏览器的资金池收益，请改用通用的 [Stable SDK](/cn/explanation/sdk-overview)。
 
 ## 从这里开始
 
+- [**免 Gas 费中继**](/cn/how-to/relay-with-gas-waiver)：为用户支付 Gas 费，以便他们在不持有 USDT0 的情况下进行交易。
+- [**发送保证交易**](/cn/how-to/send-guaranteed-transactions)：将交易放入预留的企业级通道区块空间，并将其与免 Gas 费结合使用。
 - [**企业版 SDK 参考**](/cn/reference/enterprise-sdk)：每个模块、方法、配置选项和错误类。
-- [**Gas 豁免**](/cn/explanation/gas-waiver)：零 gas 费交易如何在协议层面工作。
-- [**保证区块空间**](/cn/explanation/guaranteed-blockspace)：Stable 如何为企业工作负载预留区块容量。
 
-## 下一步建议
+## 下一步推荐
 
-- [**Gas 豁免协议**](/cn/reference/gas-waiver-api)：交易格式、标记路由和治理控制。
-- [**Stable SDK**](/cn/explanation/sdk-overview)：用于转账、桥接、交换和收益的通用客户端。
+- [**免 Gas 费协议**](/cn/reference/gas-waiver-api)：交易格式、标记路由和治理控制。
+- [**Stable SDK**](/cn/explanation/sdk-overview)：用于传输、桥接、交换和收益的通用客户端。
 - [**连接到 Stable**](/cn/reference/connect)：测试网的链 ID、RPC 端点和浏览器。

@@ -1,29 +1,29 @@
 ---
 source_path: how-to/relay-with-gas-waiver.mdx
-source_sha: b123789598d68061ee8cb4472a3ed8d22153b91c
-title: "使用 Gas 代付进行中继"
-description: "使用 Enterprise SDK 赞助用户的 gas 费用：中继零 gas 交易、批量中继、强制执行策略限制以及中继预签名交易。"
+source_sha: d27d02a1e7956429991b4af81f097719e3eabd34
+title: "使用 Gas Waiver 进行中继"
+description: "通过 Enterprise SDK 赞助用户的 gas：中继零 gas 交易，批量中继，强制执行策略限制，以及中继预签名交易。"
 diataxis: "how-to"
 ---
 
-# 使用 Gas 代付进行中继
+# 使用 Gas Waiver 进行中继
 
-使用 `@stablechain/enterprise` 赞助用户的 gas 费用。列入白名单的代付账户会封装用户的零 gas 交易（InnerTx）并广播，因此用户无需持有任何 USDT0 即可进行交易。`gasWaiver` 模块在一个调用中完成构建、签名和中继，因此每个操作只需调用一个方法。
+使用 `@stablechain/enterprise` 赞助用户的 gas。列入白名单的 waiver 账户会封装用户的零 gas 交易（内部交易），并将其广播，这样用户无需持有任何 USDT0 即可进行交易。`gasWaiver` 模块在一个调用中构建、签名和中继，因此您每个操作只需调用一个方法。
 
 每个方法都返回 `H_inner`，即用户交易的哈希值，而不是承载它的封装器。
 
 ## 先决条件
 
-- Node.js 20 或更高版本，并已安装 `@stablechain/enterprise` 和 `viem`。请参阅 [Enterprise SDK 参考](/cn/reference/enterprise-sdk#install)。
-- 治理注册的代付密钥。Enterprise SDK 目前仅限测试网使用，并且访问受限：请[联系 Stable](https://discord.gg/stablexyz) 以获取列入白名单的代付密钥。
+- Node.js 20 或更高版本，并安装了 `@stablechain/enterprise` 和 `viem`。请参阅 [Enterprise SDK 参考](/cn/reference/enterprise-sdk#install)。
+- 治理注册的 waiver 密钥。Enterprise SDK 目前仅适用于测试网，并且访问受限：请[联系 Stable](https://discord.gg/stablexyz) 以获取白名单 waiver 密钥。
 
 :::warning
-这是一个使用私钥进行签名的服务器端库。切勿在浏览器中运行。将代付密钥保留在后端。
+这是一个服务器端库，它使用私钥进行签名。切勿在浏览器中运行它。将 waiver 密钥保存在您的后端。
 :::
 
-## 1. 使用 Gas 代付模块创建客户端
+## 1. 使用 gas waiver 模块创建客户端
 
-将 `gasWaiver: { account }` 传递给 `createStableEnterprise`，其中 `account` 是您列入白名单的代付密钥。只有在配置后，模块才会在客户端上存在。
+将 `gasWaiver: { account }` 传递给 `createStableEnterprise`，其中 `account` 是您列入白名单的 waiver 密钥。只有在配置后，模块才会在客户端上出现。
 
 ```ts
 import { createStableEnterprise, stableTestnet } from "@stablechain/enterprise";
@@ -43,9 +43,13 @@ StableEnterpriseClient { gasWaiver, guaranteedBlock: undefined, guaranteedWaiver
 
 `rpcEndpoints` 选项是可选的。如果未设置，客户端将使用链的内置 RPC。
 
+:::tip
+要将 waiver 密钥保存在托管后端中，请传递 `signer` 而不是 `account`。`@stablechain/enterprise/aws-kms` 中的 `awsKmsSigner` 使用 AWS KMS 作为后端。请参阅[签名密钥和托管](/cn/reference/enterprise-sdk#signing-keys-and-custody)。
+:::
+
 ## 2. 中继单个交易
 
-使用用户账户和可变字段调用 `send`。`gasPrice: 0`、遗留类型、`chainId` 和待处理 nonce 会为您处理，因此您只需传递 `to`，以及可选的 `data`、`value` 和 `gas`。
+使用用户账户和可变字段调用 `send`。`gasPrice: 0`、遗留类型、`chainId` 和待处理 nonce 都已为您处理，因此您只需传递 `to`，以及可选的 `data`、`value` 和 `gas`。
 
 ```ts
 const user = privateKeyToAccount(process.env.USER_PRIVATE_KEY as `0x${string}`);
@@ -58,11 +62,11 @@ console.log("H_inner:", txHash);
 H_inner: 0x8f3a...2d41
 ```
 
-用户不需要 USDT0：代付账户会赞助 gas 费用。`gas` 默认为 `150_000n` (`DEFAULT_INNER_GAS`)，足以覆盖代币转账或批准。对于更复杂的调用，请传递明确的 `gas`。
+用户不需要 USDT0：waiver 账户会赞助 gas。`gas` 默认为 `150_000n` (`DEFAULT_INNER_GAS`)，足以覆盖代币转账或批准。对于更繁重的调用，请传递显式的 `gas`。
 
-## 3. 中继批次
+## 3. 批量中继
 
-调用 `sendBatch` 可以中继来自同一账户的多个交易。Nonce 会根据账户的待处理 nonce 自动排序，并且您会根据输入顺序获得每个输入的结果。
+调用 `sendBatch` 可以中继来自一个账户的多个交易。Nonce 会自动从账户的待处理 nonce 序列化，并且您会根据输入顺序获得每个输入一个结果。
 
 ```ts
 const results = await gw.sendBatch(user, [
@@ -80,11 +84,11 @@ for (const r of results) {
 [1] ✔ 0x2b7c...9e04
 ```
 
-批处理会报告每个项目的失败情况，而不是抛出异常，因此一个错误的交易不会影响其余交易。
+批量处理会在 `result.error` 中报告每个项目的失败，而不是抛出异常，因此一个坏交易不会导致其他交易失败。
 
-## 4. 强制执行每个合作伙伴的策略限制
+## 4. 执行每合作伙伴策略限制
 
-通过向配置添加策略限制，限制代付密钥可以赞助的内容。违反限制的 InnerTx 会在广播前被拒绝。
+通过向配置添加策略限制来限制 waiver 密钥可以赞助的内容。违反限制的内部交易将在广播前被拒绝。
 
 ```ts
 const enterprise = createStableEnterprise({
@@ -100,17 +104,17 @@ const enterprise = createStableEnterprise({
 });
 ```
 
-目标合约不在 `allowedTargets` 中的交易将因 `TARGET_NOT_ALLOWED` 而失败；超过 `maxGasLimit` 的交易将因 `GAS_LIMIT_EXCEEDED` 而失败。使用 `"*"` 作为 `address` 允许任何合约，并省略 `selectors` 允许任何方法。
+目标合约不在 `allowedTargets` 中的交易将失败并显示 `TARGET_NOT_ALLOWED`；超过 `maxGasLimit` 的交易将失败并显示 `GAS_LIMIT_EXCEEDED`。使用 `"*"` 作为 `address` 允许任何合约，并省略 `selectors` 允许任何方法。
 
 ## 5. 中继预签名交易
 
-对于非托管流程，用户在其自己的环境中签名 InnerTx，只将签名十六进制传递给您，这样您就永远看不到他们的密钥。使用 `buildWaiverInnerTx` 构建它，然后使用 `relay` 中继。
+对于非托管流程，用户在其自己的环境中签署内部交易并仅向您提供签名十六进制，因此您永远不会看到他们的密钥。使用 `buildWaiverInnerTx` 构建它，然后使用 `relay` 中继。
 
 ```ts
-import { buildWaiverInnerTx } from "@stablechain/enterprise";
+import { buildWaiverInnerTx, toSigner } from "@stablechain/enterprise";
 
-// 在用户端
-const signed = await buildWaiverInnerTx(user, stableTestnet.id, { to: token, data, gas: 150_000n, nonce });
+// 在用户侧 — buildWaiverInnerTx 通过 Signer 签名；toSigner 适配 viem 账户
+const signed = await buildWaiverInnerTx(toSigner(user), stableTestnet.id, { to: token, data, gas: 150_000n, nonce });
 
 // 在您的后端
 const { txHash } = await gw.relay(signed);
@@ -121,11 +125,11 @@ console.log("H_inner:", txHash);
 H_inner: 0x8f3a...2d41
 ```
 
-对于多个预签名交易，请使用 `relayBatch`，它像 `sendBatch` 一样为每个输入返回一个结果。
+对于多个预签名交易，请使用 `relayBatch`，它会像 `sendBatch` 一样为每个输入返回一个结果。
 
 ## 处理拒绝
 
-`send` 和 `relay` 在拒绝时会抛出 `StableEnterpriseRelayError`，其中包含一个可供您分支的 `code`。
+`send` 和 `relay` 在拒绝时会抛出 `StableEnterpriseRelayError`，并带有一个您可以分支的 `code`。
 
 ```ts
 import { StableEnterpriseRelayError } from "@stablechain/enterprise";
@@ -134,7 +138,7 @@ try {
   await gw.send(user, { to: token, data });
 } catch (err) {
   if (err instanceof StableEnterpriseRelayError && err.code === "TARGET_NOT_ALLOWED") {
-    // InnerTx 目标不在配置的允许列表中
+    // 内部交易目标不在配置的允许列表中
   }
   throw err;
 }
@@ -144,10 +148,10 @@ try {
 StableEnterpriseRelayError: relay failed [TARGET_NOT_ALLOWED]: target 0x... not allowed
 ```
 
-请参阅完整的 [`ErrorCode`](/cn/reference/enterprise-sdk#errorcode) 表格，了解所有拒绝原因。
+有关所有拒绝原因，请参阅完整的 [`ErrorCode`](/cn/reference/enterprise-sdk#errorcode) 表格。
 
-## 下一步
+## 后续步骤
 
-- [**发送保证交易**](/cn/how-to/send-guaranteed-transactions)：在预留的企业通道区块空间中进行交易，并将其与 gas 代付结合使用。
+- [**发送保证交易**](/cn/how-to/send-guaranteed-transactions)：将交易提交到保留的企业通道区块空间，并将其与 gas waiver 结合使用。
 - [**Enterprise SDK 参考**](/cn/reference/enterprise-sdk#relay-with-gas-waiver)：所有方法、配置选项和错误类的完整说明。
-- [**Gas 代付**](/cn/explanation/gas-waiver)：零 gas 交易在协议层面的工作原理。
+- [**Gas waiver**](/cn/explanation/gas-waiver)：零 gas 交易如何在协议层面工作。

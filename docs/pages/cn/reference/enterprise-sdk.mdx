@@ -1,21 +1,21 @@
 ---
 source_path: reference/enterprise-sdk.mdx
-source_sha: 2f9f840d9ea287e27f4642da4f0a219db13edab6
-title: "企业版 SDK 参考"
-description: "完整的 @stablechain/enterprise 参考：createStableEnterprise、免燃料费和保证区块空间模块、构建助手以及错误类。"
+source_sha: 1415ca3965bbd2c7d362a8e86a728c3a9e6269a7
+title: "企业级 SDK 参考"
+description: "@stablechain/enterprise 的完整参考：createStableEnterprise，燃气费豁免和保证区块空间模块，构建帮助器和错误类。"
 diataxis: "reference"
 ---
 
-# 企业版 SDK 参考
+# 企业级 SDK 参考
 
-`@stablechain/enterprise` 的完整功能。它涵盖了客户端从 [`createStableEnterprise`](#createstableenterpriseconfig) 到其三个功能（[免燃料费中继](#relay-with-gas-waiver)、[保证区块空间](#guaranteed-blockspace)和[保证中继交易](#guaranteed-relay-transactions)）、底层构建助手以及共享结果和错误类型。有关这些轨道的详情，请参阅 [Stable 企业版 SDK](/cn/explanation/enterprise-sdk)、[免燃料费](/cn/explanation/gas-waiver)和 [保证区块空间](/cn/explanation/guaranteed-blockspace)。
+`@stablechain/enterprise` 的完整细节。这包括客户端 [`createStableEnterprise`](#createstableenterpriseconfig) 及其三个功能（[燃气费豁免中继](#relay-with-gas-waiver)、[保证区块空间](#guaranteed-blockspace)和[保证中继交易](#guaranteed-relay-transactions)），低级构建帮助程序以及共享结果和错误类型。有关这些通道的详细信息，请参阅 [Stable 企业级 SDK](/cn/explanation/enterprise-sdk)、[燃气费豁免](/cn/explanation/gas-waiver)和 [保证区块空间](/cn/explanation/guaranteed-blockspace)。
 
 :::note
-企业版 SDK 目前仅在 Stable 测试网上提供，且需要申请访问权限。要进行集成，请[联系 Stable](https://discord.gg/stablexyz) 以获取治理注册的豁免密钥和企业版 RPC 网关 API 密钥。
+企业级 SDK 目前仅在 Stable 测试网上可用，并且需要申请才能访问。要进行集成，请[联系 Stable](https://discord.gg/stablexyz) 以获取治理注册的豁免密钥和企业级 RPC 网关 API 密钥。
 :::
 
 :::warning
-这是一个使用私钥进行签名的服务器端库。切勿在浏览器中运行它。将豁免密钥和企业版 RPC 网关 URL 保留在您的后端。
+这是一个使用私钥进行签名的服务器端库。切勿在浏览器中运行。将豁免密钥和企业级 RPC 网关 URL 保存在您的后端。
 :::
 
 ## 安装
@@ -28,11 +28,11 @@ npm install @stablechain/enterprise viem
 added 2 packages, audited 3 packages in 2s
 ```
 
-`viem >= 2.0.0` 是一个对等依赖项。该包重新导出 `stable` 和 `stableTestnet` 自 `viem/chains`，因此您无需单独导入它们。
+`viem >= 2.0.0` 是一个对等依赖项。该软件包重新导出来自 `viem/chains` 的 `stable` 和 `stableTestnet`，因此您无需单独导入它们。
 
 ## `createStableEnterprise(config)`
 
-构造一个 `StableEnterpriseClient`。每个模块只有在您配置它时才存在，因此在使用前使用 `!` 或空检查进行防护。
+构造一个 `StableEnterpriseClient`。每个模块仅在您配置它时才存在，因此在使用前请使用 `!` 或空检查进行防护。
 
 ```ts
 import { createStableEnterprise, stableTestnet } from "@stablechain/enterprise";
@@ -52,13 +52,38 @@ StableEnterpriseClient { gasWaiver, guaranteedBlock: undefined, guaranteedWaiver
 
 | **字段** | **类型** | **默认值** | **描述** |
 | :--- | :--- | :--- | :--- |
-| `chain` | `StableChain` | | 目标链。传递 `stable` 或 `stableTestnet`（由包重新导出）。必填。 |
-| `rpcEndpoints` | `string[]?` | 链的内置 RPC | 一个或多个 Stable RPC 端点，在失败时按顺序尝试。仅当指向私有端点时才覆盖。 |
-| `enterpriseRpcEndpoints` | `string[]?` | | 一个或多个企业版 RPC 网关端点，在失败时按顺序尝试。`guaranteedBlock` 和 `guaranteedWaiver` 所必需。 |
+| `chain` | `StableChain` | | 目标链。传递 `stable` 或 `stableTestnet`（由包重新导出）。必填项。 |
+| `rpcEndpoints` | `string[]?` | 链的内置 RPC | 一个或多个 Stable RPC 端点，在失败时按顺序尝试。仅在指向私有端点时覆盖。 |
+| `enterpriseRpcEndpoints` | `string[]?` | | 一个或多个企业级 RPC 网关端点，在失败时按顺序尝试。`guaranteedBlock` 和 `guaranteedWaiver` 必填。 |
 | `batchSizeLimit` | `number?` | `100` | 每个批处理 RPC 调用的最大交易数量。 |
-| `gasWaiver` | `GasWaiverConfig?` | | 启用[免燃料费中继](#relay-with-gas-waiver)。 |
+| `gasWaiver` | `GasWaiverConfig?` | | 启用[燃气费豁免中继](#relay-with-gas-waiver)。 |
 | `guaranteedBlock` | `GuaranteedBlockConfig?` | | 启用[保证区块空间](#guaranteed-blockspace)。 |
 | `guaranteedWaiver` | `GuaranteedWaiverConfig?` | | 启用[保证中继交易](#guaranteed-relay-transactions)。 |
+
+### 签名密钥和托管
+
+豁免密钥持有模块（`gasWaiver` 和 `guaranteedWaiver`）从 [`SignerSource`](#signersource) 按顺序解析它：`signer`（托管级别的后端），然后是 `account`（进程中的 viem 密钥），然后是 `STABLE_ENTERPRISE_PRIVATE_KEY` 环境变量。`guaranteedBlock` 直接接受已资助的 `account`。
+
+签名者对 32 字节摘要进行签名，因此密钥从不离开托管后端。AWS KMS 使用 `awsKmsSigner`，viem 账户使用 `toSigner(account)`，进程内密钥使用 `privateKeySigner(key)` / `envSigner()`。
+
+```bash
+npm install @aws-sdk/client-kms
+```
+
+```ts
+import { createStableEnterprise, stableTestnet } from "@stablechain/enterprise";
+import { awsKmsSigner } from "@stablechain/enterprise/aws-kms";
+
+// KMS 密钥必须是 ECC_SECG_P256K1 (secp256k1)；SDK 从中派生地址
+const signer = await awsKmsSigner({ keyId: process.env.KMS_KEY_ID! });
+
+const enterprise = createStableEnterprise({
+  chain: stableTestnet,
+  gasWaiver: { signer }, // 托管级别的豁免密钥，代替 `account`
+});
+```
+
+`awsKmsSigner` 在 `@stablechain/enterprise/aws-kms` 子路径中提供，因此 `@aws-sdk/client-kms` 仍然是可选的对等依赖项，不在核心安装中。
 
 ### `StableEnterpriseClient`
 
@@ -70,9 +95,9 @@ interface StableEnterpriseClient {
 }
 ```
 
-## 免燃料费中继
+## 燃气费豁免中继
 
-`gasWaiver` 模块中继免燃料费交易。一个白名单豁免账户将用户的零燃料费交易（InnerTx）包装成一个 WaiverTx 并广播。用户不需要 USDT0。每个方法都返回 `H_inner`，即 InnerTx 哈希，而不是包装器哈希。
+`gasWaiver` 模块中继免燃气费交易。白名单豁免账户将用户的零燃气费交易 (InnerTx) 封装到 WaiverTx 中并广播。用户不需要 USDT0。每个方法都返回 `H_inner`，即 InnerTx 的哈希，而不是包装器哈希。
 
 在配置中通过 `gasWaiver` 启用它：
 
@@ -92,18 +117,19 @@ const gw = enterprise.gasWaiver!;
 
 ### `GasWaiverConfig`
 
-扩展 [`ValidationLimits`](#validationlimits)。
+扩展了 [`ValidationLimits`](#validationlimits) 和 [`SignerSource`](#signersource)。
 
 | **字段** | **类型** | **描述** |
 | :--- | :--- | :--- |
-| `account` | `LocalAccount` | 签署每个 WaiverTx 的白名单、治理注册账户。 |
+| `signer` | `Signer?` | 白名单、治理注册的豁免密钥作为托管签名者 (AWS KMS, HSM)。请参阅[签名密钥和托管](#signing-keys-and-custody)。优先于 `account`。 |
+| `account` | `LocalAccount?` | 进程中的 viem 账户作为豁免密钥。当两者都未设置时，回退到 `STABLE_ENTERPRISE_PRIVATE_KEY`。 |
 | `maxGasLimit` | `bigint?` | 继承自 `ValidationLimits`。 |
 | `maxDataLength` | `number?` | 继承自 `ValidationLimits`。 |
 | `allowedTargets` | `AllowedTarget[]?` | 继承自 `ValidationLimits`。 |
 
 ### `send(account, tx)`
 
-在一个调用中构建、签名和中继一个来自 `account` 的 InnerTx。`gasPrice: 0`、旧类型、`chainId` 和待处理 nonce 会为您处理。如果被拒绝，则抛出 `StableEnterpriseRelayError`。
+在一个调用中构建、签名和中继一个来自 `account` 的 InnerTx。`gasPrice: 0`、旧类型、`chainId` 和待处理 Nonce 将为您处理。拒绝时抛出 `StableEnterpriseRelayError`。
 
 ```ts
 const { txHash } = await gw.send(user, { to: token, data, gas: 150_000n });
@@ -117,7 +143,7 @@ const { txHash } = await gw.send(user, { to: token, data, gas: 150_000n });
 
 ### `sendBatch(account, txs)`
 
-构建、签名和中继来自一个 `account` 的多个 InnerTx。Nonce 从账户的待处理 nonce 自动排序。按顺序为每个输入返回一个结果。
+从一个 `account` 构建、签名和中继多个 InnerTx。Nonce 从账户的待处理 Nonce 自动排序。按顺序为每个输入返回一个结果。
 
 ```ts
 const results = await gw.sendBatch(user, [
@@ -134,12 +160,12 @@ const results = await gw.sendBatch(user, [
 
 ### `relay(signedInnerTxHex)`
 
-中继一个预签名的零燃料费 InnerTx。这用于非托管流程，用户在其自己的环境中签名并只向您提供签名的十六进制，因此豁免操作员永远不会看到用户的密钥。使用 [`buildWaiverInnerTx`](#buildwaiverinnertxaccount-chainid-req) 构建一个。拒绝时抛出。
+中继预签名的零燃气费 InnerTx。在非托管流程中使用此功能，用户在自己的环境中签名并仅将签名后的十六进制交给您，因此豁免操作员永远不会看到用户的密钥。使用 [`buildWaiverInnerTx`](#buildwaiverinnertxsigner-chainid-req) 构建一个。拒绝时抛出。
 
 ```ts
-import { buildWaiverInnerTx } from "@stablechain/enterprise";
+import { buildWaiverInnerTx, toSigner } from "@stablechain/enterprise";
 
-const signed = await buildWaiverInnerTx(user, stableTestnet.id, { to, data, gas: 150_000n, nonce });
+const signed = await buildWaiverInnerTx(toSigner(user), stableTestnet.id, { to, data, gas: 150_000n, nonce });
 const { txHash } = await gw.relay(signed);
 ```
 
@@ -161,7 +187,7 @@ const results = await gw.relayBatch([signed0, signed1]);
 
 ## 保证区块空间
 
-`guaranteedBlock` 模块通过企业版 RPC 网关中继 GuaranteedTx（类型 `0x3F` CustomTx），以便它们落在预留的 Enterprise-lane 区块空间中。与免燃料费不同，签名者支付自己的燃料费并且必须有资金。每笔交易都带有与企业版通道关联的二维 nonce，并且仅通过网关广播。
+`guaranteedBlock` 模块通过企业级 RPC 网关中继 GuaranteedTx（类型 `0x3F` CustomTx），以便它们落在预留的企业级通道区块空间中。与燃气费豁免不同，签名者需要支付自己的燃气费，并且必须有资金。每笔交易都带有与企业级通道关联的 2D Nonce，并且广播仅通过网关进行。
 
 通过 `guaranteedBlock` 和 `enterpriseRpcEndpoints` 启用它：
 
@@ -182,12 +208,12 @@ const gb = enterprise.guaranteedBlock!;
 
 | **字段** | **类型** | **描述** |
 | :--- | :--- | :--- |
-| `account` | `LocalAccount` | 签署每个 GuaranteedTx 并支付其燃料费的有资金账户。 |
-| `laneId` | `bigint` | 企业版通道 ID。必须在 `[0, ENTERPRISE_MASK - 1]` 范围内。无效的 ID 将被立即拒绝。 |
+| `account` | `LocalAccount` | 签署每笔 GuaranteedTx 并支付其燃气费的已资助账户。 |
+| `laneId` | `bigint` | 企业级通道 ID。必须在 `[0, ENTERPRISE_MASK - 1]` 范围内。无效 ID 将被提前拒绝。 |
 
 ### `send(account, tx)`
 
-构建、签名和中继一个 GuaranteedTx。需要 1559 费用字段，因为签名者支付燃料费。`chainId`、企业版 `nonceKey` 和二维 nonce（从网关发现）会为您处理。
+构建、签名和中继一个 GuaranteedTx。签名者需要支付燃气费，因此 1559 费用字段是必需的。`chainId`、企业级 `nonceKey` 和 2D Nonce（从网关发现）将为您处理。
 
 ```ts
 const gasPrice = await publicClient.getGasPrice();
@@ -204,11 +230,11 @@ const { txHash } = await gb.send(signer, {
 { txHash: "0xabcd...7890" }
 ```
 
-`tx` 参数是 [`GuaranteedTxRequest`](#guaranteedtxrequest) 加上一个可选的 `nonce`。返回 [`RelayResult`](#relayresult)。
+`tx` 参数是一个 [`GuaranteedTxRequest`](#guaranteedtxrequest) 加上一个可选的 `nonce`。返回 [`RelayResult`](#relayresult)。
 
 ### `sendBatch(account, txs)`
 
-构建、签名和中继多个 GuaranteedTx。Nonce 从发现的基础自动排序。失败会使其后续交易受阻。
+构建、签名和中继多笔 GuaranteedTx。Nonce 从发现的基数自动排序。失败会导致其后续交易无法进行。
 
 ```ts
 const results = await gb.sendBatch(signer, [
@@ -225,17 +251,17 @@ const results = await gb.sendBatch(signer, [
 
 ### `relay(signedTx)` / `relayBatch(signedTxs)`
 
-中继一个预签名的 GuaranteedTx，或一批。使用 [`nonceKeyForLane`](#noncekeyforlanelaneid) 作为企业版 nonce 密钥，使用 [`buildGuaranteedTx`](#buildguaranteedtxaccount-chainid-req) 在其他地方构建和签名交易，然后只将签名的十六进制交给操作员。
+中继一个预签名的 GuaranteedTx，或一批预签名的 GuaranteedTx。使用 [`buildGuaranteedTx`](#buildguaranteedtxsigner-chainid-req) 构建和签署交易，[`nonceKeyForLane`](#noncekeyforlanelaneid) 用于企业 Nonce 密钥，然后只向操作员提供签名十六进制。
 
 ```ts
-import { buildGuaranteedTx, nonceKeyForLane } from "@stablechain/enterprise";
+import { buildGuaranteedTx, nonceKeyForLane, toSigner } from "@stablechain/enterprise";
 
-const signed = await buildGuaranteedTx(signer, stableTestnet.id, {
+const signed = await buildGuaranteedTx(toSigner(signer), stableTestnet.id, {
   to,
   gas: 21_000n,
   gasFeeCap,
   gasTipCap,
-  nonce, // 账户当前的二维通道 nonce
+  nonce, // 账户当前的 2D 通道 Nonce
   nonceKey: nonceKeyForLane(0n),
 });
 const { txHash } = await gb.relay(signed);
@@ -247,7 +273,7 @@ const { txHash } = await gb.relay(signed);
 
 ## 保证中继交易
 
-`guaranteedWaiver` 模块结合了上述两个轨道：通过保证区块空间路由的免燃料费交易。内部和外部交易都是共享一个企业版 `nonceKey` 的 `0x3F` CustomTx，因此它像 `guaranteedBlock` 一样通过网关广播。豁免方支付燃料费，因此用户不需要余额和费用字段，就像 `gasWaiver` 一样。每个方法都返回 `H_inner`。
+`guaranteedWaiver` 模块结合了上述两条通道：通过保证区块空间路由的燃气费豁免交易。内部和外部交易都是 `0x3F` CustomTx，共享一个企业级 `nonceKey`，因此它通过网关广播，就像 `guaranteedBlock` 一样。豁免方支付燃气费，因此用户不需要余额和费用字段，就像 `gasWaiver` 一样。每个方法都返回 `H_inner`。
 
 通过 `guaranteedWaiver` 和 `enterpriseRpcEndpoints` 启用它：
 
@@ -256,7 +282,7 @@ const enterprise = createStableEnterprise({
   chain: stableTestnet,
   enterpriseRpcEndpoints: [process.env.ENTERPRISE_RPC_URL!], // Stable 提供的网关 URL
   guaranteedWaiver: {
-    waiverAccount: privateKeyToAccount("0xYOUR_WAIVER_KEY"),
+    account: privateKeyToAccount("0xYOUR_WAIVER_KEY"),
     laneId: 0n,
   },
 });
@@ -266,19 +292,20 @@ const gw = enterprise.guaranteedWaiver!;
 
 ### `GuaranteedWaiverConfig`
 
-扩展 [`ValidationLimits`](#validationlimits)，因此它接受与 `GasWaiverConfig` 相同的 `maxGasLimit`、`maxDataLength` 和 `allowedTargets` 策略控制。
+扩展了 [`ValidationLimits`](#validationlimits) 和 [`SignerSource`](#signersource)。它从外部包装器豁免密钥中获取密钥的方式与 `GasWaiverConfig` (先是 `signer`，然后是 `account`，然后是环境变量) 完全相同，并且接受相同的 `maxGasLimit`、`maxDataLength` 和 `allowedTargets` 策略控制。
 
 | **字段** | **类型** | **描述** |
 | :--- | :--- | :--- |
-| `waiverAccount` | `LocalAccount` | 签署外部包装器的白名单、治理注册账户。 |
-| `laneId` | `bigint` | 企业版通道 ID。必须在 `[0, ENTERPRISE_MASK - 1]` 范围内。 |
+| `signer` | `Signer?` | 白名单豁免密钥（签署外部包装器）作为托管签名者。优先于 `account`。请参阅 [签名密钥和托管](#signing-keys-and-custody)。 |
+| `account` | `LocalAccount?` | 进程中的 viem 账户作为豁免密钥。当两者都未设置时，回退到 `STABLE_ENTERPRISE_PRIVATE_KEY`。 |
+| `laneId` | `bigint` | 企业级通道 ID。必须在 `[0, ENTERPRISE_MASK - 1]` 范围内。 |
 
 ### `send(user, tx)` / `sendBatch(user, txs)`
 
-构建并签名来自 `user` 的内部 `0x3F` CustomTx，用豁免密钥包装它，然后中继。不需要费用字段，因为燃料费已免除。内部二维 nonce 从网关发现，并且批处理从此基础自动排序。
+构建并从 `user` 签署内部 `0x3F` CustomTx，用豁免密钥封装，然后中继。由于燃气费已豁免，因此不需要费用字段。内部 2D Nonce 从网关发现，并且批次从此基数自动排序。
 
 ```ts
-// 单个
+// 单笔
 const { txHash } = await gw.send(user, { to: recipient });
 
 // 批量
@@ -289,24 +316,24 @@ const results = await gw.sendBatch(user, [{ to: a }, { to: b }]);
 { txHash: "0x8f3a...2d41" }
 ```
 
-`tx` 参数是 [`GuaranteedWaiverTxRequest`](#guaranteedwaivertxrequest) 加上一个可选的 `nonce`。`send` 返回 [`RelayResult`](#relayresult)；`sendBatch` 返回 [`BatchResultItem[]`](#batchresultitem)。
+`tx` 参数是一个 [`GuaranteedWaiverTxRequest`](#guaranteedwaivertxrequest) 加上一个可选的 `nonce`。`send` 返回 [`RelayResult`](#relayresult)；`sendBatch` 返回 [`BatchResultItem[]`](#batchresultitem)。
 
 ### `relay(signedInnerTx)` / `relayBatch(signedInnerTxs)`
 
-对于非托管流程，用户使用 [`buildGuaranteedTx`](#buildguaranteedtxaccount-chainid-req) 签名内部 `0x3F` CustomTx（费用 `0n`，使用 `nonceKeyForLane(laneId)`），并只将签名的十六进制交给操作员。操作员用豁免密钥包装它并中继。
+对于非托管流，用户使用 [`buildGuaranteedTx`](#buildguaranteedtxsigner-chainid-req) 签署内部 `0x3F` CustomTx（费用 `0n`，使用 `nonceKeyForLane(laneId)`），并仅向操作员提供签名十六进制。操作员使用豁免密钥封装并中继。
 
 ```ts
-import { buildGuaranteedTx, nonceKeyForLane } from "@stablechain/enterprise";
+import { buildGuaranteedTx, nonceKeyForLane, toSigner } from "@stablechain/enterprise";
 
-const signedInner = await buildGuaranteedTx(user, stableTestnet.id, {
+const signedInner = await buildGuaranteedTx(toSigner(user), stableTestnet.id, {
   to,
   gas: 100_000n,
-  gasFeeCap: 0n, // 已免除
+  gasFeeCap: 0n, // 豁免
   gasTipCap: 0n,
   nonce,
   nonceKey: nonceKeyForLane(0n),
 });
-const { txHash } = await gw.relay(signedInner); // 豁免包装 + 广播 → H_inner
+const { txHash } = await gw.relay(signedInner); // 豁免方封装 + 广播 → H_inner
 ```
 
 ```text
@@ -315,27 +342,27 @@ const { txHash } = await gw.relay(signedInner); // 豁免包装 + 广播 → H_i
 
 ## 构建助手
 
-用于非托管 `relay` 路径的底层签名器。每个都以 `Hex` 形式返回已签名的交易，不进行 nonce 获取或费用估算。
+用于非托管 `relay` 路径的低级签名者。每个都返回一个已签名的交易作为 `Hex`，不进行 Nonce 获取或费用估算。第一个参数是 [`Signer`](#signing-keys-and-custody)：用 `toSigner(account)` 包装一个 viem 账户，或传递一个托管签名者，例如 `awsKmsSigner`。
 
-### `buildWaiverInnerTx(account, chainId, req)`
+### `buildWaiverInnerTx(signer, chainId, req)`
 
-使用预设的豁免不变量（`gasPrice: 0`、旧类型和给定的 `chainId`）签名 waiver-ready InnerTx。`req` 是一个 [`WaiverInnerTx`](#waiverinnertx) 加上一个必需的 `nonce`。
+签署一个豁免就绪的 InnerTx，其中包含豁免不变性：`gasPrice: 0`、旧类型和给定的 `chainId`。`req` 是一个 [`WaiverInnerTx`](#waiverinnertx) 加上一个必需的 `nonce`。
 
 ```ts
-const signed = await buildWaiverInnerTx(user, stableTestnet.id, { to, data, gas: 150_000n, nonce });
+const signed = await buildWaiverInnerTx(toSigner(user), stableTestnet.id, { to, data, gas: 150_000n, nonce });
 ```
 
-### `buildGuaranteedTx(account, chainId, req)`
+### `buildGuaranteedTx(signer, chainId, req)`
 
-构建并签名一个 GuaranteedTx（`0x3F` CustomTx）。`req` 是一个 [`GuaranteedTxRequest`](#guaranteedtxrequest) 加上一个必需的 `nonce` 和 `nonceKey`。
+构建并签署一个 GuaranteedTx (`0x3F` CustomTx)。`req` 是一个 [`GuaranteedTxRequest`](#guaranteedtxrequest) 加上一个必需的 `nonce` 和 `nonceKey`。
 
 ### `buildGuaranteedWaiverTx(...)`
 
-将预签名的内部交易包装到外部 `0x3F` 豁免自定义交易中。供 `guaranteedWaiver.relay` 内部使用；为高级流程导出。
+将预签名内部交易封装到外部 `0x3F` 豁免 CustomTx 中。由 `guaranteedWaiver.relay` 内部使用；为高级流程导出。
 
 ### `nonceKeyForLane(laneId)`
 
-返回用于 `buildGuaranteedTx` 的通道 ID 的企业版 `nonceKey`。
+返回用于 `buildGuaranteedTx` 的通道 ID 的企业 `nonceKey`。
 
 ```ts
 import { nonceKeyForLane } from "@stablechain/enterprise";
@@ -345,84 +372,111 @@ const nonceKey = nonceKeyForLane(0n);
 
 ## 类型
 
+### `SignerSource`
+
+豁免模块 (`gasWaiver`, `guaranteedWaiver`) 接受的签名密钥字段。按顺序解析：`signer`，然后 `account`，然后是 `STABLE_ENTERPRISE_PRIVATE_KEY` 环境变量。请参阅 [签名密钥和托管](#signing-keys-and-custody)。
+
+| **字段** | **类型** | **描述** |
+| :--- | :--- | :--- |
+| `signer` | `Signer?` | 托管级别的签名者（AWS KMS、HSM 或 `privateKeySigner`）。优先于 `account`。 |
+| `account` | `LocalAccount?` | 进程中的 viem 账户，通过 `toSigner` 转换为 `Signer`。 |
+
+### `Signer`
+
+一个可插拔的签名器，SDK 通过它签署 32 字节摘要，因此密钥不会离开托管后端。使用 `awsKmsSigner`、`toSigner`、`privateKeySigner` 或 `envSigner` 构建一个。
+
+```ts
+interface Signer {
+  readonly address: Address;
+  signDigest(hash: Hex): Promise<Hex>;
+}
+```
+
+| **助手** | **导入** | **描述** |
+| :--- | :--- | :--- |
+| `awsKmsSigner({ keyId, client? })` | `@stablechain/enterprise/aws-kms` | 由 AWS KMS `ECC_SECG_P256K1` 密钥支持的签名器。返回 `Promise<Signer>`。 |
+| `toSigner(account)` | `@stablechain/enterprise` | 将 viem `LocalAccount` 转换为 `Signer`。 |
+| `privateKeySigner(key)` | `@stablechain/enterprise` | 包装进程中持有的原始私钥的签名器。 |
+| `envSigner(varName?)` | `@stablechain/enterprise` | 从 `STABLE_ENTERPRISE_PRIVATE_KEY`（或 `varName`）读取密钥的签名器。 |
+
 ### `WaiverInnerTx`
 
-每次调用不同的 InnerTx 字段。
+每次调用 InnerTx 中变化的字段。
 
 | **字段** | **类型** | **默认值** | **描述** |
 | :--- | :--- | :--- | :--- |
-| `to` | `Address` | | 目标地址：ERC-20 转账的代币合约，原生转账的接收方。 |
-| `gas` | `bigint?` | `DEFAULT_INNER_GAS` (`150_000n`) | 燃料限制。因为 `gasPrice` 为 0，所以慷慨的限制是免费的。 |
+| `to` | `Address` | | 目标地址：用于 ERC-20 转账的代币合约，用于原生代币的接收者。 |
+| `gas` | `bigint?` | `DEFAULT_INNER_GAS` (`150_000n`) | 燃气限制。因为 `gasPrice` 为 0，所以慷慨的限制是免费的。 |
 | `data` | `Hex?` | `"0x"` | 调用数据。 |
-| `value` | `bigint?` | `0n` | 要发送的原生值。 |
+| `value` | `bigint?` | `0n` | 要发送的原生价值。 |
 
 ### `GuaranteedTxRequest`
 
 | **字段** | **类型** | **默认值** | **描述** |
 | :--- | :--- | :--- | :--- |
 | `to` | `Address?` | | 目标地址。 |
-| `gas` | `bigint` | | 燃料限制。必需。 |
+| `gas` | `bigint` | | 燃气限制。必需。 |
 | `gasFeeCap` | `bigint` | | `maxFeePerGas`。必需。 |
 | `gasTipCap` | `bigint` | | `maxPriorityFeePerGas`。必需。 |
 | `data` | `Hex?` | `"0x"` | 调用数据。 |
-| `value` | `bigint?` | `0n` | 要发送的原生值。 |
+| `value` | `bigint?` | `0n` | 要发送的原生价值。 |
 
 ### `GuaranteedWaiverTxRequest`
 
-燃料费字段始终为 0，因此此处省略。
+费用字段始终为 0，因此此处省略。
 
 | **字段** | **类型** | **默认值** | **描述** |
 | :--- | :--- | :--- | :--- |
 | `to` | `Address` | | 目标地址。 |
-| `gas` | `bigint?` | 共享的内部燃料默认值 | 燃料限制。 |
+| `gas` | `bigint?` | 共享的内部燃气默认值 | 燃气限制。 |
 | `data` | `Hex?` | `"0x"` | 调用数据。 |
-| `value` | `bigint?` | `0n` | 要发送的原生值。豁免允许值转移。 |
+| `value` | `bigint?` | `0n` | 要发送的原生价值。燃气费豁免允许价值转移。 |
 
 ### `ValidationLimits`
 
-应用于 `gasWaiver` 和 `guaranteedWaiver` 的每个 InnerTx 的每个合作伙伴策略。
+由 `gasWaiver` 和 `guaranteedWaiver` 应用于每个 InnerTx 的每合作伙伴策略。
 
 | **字段** | **类型** | **默认值** | **描述** |
 | :--- | :--- | :--- | :--- |
-| `maxGasLimit` | `bigint?` | `10_000_000n` | InnerTx 的最大燃料限制。超过此限制将导致 `GAS_LIMIT_EXCEEDED` 失败。 |
-| `maxDataLength` | `number?` | `131_072` (128 KB) | 调用数据的最大字节大小。超过此限制将导致 `DATA_TOO_LARGE` 失败。 |
-| `allowedTargets` | `AllowedTarget[]?` | | 豁免可能赞助的合约和方法的允许列表。设置后，列表之外的目标将导致 `TARGET_NOT_ALLOWED` 失败。 |
+| `maxGasLimit` | `bigint?` | `10_000_000n` | InnerTx 的最大燃气限制。超出此限制将因 `GAS_LIMIT_EXCEEDED` 而失败。 |
+| `maxDataLength` | `number?` | `131_072` (128 KB) | 调用数据的最大大小（字节）。超出此限制将因 `DATA_TOO_LARGE` 而失败。 |
+| `allowedTargets` | `AllowedTarget[]?` | | 豁免可能赞助的合约和方法的白名单。设置后，不在列表中的目标将因 `TARGET_NOT_ALLOWED` 而失败。 |
 
 ### `AllowedTarget`
 
 | **字段** | **类型** | **描述** |
 | :--- | :--- | :--- |
-| `address` | `Address \| "*"` | InnerTx 可能调用的合约，或 `"*"` 以匹配任何合约。 |
+| `address` | `Address \| "*"` | InnerTx 可以调用的合约，或者 `"*" `表示匹配任何合约。 |
 | `selectors` | `Hex[]?` | 允许的 4 字节方法选择器（例如，ERC-20 `transfer` 的 `"0xa9059cbb"`）。省略或留空以允许 `address` 上的任何方法。 |
 
 ### `RelayResult`
 
 ```ts
 interface RelayResult {
-  txHash: Hash; // 豁免的 H_inner，独立保证区块的 GuaranteedTx 哈希
+  txHash: Hash; // 燃气费豁免的 H_inner，独立保证区块的 GuaranteedTx 哈希
 }
 ```
 
 ### `BatchResultItem`
 
-批处理中每个输入的一个条目，按输入顺序排列。批处理不会抛出，而是显示每个项目的输出。
+批处理中每个输入的条目，按输入顺序。批处理不是抛出错误，而是显示每个项目的处理结果。
 
 | **字段** | **类型** | **描述** |
 | :--- | :--- | :--- |
-| `index` | `number` | 与输入数组匹配的从零开始的位置。 |
+| `index` | `number` | 零基位置，与输入数组匹配。 |
 | `success` | `boolean` | 此项目是否已中继。 |
 | `txHash` | `Hash?` | 成功时存在：内部交易哈希。 |
 | `error` | `{ code: ErrorCode; message: string }?` | 失败时存在。 |
 
 ## 错误
 
-单交易方法（`send`、`relay`）在拒绝时抛出。批处理方法则在 [`BatchResultItem.error`](#batchresultitem) 中报告每个项目的失败。所有错误类都扩展自 `StableEnterpriseError`。
+单个交易方法 (`send`, `relay`) 在拒绝时会抛出错误。批量方法则在 [`BatchResultItem.error`](#batchresultitem) 中报告每个项目的失败。所有错误类都扩展自 `StableEnterpriseError`。
 
 | **类** | **抛出时机** | **有用字段** |
 | :--- | :--- | :--- |
 | `StableEnterpriseError` | 所有 SDK 错误的基类。 | `message` |
 | `StableEnterpriseRelayError` | 交易在 RPC 或中继层被拒绝。 | `code` |
-| `WaiverValidationError` | InnerTx 在广播前未能通过策略检查（燃料、数据大小或目标允许列表）。 | `code` |
+| `WaiverValidationError` | InnerTx 在广播前未能通过策略检查（燃气费、数据大小或目标白名单）。 | `code` |
 
 ```ts
 import { StableEnterpriseRelayError } from "@stablechain/enterprise";
@@ -431,7 +485,7 @@ try {
   await gw.send(user, { to: token, data });
 } catch (err) {
   if (err instanceof StableEnterpriseRelayError && err.code === "TARGET_NOT_ALLOWED") {
-    // InnerTx 目标不在配置的允许列表之外
+    // InnerTx 目标不在配置的白名单中
   }
   throw err;
 }
@@ -447,29 +501,29 @@ StableEnterpriseRelayError: relay failed [TARGET_NOT_ALLOWED]: target 0x... not 
 
 | **代码** | **含义** |
 | :--- | :--- |
-| `UNKNOWN_ERROR` | 当没有特定代码可用时的回退。 |
-| `BROADCAST_FAILED` | 广播在 RPC 层被拒绝，或网关未能中继。 |
+| `UNKNOWN_ERROR` | 没有可用特定代码时的回退。 |
+| `BROADCAST_FAILED` | 广播在 RPC 层被拒绝，或者网关未能中继。 |
 | `INVALID_TRANSACTION` | InnerTx 解码或解析失败。 |
 | `INVALID_SIGNATURE` | 签名验证失败。 |
 | `UNSUPPORTED_TX_TYPE` | InnerTx 类型不是 legacy、eip2930 或 eip1559。 |
 | `WRONG_CHAIN_ID` | InnerTx `chainId` 缺失或与目标链不匹配。 |
-| `NON_ZERO_GAS_PRICE` | InnerTx 带有非零燃料价格（豁免必须为零）。 |
-| `GAS_LIMIT_EXCEEDED` | InnerTx 燃料限制超过 `maxGasLimit`。 |
+| `NON_ZERO_GAS_PRICE` | InnerTx 带有非零燃气费（豁免必须为零）。 |
+| `GAS_LIMIT_EXCEEDED` | InnerTx 燃气限制超过 `maxGasLimit`。 |
 | `DATA_TOO_LARGE` | InnerTx 调用数据超过 `maxDataLength`。 |
 | `TARGET_NOT_ALLOWED` | InnerTx 目标不在 `allowedTargets` 中。 |
-| `GATEWAY_UNAUTHORIZED` | 企业版 RPC 网关拒绝了 API 密钥（缺失、无效或已过期）。 |
-| `QUOTA_EXCEEDED` | 企业版 RPC 网关燃料配额已用尽。 |
+| `GATEWAY_UNAUTHORIZED` | 企业级 RPC 网关拒绝了 API 密钥（缺失、无效或过期）。 |
+| `QUOTA_EXCEEDED` | 企业级 RPC 网关燃气配额已用尽。 |
 
 ## 常量
 
 | **常量** | **类型** | **描述** |
 | :--- | :--- | :--- |
-| `DEFAULT_INNER_GAS` | `bigint` | 当省略 `gas` 时，默认的 InnerTx 燃料限制 (`150_000n`)。 |
-| `ENTERPRISE_FLAG` | `bigint` | 在通道的 `nonceKey` 上设置的企业位。 |
+| `DEFAULT_INNER_GAS` | `bigint` | InnerTx 的默认燃气限制 (`150_000n`)，当省略 `gas` 时使用。 |
+| `ENTERPRISE_FLAG` | `bigint` | 设置在通道 `nonceKey` 上的企业位。 |
 | `ENTERPRISE_MASK` | `bigint` | 通道 ID 的上限：`laneId` 必须在 `[0, ENTERPRISE_MASK - 1]` 范围内。 |
 
-## 下一步推荐
+## 接下来的建议
 
-- [**Stable 企业版 SDK**](/cn/explanation/enterprise-sdk)：轨道的用途以及何时使用它们。
-- [**免燃料费协议**](/cn/reference/gas-waiver-api)：交易格式、标记路由和治理控制。
+- [**Stable 企业级 SDK**](/cn/explanation/enterprise-sdk)：这些通道是什么以及何时使用它们。
+- [**燃气费豁免协议**](/cn/reference/gas-waiver-api)：交易格式、标记路由和治理控制。
 - [**保证区块空间**](/cn/explanation/guaranteed-blockspace)：Stable 如何为企业工作负载预留区块容量。

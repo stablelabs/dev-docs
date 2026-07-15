@@ -1,29 +1,29 @@
 ---
 source_path: how-to/guaranteed-relayed-transactions.mdx
-source_sha: f17822f84d15b62f1ec4a12e262dad94d7343a46
-title: "保证中继交易"
-description: "通过带质保的出块空间中继免燃料费交易，用户无需余额即可进入企业版通道，使用 Enterprise SDK。"
+source_sha: 770f26cb178bfd6e7b678d524f5148a39a3f9946
+title: "有保障的中继交易"
+description: "使用 Enterprise SDK 通过有保障的区块空间中继免燃料费交易，这样用户无需余额即可进入企业通道。"
 diataxis: "how-to"
 ---
 
-# 保证中继交易
+# 有保障的中继交易
 
-结合使用 `@stablechain/enterprise` 的企业版通道。保证中继交易是[免燃料费交易](/cn/how-to/relay-with-gas-waiver)，通过[保证出块空间](/cn/how-to/send-guaranteed-transactions)进行路由：免除机制支付燃料费，因此用户无需余额和燃料费字段，交易仍会进入预留的企业版通道。
+将 Enterprise 的功能与 `@stablechain/enterprise` 结合起来。有保障的中继交易是[免燃料费交易](/cn/how-to/relay-with-gas-waiver)，它通过[有保障的区块空间](/cn/how-to/send-guaranteed-transactions)进行路由：豁免方支付燃料费，因此用户无需余额和燃料费字段，交易仍能进入预留的企业通道。
 
-`guaranteedWaiver` 模块同时处理两端。用户签署内部 `0x3F` CustomTx，白名单免除帐户将其封装在共享相同 Enterprise `nonceKey` 的外部 `0x3F` CustomTx 中，并通过 Enterprise RPC 网关广播。每个方法都返回 `H_inner`，即用户的交易哈希。
+`guaranteedWaiver` 模块处理双方。用户签署内部 `0x3F` CustomTx，白名单中的豁免账户将其包装在共享相同企业 `nonceKey` 的外部 `0x3F` CustomTx 中，并通过企业 RPC 网关进行广播。每个方法都返回用户的交易哈希 `H_inner`。
 
 ## 先决条件
 
 - Node.js 20 或更高版本，并安装 `@stablechain/enterprise` 和 `viem`。请参阅 [Enterprise SDK 参考](/cn/reference/enterprise-sdk#install)。
-- 治理注册的免除密钥和企业版 RPC 网关 API 密钥。Enterprise SDK 目前仅限测试网，并按要求提供访问权限：[联系 Stable](https://discord.gg/stablexyz) 以获取两者。
+- 一个在管理中注册的豁免密钥和一个企业 RPC 网关 API 密钥。Enterprise SDK 目前仅支持测试网，并且需要请求才能访问：[联系 Stable](https://discord.gg/stablexyz) 获取两者。
 
 :::warning
-这是一个服务器端库。将免除密钥和 Enterprise RPC 网关 URL 保存在您的后端：网关 URL 嵌入了您的 API 密钥。
+这是一个服务器端库。请将豁免密钥和企业 RPC 网关 URL 保留在您的后端：网关 URL 嵌入了您的 API 密钥。
 :::
 
-## 1. 创建带有保证免除模块的客户端
+## 1. 使用有保障的豁免模块创建客户端
 
-将 `guaranteedWaiver` 和 `enterpriseRpcEndpoints` 传递给 `createStableEnterprise`。该模块接收白名单免除帐户（用于签署外部封装器）以及 Enterprise 通道。它还接受与 `gasWaiver` 相同的 `allowedTargets`、`maxGasLimit` 和 `maxDataLength` 策略限制。
+将 `guaranteedWaiver` 和 `enterpriseRpcEndpoints` 传递给 `createStableEnterprise`。该模块接收白名单中的豁免密钥（用于签署外部包装器）以及企业通道。它还接受与 `gasWaiver` 相同的 `allowedTargets`、`maxGasLimit` 和 `maxDataLength` 策略限制。
 
 ```ts
 import { createStableEnterprise, stableTestnet } from "@stablechain/enterprise";
@@ -33,7 +33,7 @@ const enterprise = createStableEnterprise({
   chain: stableTestnet,
   enterpriseRpcEndpoints: [process.env.ENTERPRISE_RPC_URL!], // the gateway URL Stable provisions
   guaranteedWaiver: {
-    waiverAccount: privateKeyToAccount(process.env.WAIVER_PRIVATE_KEY as `0x${string}`),
+    account: privateKeyToAccount(process.env.WAIVER_PRIVATE_KEY as `0x${string}`),
     laneId: 0n, // Enterprise lane
   },
 });
@@ -45,9 +45,13 @@ const gw = enterprise.guaranteedWaiver!;
 StableEnterpriseClient { gasWaiver: undefined, guaranteedBlock: undefined, guaranteedWaiver }
 ```
 
+:::tip
+要将豁免密钥保存在托管后端中，请传递 `signer` 而不是 `account`。`@stablechain/enterprise/aws-kms` 中的 `awsKmsSigner` 支持 AWS KMS。请参阅[签署密钥和托管](/cn/reference/enterprise-sdk#signing-keys-and-custody)。
+:::
+
 ## 2. 中继单个交易
 
-使用用户帐户和变化的字段调用 `send`。燃料费已免除，因此用户不需要余额和燃料费字段。内部 `0x3F` CustomTx、其 Enterprise `nonceKey` 和 2D nonce（从网关发现）都已为您处理。
+使用用户的账户和变化的字段调用 `send`。燃料费被豁免，因此用户无需余额和燃料费字段。内部的 `0x3F` CustomTx、其企业 `nonceKey` 和 2D nonce（从网关发现）都会为您处理。
 
 ```ts
 const user = privateKeyToAccount(process.env.USER_PRIVATE_KEY as `0x${string}`);
@@ -62,9 +66,9 @@ H_inner: 0x8f3a...2d41
 
 `gas` 默认为共享的内部燃料费默认值；仅在需要覆盖时才传递它。允许价值转移，因此您也可以传递 `value`。
 
-## 3. 中继批次
+## 3. 中继批处理
 
-调用 `sendBatch` 以中继来自一个用户的多个交易。内部 nonce 从发现的基础自动排序，并且您会为每个输入获得一个结果，按输入顺序。一个失败会使其后续成功。
+调用 `sendBatch` 中继来自一个用户的多个交易。内部 nonce 从发现的基础自动排序，您会按输入顺序获得每个输入一个结果。一个失败会使其后续的交易中止。
 
 ```ts
 const results = await gw.sendBatch(user, [{ to: a }, { to: b }]);
@@ -79,15 +83,15 @@ for (const r of results) {
 [1] ✔ 0x2b7c...9e04
 ```
 
-## 4. 中继预签署交易
+## 4. 中继预签名交易
 
-对于非托管流程，用户在其自己的环境中签署内部 `0x3F` CustomTx，并仅将签署的十六进制交给您。使用 `buildGuaranteedTx` 构建它，使用 `nonceKeyForLane` 作为 Enterprise nonce 密钥和零燃料费（燃料费已免除）。您的后端使用免除密钥将其封装，并使用 `relay` 中继。
+对于非托管流程，用户在其自己的环境中签署内部 `0x3F` CustomTx，并仅将已签署的十六进制字符串交给您。使用 `buildGuaranteedTx` 构建它，其中企业 nonce 密钥使用 `nonceKeyForLane`，燃料费设置为零（燃料费被豁免）。您的后端使用豁免密钥包装它，并使用 `relay` 进行中继。
 
 ```ts
-import { buildGuaranteedTx, nonceKeyForLane } from "@stablechain/enterprise";
+import { buildGuaranteedTx, nonceKeyForLane, toSigner } from "@stablechain/enterprise";
 
-// on the user's side
-const signedInner = await buildGuaranteedTx(user, stableTestnet.id, {
+// on the user's side — buildGuaranteedTx signs through a Signer; toSigner adapts a viem account
+const signedInner = await buildGuaranteedTx(toSigner(user), stableTestnet.id, {
   to: recipient,
   gas: 100_000n,
   gasFeeCap: 0n, // waived
@@ -105,11 +109,11 @@ console.log("H_inner:", txHash);
 H_inner: 0x8f3a...2d41
 ```
 
-对于多个预签署交易，请使用 `relayBatch`。
+对于多个预签名交易，请使用 `relayBatch`。
 
 ## 处理拒绝
 
-`send` 和 `relay` 在拒绝时抛出 `StableEnterpriseRelayError`。由于此流程通过网关路由，因此网关代码（如 `GATEWAY_UNAUTHORIZED` 和 `QUOTA_EXCEEDED`）以及免除策略代码（如 `TARGET_NOT_ALLOWED`）都适用。
+`send` 和 `relay` 在拒绝时会抛出 `StableEnterpriseRelayError`。由于此流程通过网关路由，因此网关代码（如 `GATEWAY_UNAUTHORIZED` 和 `QUOTA_EXCEEDED`）以及豁免策略代码（如 `TARGET_NOT_ALLOWED`）都适用。
 
 ```ts
 import { StableEnterpriseRelayError } from "@stablechain/enterprise";
@@ -128,10 +132,10 @@ try {
 StableEnterpriseRelayError: relay failed [GATEWAY_UNAUTHORIZED]: invalid api key
 ```
 
-有关每个拒绝原因的完整信息，请参阅完整的 [`ErrorCode`](/cn/reference/enterprise-sdk#errorcode) 表格。
+有关所有拒绝原因，请参阅完整的 [`ErrorCode`](/cn/reference/enterprise-sdk#errorcode) 表。
 
 ## 接下来去哪里
 
-- [**免燃料费中继**](/cn/how-to/relay-with-gas-waiver)：为用户支付燃料费，无需保证通道。
-- [**发送保证交易**](/cn/how-to/send-guaranteed-transactions)：单独使用保证出块空间，由签名者支付燃料费。
-- [**Enterprise SDK 参考**](/cn/reference/enterprise-sdk#guaranteed-relay-transactions)：所有方法、配置选项和错误类详情。
+- [**中继免燃料费交易**](/cn/how-to/relay-with-gas-waiver)：为用户提供燃料费，但不使用有保障的通道。
+- [**发送有保障的交易**](/cn/how-to/send-guaranteed-transactions)：单独使用有保障的区块空间，由签名者支付燃料费。
+- [**Enterprise SDK 参考**](/cn/reference/enterprise-sdk#guaranteed-relay-transactions)：所有方法、配置选项和错误类的完整说明。

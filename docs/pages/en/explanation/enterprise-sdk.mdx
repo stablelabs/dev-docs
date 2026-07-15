@@ -48,7 +48,7 @@ Both rails are gated. Gas waiver requires a governance-registered waiver key, an
 The Enterprise SDK is a stateless, server-side library that signs with private keys. Never run it in a browser. Keep the waiver key and the Enterprise RPC gateway URL on your backend.
 :::
 
-The waiver key is a whitelisted, governance-registered account: anyone holding it can sponsor gas under your policy. The Enterprise RPC gateway URL embeds your API key. Treat both as secrets.
+The waiver key is a whitelisted, governance-registered account: anyone holding it can sponsor gas under your policy. The Enterprise RPC gateway URL embeds your API key. Treat both as secrets. To keep the waiver key out of process, back it with a custody signer such as AWS KMS. See [Signing keys and custody](/en/reference/enterprise-sdk#signing-keys-and-custody).
 
 ## When to use it
 

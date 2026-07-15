@@ -94,9 +94,9 @@ for (const r of results) {
 For a non-custodial flow, build and sign the GuaranteedTx elsewhere with `buildGuaranteedTx`, then hand the operator only the signed hex. The Enterprise nonce key comes from `nonceKeyForLane`.
 
 ```ts
-import { buildGuaranteedTx, nonceKeyForLane } from "@stablechain/enterprise";
+import { buildGuaranteedTx, nonceKeyForLane, toSigner } from "@stablechain/enterprise";
 
-const signed = await buildGuaranteedTx(signer, stableTestnet.id, {
+const signed = await buildGuaranteedTx(toSigner(signer), stableTestnet.id, {
   to: recipient,
   gas: 21_000n,
   gasFeeCap,

@@ -21,7 +21,7 @@ This is a server-side library. Keep the waiver key and the Enterprise RPC gatewa
 
 ## 1. Create a client with the guaranteed waiver module
 
-Pass `guaranteedWaiver` and `enterpriseRpcEndpoints` to `createStableEnterprise`. The module takes the whitelisted waiver account (which signs the outer wrapper) plus the Enterprise lane. It also accepts the same `allowedTargets`, `maxGasLimit`, and `maxDataLength` policy limits as `gasWaiver`.
+Pass `guaranteedWaiver` and `enterpriseRpcEndpoints` to `createStableEnterprise`. The module takes the whitelisted waiver key (which signs the outer wrapper) plus the Enterprise lane. It also accepts the same `allowedTargets`, `maxGasLimit`, and `maxDataLength` policy limits as `gasWaiver`.
 
 ```ts
 import { createStableEnterprise, stableTestnet } from "@stablechain/enterprise";
@@ -31,7 +31,7 @@ const enterprise = createStableEnterprise({
   chain: stableTestnet,
   enterpriseRpcEndpoints: [process.env.ENTERPRISE_RPC_URL!], // the gateway URL Stable provisions
   guaranteedWaiver: {
-    waiverAccount: privateKeyToAccount(process.env.WAIVER_PRIVATE_KEY as `0x${string}`),
+    account: privateKeyToAccount(process.env.WAIVER_PRIVATE_KEY as `0x${string}`),
     laneId: 0n, // Enterprise lane
   },
 });
@@ -42,6 +42,10 @@ const gw = enterprise.guaranteedWaiver!;
 ```text
 StableEnterpriseClient { gasWaiver: undefined, guaranteedBlock: undefined, guaranteedWaiver }
 ```
+
+:::tip
+To keep the waiver key in a custody backend, pass `signer` instead of `account`. `awsKmsSigner` from `@stablechain/enterprise/aws-kms` backs it with AWS KMS. See [Signing keys and custody](/en/reference/enterprise-sdk#signing-keys-and-custody).
+:::
 
 ## 2. Relay a single transaction
 
@@ -82,10 +86,10 @@ for (const r of results) {
 For a non-custodial flow, the user signs the inner `0x3F` CustomTx in their own environment and hands you only the signed hex. Build it with `buildGuaranteedTx`, using `nonceKeyForLane` for the Enterprise nonce key and zero fees (gas is waived). Your backend wraps it with the waiver key and relays it with `relay`.
 
 ```ts
-import { buildGuaranteedTx, nonceKeyForLane } from "@stablechain/enterprise";
+import { buildGuaranteedTx, nonceKeyForLane, toSigner } from "@stablechain/enterprise";
 
-// on the user's side
-const signedInner = await buildGuaranteedTx(user, stableTestnet.id, {
+// on the user's side — buildGuaranteedTx signs through a Signer; toSigner adapts a viem account
+const signedInner = await buildGuaranteedTx(toSigner(user), stableTestnet.id, {
   to: recipient,
   gas: 100_000n,
   gasFeeCap: 0n, // waived

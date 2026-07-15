@@ -41,6 +41,10 @@ StableEnterpriseClient { gasWaiver, guaranteedBlock: undefined, guaranteedWaiver
 
 The `rpcEndpoints` option is optional. Left unset, the client uses the chain's built-in RPC.
 
+:::tip
+To keep the waiver key in a custody backend, pass `signer` instead of `account`. `awsKmsSigner` from `@stablechain/enterprise/aws-kms` backs it with AWS KMS. See [Signing keys and custody](/en/reference/enterprise-sdk#signing-keys-and-custody).
+:::
+
 ## 2. Relay a single transaction
 
 Call `send` with the user's account and the fields that vary. The `gasPrice: 0`, legacy type, `chainId`, and pending nonce are handled for you, so you pass only `to`, and optionally `data`, `value`, and `gas`.
@@ -105,10 +109,10 @@ A transaction to a contract outside `allowedTargets` fails with `TARGET_NOT_ALLO
 For a non-custodial flow, the user signs the InnerTx in their own environment and hands you only the signed hex, so you never see their key. Build it with `buildWaiverInnerTx`, then relay it with `relay`.
 
 ```ts
-import { buildWaiverInnerTx } from "@stablechain/enterprise";
+import { buildWaiverInnerTx, toSigner } from "@stablechain/enterprise";
 
-// on the user's side
-const signed = await buildWaiverInnerTx(user, stableTestnet.id, { to: token, data, gas: 150_000n, nonce });
+// on the user's side — buildWaiverInnerTx signs through a Signer; toSigner adapts a viem account
+const signed = await buildWaiverInnerTx(toSigner(user), stableTestnet.id, { to: token, data, gas: 150_000n, nonce });
 
 // on your backend
 const { txHash } = await gw.relay(signed);

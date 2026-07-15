@@ -58,6 +58,31 @@ StableEnterpriseClient { gasWaiver, guaranteedBlock: undefined, guaranteedWaiver
 | `guaranteedBlock` | `GuaranteedBlockConfig?` |  | Enable [guaranteed blockspace](#guaranteed-blockspace). |
 | `guaranteedWaiver` | `GuaranteedWaiverConfig?` |  | Enable [guaranteed relay transactions](#guaranteed-relay-transactions). |
 
+### Signing keys and custody
+
+The modules that hold the waiver key (`gasWaiver` and `guaranteedWaiver`) resolve it from a [`SignerSource`](#signersource), in order: `signer` (a custody-grade backend), then `account` (an in-process viem key), then the `STABLE_ENTERPRISE_PRIVATE_KEY` environment variable. `guaranteedBlock` takes a funded `account` directly.
+
+A `Signer` signs a 32-byte digest, so the key never leaves the custody backend. Use `awsKmsSigner` for AWS KMS, `toSigner(account)` to adapt a viem account, or `privateKeySigner(key)` / `envSigner()` for an in-process key.
+
+```bash
+npm install @aws-sdk/client-kms
+```
+
+```ts
+import { createStableEnterprise, stableTestnet } from "@stablechain/enterprise";
+import { awsKmsSigner } from "@stablechain/enterprise/aws-kms";
+
+// the KMS key must be ECC_SECG_P256K1 (secp256k1); the SDK derives the address from it
+const signer = await awsKmsSigner({ keyId: process.env.KMS_KEY_ID! });
+
+const enterprise = createStableEnterprise({
+  chain: stableTestnet,
+  gasWaiver: { signer }, // custody-grade waiver key, in place of `account`
+});
+```
+
+`awsKmsSigner` ships in the `@stablechain/enterprise/aws-kms` subpath so `@aws-sdk/client-kms` stays an optional peer dependency, out of the core install.
+
 ### `StableEnterpriseClient`
 
 ```ts
@@ -90,11 +115,12 @@ const gw = enterprise.gasWaiver!;
 
 ### `GasWaiverConfig`
 
-Extends [`ValidationLimits`](#validationlimits).
+Extends [`ValidationLimits`](#validationlimits) and [`SignerSource`](#signersource).
 
 | **Field** | **Type** | **Description** |
 | :--- | :--- | :--- |
-| `account` | `LocalAccount` | The whitelisted, governance-registered account that signs each WaiverTx. |
+| `signer` | `Signer?` | The whitelisted, governance-registered waiver key as a custody signer (AWS KMS, HSM). See [Signing keys and custody](#signing-keys-and-custody). Takes precedence over `account`. |
+| `account` | `LocalAccount?` | The waiver key as an in-process viem account. Falls back to `STABLE_ENTERPRISE_PRIVATE_KEY` when neither is set. |
 | `maxGasLimit` | `bigint?` | Inherited from `ValidationLimits`. |
 | `maxDataLength` | `number?` | Inherited from `ValidationLimits`. |
 | `allowedTargets` | `AllowedTarget[]?` | Inherited from `ValidationLimits`. |
@@ -132,12 +158,12 @@ const results = await gw.sendBatch(user, [
 
 ### `relay(signedInnerTxHex)`
 
-Relay a pre-signed zero-gas InnerTx. Use this for the non-custodial flow where the user signs in their own environment and hands you only the signed hex, so the waiver operator never sees the user's key. Build one with [`buildWaiverInnerTx`](#buildwaiverinnertxaccount-chainid-req). Throws on rejection.
+Relay a pre-signed zero-gas InnerTx. Use this for the non-custodial flow where the user signs in their own environment and hands you only the signed hex, so the waiver operator never sees the user's key. Build one with [`buildWaiverInnerTx`](#buildwaiverinnertxsigner-chainid-req). Throws on rejection.
 
 ```ts
-import { buildWaiverInnerTx } from "@stablechain/enterprise";
+import { buildWaiverInnerTx, toSigner } from "@stablechain/enterprise";
 
-const signed = await buildWaiverInnerTx(user, stableTestnet.id, { to, data, gas: 150_000n, nonce });
+const signed = await buildWaiverInnerTx(toSigner(user), stableTestnet.id, { to, data, gas: 150_000n, nonce });
 const { txHash } = await gw.relay(signed);
 ```
 
@@ -223,12 +249,12 @@ Returns [`BatchResultItem[]`](#batchresultitem).
 
 ### `relay(signedTx)` / `relayBatch(signedTxs)`
 
-Relay a pre-signed GuaranteedTx, or a batch of them. Build and sign the transaction elsewhere with [`buildGuaranteedTx`](#buildguaranteedtxaccount-chainid-req), using [`nonceKeyForLane`](#noncekeyforlanelaneid) for the Enterprise nonce key, then hand the operator only the signed hex.
+Relay a pre-signed GuaranteedTx, or a batch of them. Build and sign the transaction elsewhere with [`buildGuaranteedTx`](#buildguaranteedtxsigner-chainid-req), using [`nonceKeyForLane`](#noncekeyforlanelaneid) for the Enterprise nonce key, then hand the operator only the signed hex.
 
 ```ts
-import { buildGuaranteedTx, nonceKeyForLane } from "@stablechain/enterprise";
+import { buildGuaranteedTx, nonceKeyForLane, toSigner } from "@stablechain/enterprise";
 
-const signed = await buildGuaranteedTx(signer, stableTestnet.id, {
+const signed = await buildGuaranteedTx(toSigner(signer), stableTestnet.id, {
   to,
   gas: 21_000n,
   gasFeeCap,
@@ -254,7 +280,7 @@ const enterprise = createStableEnterprise({
   chain: stableTestnet,
   enterpriseRpcEndpoints: [process.env.ENTERPRISE_RPC_URL!], // the gateway URL Stable provisions
   guaranteedWaiver: {
-    waiverAccount: privateKeyToAccount("0xYOUR_WAIVER_KEY"),
+    account: privateKeyToAccount("0xYOUR_WAIVER_KEY"),
     laneId: 0n,
   },
 });
@@ -264,11 +290,12 @@ const gw = enterprise.guaranteedWaiver!;
 
 ### `GuaranteedWaiverConfig`
 
-Extends [`ValidationLimits`](#validationlimits), so it accepts the same `maxGasLimit`, `maxDataLength`, and `allowedTargets` policy controls as `GasWaiverConfig`.
+Extends [`ValidationLimits`](#validationlimits) and [`SignerSource`](#signersource). It sources the outer-wrapper waiver key exactly like `GasWaiverConfig` (`signer`, then `account`, then the env var) and accepts the same `maxGasLimit`, `maxDataLength`, and `allowedTargets` policy controls.
 
 | **Field** | **Type** | **Description** |
 | :--- | :--- | :--- |
-| `waiverAccount` | `LocalAccount` | The whitelisted, governance-registered account that signs the outer wrapper. |
+| `signer` | `Signer?` | The whitelisted waiver key (which signs the outer wrapper) as a custody signer. Takes precedence over `account`. See [Signing keys and custody](#signing-keys-and-custody). |
+| `account` | `LocalAccount?` | The waiver key as an in-process viem account. Falls back to `STABLE_ENTERPRISE_PRIVATE_KEY` when neither is set. |
 | `laneId` | `bigint` | Enterprise lane id. Must be in `[0, ENTERPRISE_MASK - 1]`. |
 
 ### `send(user, tx)` / `sendBatch(user, txs)`
@@ -291,12 +318,12 @@ The `tx` argument is a [`GuaranteedWaiverTxRequest`](#guaranteedwaivertxrequest)
 
 ### `relay(signedInnerTx)` / `relayBatch(signedInnerTxs)`
 
-For the non-custodial flow, the user signs the inner `0x3F` CustomTx with [`buildGuaranteedTx`](#buildguaranteedtxaccount-chainid-req) (fees `0n`, using `nonceKeyForLane(laneId)`) and hands the operator only the signed hex. The operator wraps it with the waiver key and relays.
+For the non-custodial flow, the user signs the inner `0x3F` CustomTx with [`buildGuaranteedTx`](#buildguaranteedtxsigner-chainid-req) (fees `0n`, using `nonceKeyForLane(laneId)`) and hands the operator only the signed hex. The operator wraps it with the waiver key and relays.
 
 ```ts
-import { buildGuaranteedTx, nonceKeyForLane } from "@stablechain/enterprise";
+import { buildGuaranteedTx, nonceKeyForLane, toSigner } from "@stablechain/enterprise";
 
-const signedInner = await buildGuaranteedTx(user, stableTestnet.id, {
+const signedInner = await buildGuaranteedTx(toSigner(user), stableTestnet.id, {
   to,
   gas: 100_000n,
   gasFeeCap: 0n, // waived
@@ -313,17 +340,17 @@ const { txHash } = await gw.relay(signedInner); // waiver wraps + broadcasts →
 
 ## Build helpers
 
-Low-level signers for the non-custodial `relay` paths. Each returns a signed transaction as `Hex`, with no nonce fetch or fee estimation.
+Low-level signers for the non-custodial `relay` paths. Each returns a signed transaction as `Hex`, with no nonce fetch or fee estimation. The first argument is a [`Signer`](#signing-keys-and-custody): wrap a viem account with `toSigner(account)`, or pass a custody signer such as `awsKmsSigner`.
 
-### `buildWaiverInnerTx(account, chainId, req)`
+### `buildWaiverInnerTx(signer, chainId, req)`
 
 Sign a waiver-ready InnerTx with the waiver invariants baked in: `gasPrice: 0`, legacy type, and the given `chainId`. `req` is a [`WaiverInnerTx`](#waiverinnertx) plus a required `nonce`.
 
 ```ts
-const signed = await buildWaiverInnerTx(user, stableTestnet.id, { to, data, gas: 150_000n, nonce });
+const signed = await buildWaiverInnerTx(toSigner(user), stableTestnet.id, { to, data, gas: 150_000n, nonce });
 ```
 
-### `buildGuaranteedTx(account, chainId, req)`
+### `buildGuaranteedTx(signer, chainId, req)`
 
 Build and sign a GuaranteedTx (`0x3F` CustomTx). `req` is a [`GuaranteedTxRequest`](#guaranteedtxrequest) plus a required `nonce` and `nonceKey`.
 
@@ -342,6 +369,33 @@ const nonceKey = nonceKeyForLane(0n);
 ```
 
 ## Types
+
+### `SignerSource`
+
+The signing-key fields a waiver module (`gasWaiver`, `guaranteedWaiver`) accepts. Resolved in order: `signer`, then `account`, then the `STABLE_ENTERPRISE_PRIVATE_KEY` env var. See [Signing keys and custody](#signing-keys-and-custody).
+
+| **Field** | **Type** | **Description** |
+| :--- | :--- | :--- |
+| `signer` | `Signer?` | A custody-grade signer (AWS KMS, HSM, or `privateKeySigner`). Takes precedence over `account`. |
+| `account` | `LocalAccount?` | An in-process viem account, adapted to a `Signer` via `toSigner`. |
+
+### `Signer`
+
+A pluggable signer the SDK signs a 32-byte digest through, so the key never leaves the custody backend. Construct one with `awsKmsSigner`, `toSigner`, `privateKeySigner`, or `envSigner`.
+
+```ts
+interface Signer {
+  readonly address: Address;
+  signDigest(hash: Hex): Promise<Hex>;
+}
+```
+
+| **Helper** | **Import** | **Description** |
+| :--- | :--- | :--- |
+| `awsKmsSigner({ keyId, client? })` | `@stablechain/enterprise/aws-kms` | Signer backed by an AWS KMS `ECC_SECG_P256K1` key. Returns a `Promise<Signer>`. |
+| `toSigner(account)` | `@stablechain/enterprise` | Adapt a viem `LocalAccount` to a `Signer`. |
+| `privateKeySigner(key)` | `@stablechain/enterprise` | Signer wrapping a raw private key held in process. |
+| `envSigner(varName?)` | `@stablechain/enterprise` | Signer reading the key from `STABLE_ENTERPRISE_PRIVATE_KEY` (or `varName`). |
 
 ### `WaiverInnerTx`
 

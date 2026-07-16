@@ -1,29 +1,29 @@
 ---
 source_path: how-to/guaranteed-relayed-transactions.mdx
-source_sha: 770f26cb178bfd6e7b678d524f5148a39a3f9946
-title: "보장된 릴레이 트랜잭션"
-description: "Enterprise SDK를 통해 보장된 블록 공간으로 가스가 면제된 트랜잭션을 릴레이하여 사용자는 잔액이 없어도 Enterprise 라인에 접속할 수 있습니다."
+source_sha: 007be0e546cc1251771678ee74523b6a79a2d76d
+title: "보장된 중계 트랜잭션"
+description: "Enterprise SDK를 사용하여 보장된 블록 공간을 통해 가스 면제 트랜잭션을 중계하여 사용자가 잔액 없이도 Enterprise 레인에 진입할 수 있도록 합니다."
 diataxis: "how-to"
 ---
 
-# 보장된 릴레이 트랜잭션
+# 보장된 중계 트랜잭션
 
-`@stablechain/enterprise`와 함께 두 가지 Enterprise 레일을 결합하세요. 보장된 릴레이 트랜잭션은 [가스가 면제된 트랜잭션](/ko/how-to/relay-with-gas-waiver)을 [보장된 블록 공간](/ko/how-to/send-guaranteed-transactions)을 통해 라우팅하는 것입니다. 즉, 면제는 가스를 후원하므로 사용자는 잔액이나 수수료 필드가 필요 없으며, 트랜잭션은 예약된 Enterprise 레인에 도착합니다.
+`@stablechain/enterprise`를 사용하여 두 가지 Enterprise 레일을 모두 결합합니다. 보장된 중계 트랜잭션은 [가스 면제 트랜잭션](/ko/how-to/relay-with-gas-waiver)을 [보장된 블록 공간](/ko/how-to/send-guaranteed-transactions)을 통해 라우팅하는 것입니다. 즉, 면제가 가스를 지원하므로 사용자는 잔액이나 수수료 필드가 필요 없으며 트랜잭션은 예약된 Enterprise 레인에 진입합니다.
 
-`guaranteedWaiver` 모듈은 양쪽을 모두 처리합니다. 사용자는 내부 `0x3F` CustomTx에 서명하고, 화이트리스트에 있는 면제 계정은 동일한 Enterprise `nonceKey`를 공유하는 외부 `0x3F` CustomTx로 래핑한 다음, Enterprise RPC 게이트웨이를 통해 브로드캐스트합니다. 모든 메소드는 사용자 트랜잭션 해시인 `H_inner`를 반환합니다.
+`guaranteedWaiver` 모듈은 양측을 모두 처리합니다. 사용자는 내부 `0x3F` CustomTx에 서명하고, 화이트리스트에 등록된 면제 계정은 동일한 Enterprise `nonceKey`를 공유하는 외부 `0x3F` CustomTx로 래핑하고, Enterprise RPC 게이트웨이를 통해 브로드캐스트합니다. 모든 메소드는 사용자의 트랜잭션 해시인 `H_inner`를 반환합니다.
 
 ## 전제 조건
 
-- Node.js 20 이상, `@stablechain/enterprise` 및 `viem` 설치. [Enterprise SDK 참조](/ko/reference/enterprise-sdk#install)를 참조하세요.
-- 거버넌스에 등록된 면제 키와 Enterprise RPC 게이트웨이 API 키. 현재 Enterprise SDK는 테스트넷 전용이며 요청 시 액세스할 수 있습니다. 둘 다 [Stable에 문의](https://discord.gg/stablexyz)하여 얻으세요.
+- Node.js 20 이상, 그리고 `@stablechain/enterprise` 및 `viem` 설치. [Enterprise SDK 참조](/ko/reference/enterprise-sdk#install)를 참조하세요.
+- 거버넌스에 등록된 면제 키와 Enterprise RPC 게이트웨이 API 키. Enterprise SDK는 현재 테스트넷 전용이며 요청 시 액세스가 가능합니다. 둘 다 얻으려면 [Stable에 문의](https://discord.gg/stablexyz)하세요.
 
 :::warning
-이것은 서버 측 라이브러리입니다. 면제 키와 Enterprise RPC 게이트웨이 URL을 백엔드에 보관하세요. 게이트웨이 URL에는 API 키가 포함되어 있습니다.
+이것은 서버 측 라이브러리입니다. 면제 키와 Enterprise RPC 게이트웨이 URL을 백엔드에 보관하세요. 게이트웨이 URL에 API 키가 포함되어 있습니다.
 :::
 
 ## 1. 보장된 면제 모듈로 클라이언트 생성
 
-`guaranteedWaiver` 및 `enterpriseRpcEndpoints`를 `createStableEnterprise`에 전달합니다. 이 모듈은 화이트리스트에 있는 면제 키(외부 래퍼에 서명)와 Enterprise 레인을 가져옵니다. 또한 `gasWaiver`와 동일한 `allowedTargets`, `maxGasLimit`, `maxDataLength` 정책 제한도 허용합니다.
+`guaranteedWaiver`와 `enterpriseRpcEndpoints`를 `createStableEnterprise`에 전달합니다. 이 모듈은 화이트리스트에 등록된 면제 키(외부 래퍼에 서명)와 Enterprise 레인을 사용합니다. 또한 `gasWaiver`와 동일한 `allowedTargets`, `maxGasLimit`, `maxDataLength` 정책 제한을 허용합니다.
 
 ```ts
 import { createStableEnterprise, stableTestnet } from "@stablechain/enterprise";
@@ -31,14 +31,14 @@ import { privateKeyToAccount } from "viem/accounts";
 
 const enterprise = createStableEnterprise({
   chain: stableTestnet,
-  enterpriseRpcEndpoints: [process.env.ENTERPRISE_RPC_URL!], // Stable이 제공하는 게이트웨이 URL
+  enterpriseRpcEndpoints: [process.env.ENTERPRISE_RPC_URL], // Stable에서 제공하는 게이트웨이 URL
   guaranteedWaiver: {
     account: privateKeyToAccount(process.env.WAIVER_PRIVATE_KEY as `0x${string}`),
     laneId: 0n, // Enterprise 레인
   },
 });
 
-const gw = enterprise.guaranteedWaiver!;
+const gw = enterprise.guaranteedWaiver;
 ```
 
 ```text
@@ -46,12 +46,12 @@ StableEnterpriseClient { gasWaiver: undefined, guaranteedBlock: undefined, guara
 ```
 
 :::tip
-면제 키를 보관 백엔드에 보관하려면 `account` 대신 `signer`를 전달합니다. `@stablechain/enterprise/aws-kms`의 `awsKmsSigner`는 AWS KMS로 이를 지원합니다. [서명 키 및 보관](/ko/reference/enterprise-sdk#signing-keys-and-custody)을 참조하세요.
+면제 키를 보관 백엔드에 유지하려면 `account` 대신 `signer`를 전달하세요. `@stablechain/enterprise/aws-kms`의 `awsKmsSigner`는 AWS KMS로 이를 지원합니다. [서명 키 및 보관](/ko/reference/enterprise-sdk#signing-keys-and-custody)을 참조하세요.
 :::
 
-## 2. 단일 트랜잭션 릴레이
+## 2. 단일 트랜잭션 중계
 
-사용자 계정과 변하는 필드를 사용하여 `send`를 호출합니다. 가스가 면제되므로 사용자에게는 잔액이나 수수료 필드가 필요 없습니다. 내부 `0x3F` CustomTx, 해당 Enterprise `nonceKey`, 그리고 게이트웨이에서 발견된 2D 논스는 자동으로 처리됩니다.
+사용자의 계정과 변경되는 필드를 사용하여 `send`를 호출합니다. 가스는 면제되므로 사용자는 잔액이나 수수료 필드가 필요 없습니다. 내부 `0x3F` CustomTx, 해당 Enterprise `nonceKey`, 그리고 (게이트웨이에서 발견된) 2D nonce는 자동으로 처리됩니다.
 
 ```ts
 const user = privateKeyToAccount(process.env.USER_PRIVATE_KEY as `0x${string}`);
@@ -64,11 +64,11 @@ console.log("H_inner:", txHash);
 H_inner: 0x8f3a...2d41
 ```
 
-`gas`는 공유된 내부 가스 기본값으로 설정됩니다. 재정의하려면 전달합니다. 값 전송이 허용되므로 `value`를 전달할 수도 있습니다.
+`gas`는 공유된 내부 가스 기본값으로 설정됩니다. 재정의하려면 필요할 때만 전달하세요. 값 전송이 허용되므로 `value`도 전달할 수 있습니다.
 
-## 3. 배치 릴레이
+## 3. 배치 중계
 
-한 사용자로부터 여러 트랜잭션을 릴레이하려면 `sendBatch`를 호출합니다. 내부 논스는 발견된 기본값에서 자동으로 시퀀싱되며, 입력 순서대로 입력당 하나의 결과를 얻습니다. 실패는 후속 트랜잭션을 중단시킵니다.
+단일 사용자로부터 여러 트랜잭션을 중계하려면 `sendBatch`를 호출합니다. 내부 nonce는 발견된 기준에서 자동으로 순차적으로 생성되며, 입력 순서대로 입력당 하나의 결과를 얻습니다. 실패는 후속 항목을 중단시킵니다.
 
 ```ts
 const results = await gw.sendBatch(user, [{ to: a }, { to: b }]);
@@ -83,25 +83,25 @@ for (const r of results) {
 [1] ✔ 0x2b7c...9e04
 ```
 
-## 4. 사전 서명된 트랜잭션 릴레이
+## 4. 사전 서명된 트랜잭션 중계
 
-비보관 플로우의 경우, 사용자는 자신의 환경에서 내부 `0x3F` CustomTx에 서명하고 서명된 헥스만 전달합니다. `nonceKeyForLane`을 Enterprise 논스 키로 사용하고 수수료를 0으로 설정하여 (가스가 면제됨) `buildGuaranteedTx`로 빌드합니다. 백엔드는 이를 면제 키로 래핑하고 `relay`로 릴레이합니다.
+비수탁형 흐름의 경우, 사용자는 자신의 환경에서 내부 `0x3F` CustomTx에 서명하고 서명된 헥스만 전달합니다. Enterprise nonce 키에는 `nonceKeyForLane`을 사용하고 수수료는 0으로(가스 면제) 설정하여 `buildGuaranteedTx`로 빌드합니다. 백엔드는 이를 면제 키로 래핑하고 `relay`로 중계합니다.
 
 ```ts
 import { buildGuaranteedTx, nonceKeyForLane, toSigner } from "@stablechain/enterprise";
 
-// 사용자 측 — buildGuaranteedTx는 Signer를 통해 서명합니다. toSigner는 viem 계정을 조정합니다.
+// 사용자의 측면 - buildGuaranteedTx는 Signer를 통해 서명합니다. toSigner는 viem 계정을 조정합니다.
 const signedInner = await buildGuaranteedTx(toSigner(user), stableTestnet.id, {
   to: recipient,
   gas: 100_000n,
-  gasFeeCap: 0n, // 면제됨
+  gasFeeCap: 0n, // 면제
   gasTipCap: 0n,
-  nonce, // 사용자의 현재 2D-레인 논스
+  nonce, // 사용자의 현재 2D-레인 nonce
   nonceKey: nonceKeyForLane(0n), // Enterprise 레인 0
 });
 
 // 백엔드에서
-const { txHash } = await gw.relay(signedInner); // 면제 래핑 + 브로드캐스트 → H_inner
+const { txHash } = await gw.relay(signedInner); // waiver는 래핑 + 브로드캐스트 → H_inner
 console.log("H_inner:", txHash);
 ```
 
@@ -113,7 +113,7 @@ H_inner: 0x8f3a...2d41
 
 ## 거부 처리
 
-`send` 및 `relay`는 거부 시 `StableEnterpriseRelayError`를 발생시킵니다. 이 플로우는 게이트웨이를 통해 라우팅되므로 `GATEWAY_UNAUTHORIZED` 및 `QUOTA_EXCEEDED`와 같은 게이트웨이 코드가 `TARGET_NOT_ALLOWED`와 같은 면제 정책 코드와 함께 적용됩니다.
+`send` 및 `relay`는 거부 시 `StableEnterpriseRelayError`를 throw합니다. 이 흐름은 게이트웨이를 통해 라우팅되므로 `GATEWAY_UNAUTHORIZED` 및 `QUOTA_EXCEEDED`와 같은 게이트웨이 코드는 `TARGET_NOT_ALLOWED`와 같은 면제 정책 코드와 함께 적용됩니다.
 
 ```ts
 import { StableEnterpriseRelayError } from "@stablechain/enterprise";
@@ -136,6 +136,6 @@ StableEnterpriseRelayError: relay failed [GATEWAY_UNAUTHORIZED]: invalid api key
 
 ## 다음 단계
 
-- [**가스 면제로 릴레이**](/ko/how-to/relay-with-gas-waiver): 보장된 레인 없이 사용자의 가스를 후원합니다.
+- [**가스 면제로 중계**](/ko/how-to/relay-with-gas-waiver): 보장된 레인 없이 사용자의 가스를 지원합니다.
 - [**보장된 트랜잭션 전송**](/ko/how-to/send-guaranteed-transactions): 서명자가 가스를 지불하는 경우, 보장된 블록 공간을 단독으로 사용합니다.
 - [**Enterprise SDK 참조**](/ko/reference/enterprise-sdk#guaranteed-relay-transactions): 모든 메소드, 구성 옵션 및 오류 클래스에 대한 전체 설명입니다.

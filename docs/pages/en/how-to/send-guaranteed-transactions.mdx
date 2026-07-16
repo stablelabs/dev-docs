@@ -30,14 +30,14 @@ import { privateKeyToAccount } from "viem/accounts";
 
 const enterprise = createStableEnterprise({
   chain: stableTestnet,
-  enterpriseRpcEndpoints: [process.env.ENTERPRISE_RPC_URL!], // the gateway URL Stable provisions
+  enterpriseRpcEndpoints: [process.env.ENTERPRISE_RPC_URL], // the gateway URL Stable provisions
   guaranteedBlock: {
     account: privateKeyToAccount(process.env.SIGNER_PRIVATE_KEY as `0x${string}`), // must be funded
     laneId: 0n, // Enterprise lane
   },
 });
 
-const gb = enterprise.guaranteedBlock!;
+const gb = enterprise.guaranteedBlock;
 ```
 
 ```text
@@ -66,6 +66,8 @@ console.log("Guaranteed tx:", txHash);
 ```text
 Guaranteed tx: 0xabcd...7890
 ```
+
+`gasFeeCap` is the maximum total fee per gas (the EIP-1559 `maxFeePerGas`) and `gasTipCap` is the maximum priority fee per gas (`maxPriorityFeePerGas`). Setting `gasTipCap` to the current gas price and `gasFeeCap` to twice it, as above, is a safe default.
 
 The signer pays gas, so confirm it holds a balance before relaying. A GuaranteedTx from a zero-balance account fails.
 

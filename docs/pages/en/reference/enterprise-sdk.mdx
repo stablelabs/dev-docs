@@ -30,7 +30,7 @@ added 2 packages, audited 3 packages in 2s
 
 ## `createStableEnterprise(config)`
 
-Construct a `StableEnterpriseClient`. Each module is present only when you configure it, so guard with `!` or a null check before use.
+Construct a `StableEnterpriseClient`. Each module is present only when you configure it, so null-check it before use.
 
 ```ts
 import { createStableEnterprise, stableTestnet } from "@stablechain/enterprise";
@@ -74,7 +74,7 @@ import { createStableEnterprise, stableTestnet } from "@stablechain/enterprise";
 import { awsKmsSigner } from "@stablechain/enterprise/aws-kms";
 
 // the KMS key must be ECC_SECG_P256K1 (secp256k1); the SDK derives the address from it
-const signer = await awsKmsSigner({ keyId: process.env.KMS_KEY_ID! });
+const signer = await awsKmsSigner({ keyId: process.env.KMS_KEY_ID });
 
 const enterprise = createStableEnterprise({
   chain: stableTestnet,
@@ -111,7 +111,7 @@ const enterprise = createStableEnterprise({
   },
 });
 
-const gw = enterprise.gasWaiver!;
+const gw = enterprise.gasWaiver;
 ```
 
 ### `GasWaiverConfig`
@@ -193,14 +193,14 @@ Enable it with `guaranteedBlock` plus `enterpriseRpcEndpoints`:
 ```ts
 const enterprise = createStableEnterprise({
   chain: stableTestnet,
-  enterpriseRpcEndpoints: [process.env.ENTERPRISE_RPC_URL!], // the gateway URL Stable provisions
+  enterpriseRpcEndpoints: [process.env.ENTERPRISE_RPC_URL], // the gateway URL Stable provisions
   guaranteedBlock: {
     account: privateKeyToAccount("0xFUNDED_SIGNER_KEY"),
     laneId: 0n,
   },
 });
 
-const gb = enterprise.guaranteedBlock!;
+const gb = enterprise.guaranteedBlock;
 ```
 
 ### `GuaranteedBlockConfig`
@@ -279,14 +279,14 @@ Enable it with `guaranteedWaiver` plus `enterpriseRpcEndpoints`:
 ```ts
 const enterprise = createStableEnterprise({
   chain: stableTestnet,
-  enterpriseRpcEndpoints: [process.env.ENTERPRISE_RPC_URL!], // the gateway URL Stable provisions
+  enterpriseRpcEndpoints: [process.env.ENTERPRISE_RPC_URL], // the gateway URL Stable provisions
   guaranteedWaiver: {
     account: privateKeyToAccount("0xYOUR_WAIVER_KEY"),
     laneId: 0n,
   },
 });
 
-const gw = enterprise.guaranteedWaiver!;
+const gw = enterprise.guaranteedWaiver;
 ```
 
 ### `GuaranteedWaiverConfig`

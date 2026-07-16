@@ -29,14 +29,14 @@ import { privateKeyToAccount } from "viem/accounts";
 
 const enterprise = createStableEnterprise({
   chain: stableTestnet,
-  enterpriseRpcEndpoints: [process.env.ENTERPRISE_RPC_URL!], // the gateway URL Stable provisions
+  enterpriseRpcEndpoints: [process.env.ENTERPRISE_RPC_URL], // the gateway URL Stable provisions
   guaranteedWaiver: {
     account: privateKeyToAccount(process.env.WAIVER_PRIVATE_KEY as `0x${string}`),
     laneId: 0n, // Enterprise lane
   },
 });
 
-const gw = enterprise.guaranteedWaiver!;
+const gw = enterprise.guaranteedWaiver;
 ```
 
 ```text

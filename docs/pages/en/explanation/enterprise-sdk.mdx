@@ -17,7 +17,7 @@ const enterprise = createStableEnterprise({
   gasWaiver: { account: privateKeyToAccount("0xYOUR_WAIVER_KEY") },
 });
 
-const { txHash } = await enterprise.gasWaiver!.send(user, { to: token, data });
+const { txHash } = await enterprise.gasWaiver.send(user, { to: token, data });
 ```
 
 ```text

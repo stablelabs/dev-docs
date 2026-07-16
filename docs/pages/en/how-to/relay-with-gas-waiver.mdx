@@ -32,7 +32,7 @@ const enterprise = createStableEnterprise({
   gasWaiver: { account: privateKeyToAccount(process.env.WAIVER_PRIVATE_KEY as `0x${string}`) },
 });
 
-const gw = enterprise.gasWaiver!;
+const gw = enterprise.gasWaiver;
 ```
 
 ```text

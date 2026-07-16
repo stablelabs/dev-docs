@@ -38,7 +38,7 @@
 
 import { createElement, type ReactElement } from 'react'
 
-const POSTHOG_KEY = 'phc_w5S82EA6htCdGahiKPNEskpaEr9PofM5YDKsw8JtfhUi'
+const POSTHOG_KEY = 'phc_NpoXZtEp7eBCCrKYFxcrfyYqEad6g6x9U3fw87YNPx8'
 const POSTHOG_HOST = 'https://us.i.posthog.com'
 
 /**

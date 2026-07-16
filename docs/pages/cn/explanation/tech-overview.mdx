@@ -1,44 +1,5 @@
 ---
 source_path: explanation/tech-overview.mdx
-source_sha: d71b320a46b9bc5aa2c45ca6f25c192f0d33a2af
-title: '技术概览'
-description: "Stable 区块链架构、共识机制与 EVM 兼容执行层的高层概述。"
----
-
-# 技术概览
-
-从状态数据库、执行引擎、共识机制，到针对 USDT 的特定优化，Stable 的设计始终聚焦于性能、可扩展性与可靠性。技术栈中的每一层组件都经过专门优化，以支持高吞吐的工作负载和无缝的 USDT 原生操作。
-
-<img
-  className="block"
-  src="/images/futurework.png"
-  alt="Tech Overview"
-/>
-
-## StableBFT
-
-Stable 区块链最初采用 **StableBFT** —— 基于 CometBFT 构建的定制化 PoS 共识协议，确保网络具备高吞吐、低延迟和强健的可靠性。为了进一步优化共识性能，Stable 计划拆解数据传播与共识流程，并实现面向区块提议者的交易直接广播机制。
-
-Stable 还计划将协议升级为基于有向无环图（DAG）的 **Autobahn** 架构。在 Autobahn 上构建的 StableBFT 将带来：
-
-- 消除单领导瓶颈，实现提议过程的并行化；
-- 通过将数据传播与排序拆解，加快最终性的达成速度；
-- 借助增强的 BFT 机制提升对网络异常的鲁棒性。
-
-## Stable EVM
-
-**Stable EVM** 是 Stable 的以太坊智能合约的兼容执行层，支持用户通过现有的以太坊工具和钱包（如 MetaMask）与链进行交互。为打通 Stable EVM 与 StableSDK 的能力边界，同时 Stable EVM 引入一系列 预编译合约，允许 EVM 智能合约安全且原子性地调用Stable底层接口。
-
-Stable 计划通过引入 **StableVM++** 来进一步提升 EVM 执行性能，该模块集成了如 EVMONE 等替代 EVM 实现，以及基于 Block-STM 的 **Optimistic并行执行引擎（OPE）**。
-
-## StableDB
-
-**状态：v1.4.0 升级时上线**
-
-Stable 通过解决区块执行后低效的磁盘存储这一主要瓶颈，显著提升了处理速度。它将状态提交与存储操作进行拆解，使得新区块能在无需等待数据存储的情况下迅速处理。同时，结合 `MemDB` 与 `VersionDB`，并使用 `mmap`（内存映射）技术，实现近期数据驻留内存、历史数据高效存储，大幅提升整体吞吐量。
-
-## 高性能 RPC
-
-即使底层区块链再快，如果 RPC 反应速度缓慢，用户体验仍会大打折扣。Stable 通过彻底重构传统 RPC 架构来解决这一问题。传统的单一 RPC 模式存在资源竞争严重、扩展性差等问题，而 Stable 引入了 **路径分离架构（split-path architecture）**，根据不同功能将操作分离，部署轻量化、专业化的 RPC 节点以实现更快速响应。
-
-未来计划包括为 EVM `view` 调用优化的专用 RPC 节点，以及原生集成索引器（indexer）以进一步加速 dApp 数据访问。
+source_sha: 66c5144a0a00b4fc60545e70df03a2260238b7b8
+title: "技术概述"
+description: "Stable 的四层堆栈（共识、执行、存储和 RPC）如何为稳定币支付吞吐量进行端到端优化。"

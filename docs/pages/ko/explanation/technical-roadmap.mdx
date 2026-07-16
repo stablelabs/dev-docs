@@ -1,14 +1,14 @@
 ---
 source_path: explanation/technical-roadmap.mdx
-source_sha: 669bf747b8f3b656b8509625ece8a50946d431f8
+source_sha: e46692a227f4149b54598c9036a27e12659728ee
 title: "로드맵"
-description: "Stable의 단계별 최적화 로드맵: 현재 라이브 상태, 다음에 출시될 내용, 그리고 그 이후의 계획입니다."
+description: "Stable의 단계별 최적화 로드맵: 현재 제공되는 기능, 다음 배송될 기능, 그 이후의 기능."
 diataxis: "explanation"
 ---
 
 # 로드맵
 
-Stable은 세 단계를 거쳐 트랜잭션 파이프라인의 모든 계층(합의, 실행, 스토리지, RPC, USDT별 흐름)을 최적화합니다. 이 페이지에는 출시된 내용, 진행 중인 내용, 그리고 앞으로의 계획이 표시되어 있습니다.
+Stable은 세 단계를 거쳐 트랜잭션 파이프라인의 모든 계층(합의, 실행, 저장, RPC 및 USDT 특정 흐름)을 최적화합니다. 이 페이지에는 출시된 기능, 진행 중인 기능, 향후 예정된 기능이 표시됩니다.
 
 <img
   className="block"
@@ -16,60 +16,50 @@ Stable은 세 단계를 거쳐 트랜잭션 파이프라인의 모든 계층(합
   alt="기술 로드맵"
 />
 
-## 1단계: USDT를 위한 기반 계층
+## 1단계: USDT를 위한 기반 레이어
 
-상태: **메인넷에 라이브.**
+상태: **메인넷 출시.**
 
-### StableBFT: 라이브
+### StableBFT: 출시 완료
 
-CometBFT를 기반으로 구축된 맞춤형 PoS 합의 프로토콜입니다. 결정론적 완결성과 검증인의 1/3까지 비잔틴 결함 허용(BFT)을 제공합니다. 현재 구현은 [합의](/ko/explanation/consensus)를 참조하세요.
+CometBFT를 기반으로 구축된 맞춤형 PoS 합의 프로토콜입니다. 검증자의 1/3까지 결정론적 완결성과 비잔틴 장애 허용을 제공합니다. 현재 구현 사항은 [합의](/ko/explanation/consensus)를 참조하세요.
 
-### USDT를 기본 가스로: 라이브
+### USDT를 기본 Gas로 사용: 출시 완료
 
-USDT0는 가스 지불 및 가치 이전을 위한 기본 자산이며, 동시에 ERC-20 서명(`approve`, `transfer`, `transferFrom`, `permit`)을 지원합니다. [가스 토큰으로서의 USDT](/ko/explanation/usdt-as-gas-token)를 참조하세요.
+USDT0은 Gas 지불 및 가치 전송을 위한 기본 자산이며, 동시에 ERC-20 표면(`approve`, `transfer`, `transferFrom`, `permit`)을 지원합니다. [USDT를 Gas로 사용](/ko/explanation/usdt-as-gas-token)을 참조하세요.
 
-### Stable Pay & Stable 이름: 진행 중
+### Stable Pay 및 Stable Name: 진행 중
 
-Stable Pay는 기존 Web3 지갑과의 호환성을 유지하면서 신규 사용자의 온보딩을 단순화하도록 설계된 Web2.5 UX 지갑 경험입니다. Stable Name은 원시 EVM 주소를 사람이 읽을 수 있는 식별자로 대체하여 토큰을 주고받을 수 있는 사용자 친화적인 별칭 시스템입니다.
+Stable Pay는 기존 Web3 지갑과 호환되면서도 신규 사용자의 온보딩을 단순화하도록 설계된 Web2.5 UX 지갑 경험입니다. Stable Name은 원시 EVM 주소를 사람이 읽을 수 있는 식별자로 대체하여 토큰을 송수신하는 사용자 친화적인 별칭 시스템입니다.
 
-## 2단계: USDT를 위한 경험 계층
+## 2단계: USDT를 위한 경험 레이어
 
-상태: **개발 중.** 상태 DB 최적화는 v1.4.0 업그레이드에서 제공됩니다. 나머지 항목은 여전히 개발 중입니다.
+상태: **Testnet에서 v1.4.0 릴리스 후보.** 메인넷 업그레이드 일정은 보류 중입니다. USDT Transfer Aggregator는 계속 개발 중입니다.
 
-### 상태 DB 최적화: v1.4.0에서 제공
+### MemIAVL 상태 저장소: v1.4.0에 포함
 
-Stable은 상태 커밋과 상태 스토리지를 분리합니다. 검증자는 최신 상태를 메모리에 커밋하고, 이력 상태는 디스크로 지연됩니다. `mmap`으로 구동되는 `MemDB` 및 `VersionDB`는 디스크 I/O에 블로킹 없이 실시간 커밋을 처리합니다. [스토리지 (StableDB)](/ko/explanation/stable-db)를 참조하세요.
+MemIAVL은 LevelDB를 하나의 메모리 매핑 스냅샷과 추가 전용 쓰기 선행 로그로 대체합니다. RocksDB 기반 VersionDB는 보존된 스냅샷보다 오래된 기록 쿼리를 처리합니다. [저장소 (StableDB)](/ko/explanation/stable-db)를 참조하세요.
 
-### 낙관적 병렬 실행: 계획 중
+### 낙관적 병렬 실행: v1.4.0에 포함
 
-실제 측정에 따르면 트랜잭션의 60-80%가 분리된 상태와 상호 작용하며 안전하게 병렬로 실행될 수 있습니다. Stable은 충돌이 없는 가정 하에 낙관적으로 트랜잭션을 실행하며, 충돌이 감지되면 롤백 및 순차 재실행을 수행합니다. 이는 정확성을 유지하면서 처리량을 향상시킵니다.
+Block-STM은 CPU 코어 간에 트랜잭션을 동시에 실행하고, 충돌을 감지하며, 영향을 받는 작업을 재실행합니다. 고정된 블록 내 순서는 검증자 간에 결정론적 상태를 유지합니다. [실행](/ko/explanation/execution)을 참조하세요.
 
-### USDT 전송 집계기: 계획 중
+### 선택적 RecheckTx: v1.4.0에 포함
 
-USDT0 전송을 그룹화하여 일괄 처리하는 집계 메커니즘으로, 트랜잭션당 오버헤드를 줄이고 전체 처리량을 향상시킵니다. [USDT 전송 집계기](/ko/explanation/usdt-transfer-aggregator)를 참조하세요.
+블록이 커밋되면 노드는 영향을 받는 계정의 보류 중인 트랜잭션만 재확인합니다. 애플리케이션 지원을 사용할 수 없는 경우 CometBFT는 전체 멤풀 재확인으로 폴백합니다.
 
-### 보장된 블록 공간: 계획 중
+### 2D 논스 및 보장된 블록 공간: v1.4.0에 포함
 
-엔터프라이즈 파트너를 위한 예약된 블록 용량으로, 검증인 수준의 예약 및 전용 RPC 엔드포인트를 통해 강제됩니다. 네트워크 혼잡 시에도 중요한 지불 흐름에 대해 예측 가능한 대기 시간을 제공합니다. [보장된 블록 공간](/ko/explanation/guaranteed-blockspace)을 참조하세요.
+독립적인 논스 채널은 하나의 막힌 트랜잭션이 동일한 계정의 모든 후속 트랜잭션을 차단하는 것을 방지합니다. 프로토콜 예약된 논스 키는 VIP 트래픽을 식별하는 반면, 레인별 Gas 할당량은 블록 용량을 예약합니다. [보장된 블록 공간](/ko/explanation/guaranteed-blockspace)을 참조하세요.
 
-## 3단계: USDT를 위한 풀스택 최적화 계층
+### USDT Transfer Aggregator: 계획 중
+
+USDT0 전송을 그룹화하고 집합적으로 처리하여 트랜잭션당 오버헤드를 줄이고 전체 처리량을 개선하는 집계 메커니즘입니다. [USDT 전송 Aggregator](/ko/explanation/usdt-transfer-aggregator)를 참조하세요.
+
+<h2>3단계: USDT를 위한 풀 스택 최적화 레이어</h2>
 
 상태: **계획 중.**
 
 ### Autobahn의 StableBFT
 
-Stable의 CometBFT 기반 합의 계층과 자연스럽게 통합되는 DAG 기반 BFT 합의입니다. 현재 프로토콜에 대해서는 [StableBFT](/ko/explanation/consensus)를, 목표 아키텍처에 대해서는 [Autobahn](/ko/explanation/autobahn)을 참조하세요. 내부 POC(개념 증명)는 통제된 환경에서 20만 TPS 이상(합의만)을 시연했습니다.
-
-### StableVM++
-
-Go 기반 EVM을 C++ 구현으로 대체하는 고성능 실행 엔진입니다. EVM 실행 속도에서 최대 6배 향상이 예상됩니다.
-
-### 고성능 RPC
-
-노드 수준 개선(실시간 체인 상태 처리), 노드 통합 인덱싱(저지연 애플리케이션 API), WebSocket을 통한 확장 가능한 pub/sub, 작업 유형별로 라우팅하는 하이브리드 로드 밸런서를 포함하는 완전한 RPC 스택입니다. 현재 분할 경로 아키텍처는 [고성능 RPC](/ko/explanation/high-performance-rpc)를 참조하세요.
-
-## 다음 권장 사항
-
-- [**아키텍처 개요**](/ko/explanation/core-optimization-overview): 로드맵이 발전하는 스택의 현재 상태를 알아보세요.
-- [**토크노믹스**](/ko/reference/tokenomics): 로드맵 전반에 걸쳐 검증인 인센티브에 자금을 지원하는 경제 모델을 검토하세요.
-- [**기술 개요**](/ko/explanation/tech-overview): 아키텍처 요약으로 돌아가세요.
+Stable의 CometBFT 기반 합의 계층과 자연스럽게 통합되는 DAG 기반 BFT 합의. 현재 프로토콜은 [StableBFT](/ko/explanation/consensus)를 참조하고, 목표 아키텍처는 [Autobahn](/ko/explanation/autobahn)을 참조하세요. 내부 POC(Proof-of-Concept)는 통제된

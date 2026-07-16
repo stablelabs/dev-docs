@@ -23,6 +23,18 @@ This guide covers the upgrade process for Stable nodes, including upgrade proced
 - Immediate action required
 - May require chain halt
 
+## v1.4.0 storage migration
+
+v1.4.0 replaces the LevelDB-backed state store with MemIAVL. This upgrade requires a data migration in addition to the normal binary replacement.
+
+Use a local snapshot export and restore unless the network-specific upgrade instructions choose another method. Benchmarking measured 19.4 seconds of average validator downtime for the standard restore and approximately 2.6 seconds for a parallel restore.
+
+Migrate validators in round-robin order so at least two-thirds of voting power stays online. Configure the RocksDB-backed VersionDB if your node must answer historical queries older than its earliest retained snapshot.
+
+:::warning
+Do not use the generic binary-only procedure below for v1.4.0. Wait for the final network-specific binary, upgrade height, backup path, and restore commands in [Network upgrades](/en/reference/network-upgrades).
+:::
+
 ## Standard upgrade procedure
 
 ### Step 1: preparation

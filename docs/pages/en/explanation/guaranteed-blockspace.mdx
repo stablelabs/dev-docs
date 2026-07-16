@@ -1,47 +1,68 @@
 ---
 title: "Guaranteed blockspace"
-description: "Guaranteed blockspace allocation giving enterprise partners reserved throughput capacity on the Stable network."
+description: "Understand how Stable reserves per-lane gas capacity and identifies priority traffic through two-dimensional nonces."
 diataxis: "explanation"
 ---
 
 # Guaranteed blockspace
 
-**Guaranteed Blockspace** is a dedicated blockspace-allocation model that reserves a fixed share of every block's capacity for enrolled enterprise partners, regardless of broader network conditions. Transactions routed through the guaranteed path execute with predictable latency and cost. Payroll, settlement, and supplier payments don't compete with public mempool traffic.
+Stable v1.4.0 divides each block into lanes with separate gas budgets. Eligible priority transactions enter the VIP lane, so normal traffic cannot consume the capacity reserved for them.
 
 :::note
-**Planned.** Guaranteed Blockspace is a forward-looking roadmap item. See [Roadmap](/en/explanation/technical-roadmap) for timing.
+Guaranteed blockspace is live in the v1.4.0 Testnet release candidate. The Mainnet upgrade schedule is still pending. Without a governance configuration, every transaction continues to use one normal lane.
 :::
 
-## Why this matters
+## Block lanes
 
-General-purpose chains weren't designed for fee predictability under load:
+The proposal and validation rules recognize three lane types:
 
-- **Ethereum**: on May 1, 2022, the Yuga Labs "Otherside" NFT mint pushed peak gas above 8,000 gwei and burned over $200M in fees, breaking any workload that required deterministic cost.
-- **Low-fee networks** like Solana and Base attract MEV and arbitrage spam, so legitimate transactions compete with bot traffic for inclusion.
+- **VIP lane**: carries transactions whose `NonceKey` is in the protocol-reserved range.
+- **Transaction-type lane**: reserves capacity for a configured transaction category.
+- **Normal lane**: carries standard transactions that do not match another configured lane.
 
-![Source: MEV and the Limits of Scaling by Flashbots and Robert Miller](/images/share-of-gas.png)
+Each lane has its own gas quota. A proposer fills the lanes within those limits, and validators enforce the same limits when they validate the proposed block.
 
-*Source: MEV and the Limits of Scaling by Flashbots and Robert Miller*
+This makes the reservation deterministic at the protocol level. It does not depend on a proposer voluntarily leaving space unused.
 
-Enterprise payment flows can't tolerate this variance. Guaranteed Blockspace addresses it directly.
+## Two-dimensional nonces
 
-## How the guarantee works
+An Ethereum account normally has one nonce sequence. If transaction 12 is missing or stuck, transactions 13 and later cannot execute.
 
-The guarantee is enforced at three layers:
+A **two-dimensional nonce**, or 2D nonce, gives the account multiple independent sequences. `NonceKey` selects the sequence, and the transaction's nonce gives its position within that sequence.
 
-- **Guaranteed mempool**: validators pull guaranteed transactions from a dedicated mempool, isolated from public traffic.
-- **Validator-level reservation**: each validator reserves a predefined portion of every block's gas capacity for the guaranteed lane. Deterministic inclusion falls out of this.
-- **Dedicated RPC nodes**: the Guaranteed Blockspace API routes transactions through isolated RPC endpoints, so submission latency doesn't spike with public RPC load.
+For example, a payment account could use `NonceKey = 1` for payroll and `NonceKey = 2` for supplier settlements. A delayed payroll transaction would not block the supplier sequence.
 
-The result, for an enrolled partner:
+The nonce-key space has three important regions:
 
-- **Exclusive routing path**: submissions don't compete with public mempool traffic.
-- **Guaranteed inclusion**: capacity is reserved in every block regardless of network congestion.
-- **No decentralization trade-off**: validator openness and network participation are preserved; the guarantee lives alongside the public lane, not above it.
-- **Reliable on-chain performance** for business-critical operations, even under load.
+- `NonceKey = 0` keeps the standard EVM-compatible nonce behavior.
+- The upper half of the `uint64` range is reserved for protocol use. VIP membership is signaled through this range.
+- `NonceKey = MaxUint64` marks an unordered transaction. `TimeoutTimestamp` provides its replay-protection deadline.
 
-## Next recommended
+Stable carries these fields in `CustomTx`, transaction type `0x3F`. Existing EVM transaction formats remain available, and the default nonce channel preserves their expected behavior.
+
+## Governance and activation
+
+Governance controls the lane definitions and gas quotas through one `MsgUpdateParams` proposal. Accepted parameters take effect at the next block.
+
+The defaults contain no reserved lanes. Until governance configures them, the chain behaves as one normal lane. This makes lane configuration additive to existing transaction processing.
+
+## Guarantee boundaries
+
+VIP transactions receive deterministic next-block inclusion when all of these conditions hold:
+
+- The transaction is eligible for the VIP lane.
+- The lane has enough reserved gas for the transaction.
+- Validators follow the protocol.
+- The network remains synchronous enough for validators to receive the transaction before proposal.
+
+Stable's mempool-less validator ingress model supplies VIP transactions to validators. Reserved proposal capacity then prevents normal traffic from displacing them.
+
+:::note
+The gas-waiving transaction-type lane is deferred. A lane with `gasPrice = 0` needs trusted admission control; otherwise, an attacker could flood it with free transactions.
+:::
+
+## Where to go next
 
 - [**Guaranteed settlement**](/en/explanation/upcoming-use-cases): See the payment pattern that depends on guaranteed blockspace: timed DvP settlement cycles with deterministic inclusion.
-- [**USDT as gas**](/en/explanation/usdt-as-gas-token): Understand the asset that flows through guaranteed blockspace.
-- [**Tokenomics**](/en/reference/tokenomics): Review how STABLE staking underpins validator blockspace guarantees.
+- [**Network upgrades**](/en/reference/network-upgrades): Review the full v1.4.0 release and its rollout status.
+- [**Execution**](/en/explanation/execution): Understand how Stable executes the transactions selected for each block.

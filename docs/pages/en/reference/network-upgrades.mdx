@@ -32,12 +32,49 @@ v1.3.1
 
 A performance and predictability release, currently live on Testnet as a release candidate and not yet on Mainnet. It groups four changes under two themes: making blocks process faster, and making transaction inclusion more predictable for priority traffic.
 
-**What's coming:**
+| **Initiative** | **Block stage** | **What changes** | **Intended result** |
+| :--- | :--- | :--- | :--- |
+| Optimistic parallel execution (OPE) | Execution | Block-STM replaces sequential transaction execution. | Multicore execution, targeting approximately 10,000 TPS. |
+| Selective RecheckTx | Post-commit mempool recheck | The node rechecks transactions only from accounts changed by the committed block. | Up to twice the sustained throughput in the measured best case, with 31–34% less node CPU use. |
+| MemIAVL | State persistence | A memory-mapped snapshot and write-ahead log (WAL) replace the LevelDB-backed store. | Write amplification falls from 10–50 times to approximately one write. |
+| 2D nonce and guaranteed blockspace | Submission and block proposal | Independent nonce channels combine with reserved per-lane gas capacity. | Deterministic next-block inclusion for eligible VIP transactions. |
 
-- **Optimistic parallel execution (OPE)**: executes the transactions in a block in parallel instead of one at a time, then reconciles the results. This is based on Block-STM.
-- **Selective RecheckTx**: after a new block, only re-validates the pending transactions actually affected by it, rather than the entire mempool (the pool of transactions waiting to be included).
-- **MemIAVL**: a memory-mapped storage layer that replaces the previous LevelDB-based store, reducing a major bottleneck in the block lifecycle.
-- **2D nonce and guaranteed blockspace**: parallel nonce channels let one account send transactions on multiple independent lanes, and guaranteed blockspace reserves block capacity for priority workloads instead of leaving inclusion to chance.
+These changes address different stages of one block lifecycle:
+
+1. **Submission**: a 2D nonce lets an account submit transactions through independent nonce channels. A stuck transaction on one channel does not block the others.
+2. **Proposal**: guaranteed blockspace divides a block into VIP, transaction-type, and normal lanes. Each lane has a reserved gas budget enforced during proposal and validation.
+3. **Execution**: OPE runs transactions concurrently through Block-STM, then validates them against a fixed in-block order. Every node still produces the same state.
+4. **Commit**: MemIAVL appends changes to a WAL against one memory-mapped snapshot. This avoids LevelDB compaction and its repeated disk writes.
+5. **Post-commit recheck**: Selective RecheckTx uses the block's state-change delta to recheck only affected senders instead of scanning the full mempool.
+
+### Throughput changes
+
+OPE moves transaction execution from one CPU core to multiple cores. Transactions execute optimistically, conflicts trigger re-execution, and the fixed transaction order preserves deterministic results.
+
+Selective RecheckTx removes work after each commit. In a best-case test with 10,000 pending transactions from unique senders, throughput increased from 700 to 1,400 TPS. The projected improvement for more typical workloads is 1.5–1.7 times. CometBFT detects whether the application supports selective recheck and falls back to full recheck when it does not.
+
+MemIAVL removes LevelDB from the state-store path. Writes become sequential WAL entries containing raw change sets. Reads become pointer lookups into the operating system's page cache. A separate VersionDB, backed by RocksDB, serves historical state older than the earliest retained snapshot.
+
+### Predictable inclusion
+
+A 2D nonce gives each account multiple independent nonce channels. `NonceKey` selects the channel. `NonceKey = 0` preserves the normal EVM-compatible sequence, while the protocol reserves the upper half of the `uint64` range for its own use. `MaxUint64` marks an unordered transaction, which uses `TimeoutTimestamp` for replay protection.
+
+The release adds `CustomTx`, transaction type `0x3F`, alongside existing EVM transaction formats. The protocol-reserved `NonceKey` range also identifies VIP-lane transactions.
+
+Guaranteed blockspace divides each block into VIP, transaction-type, and normal lanes with separate gas quotas. Governance controls the lane parameters through one `MsgUpdateParams` proposal, and an accepted update takes effect in the next block. With no lane configuration, the chain behaves as one normal lane.
+
+Eligible VIP transactions receive deterministic next-block inclusion when validators behave honestly and the network remains synchronous. Read [Guaranteed blockspace](/en/explanation/guaranteed-blockspace) for the lane and nonce model.
+
+### Node rollout
+
+MemIAVL changes the state store, so node operators must migrate their existing data. The recommended method is a local snapshot export and restore. Benchmarks measured an average of 19.4 seconds of downtime per validator. A parallel restore variant reduced that average to approximately 2.6 seconds.
+
+Validators can migrate in round-robin order to preserve at least two-thirds of voting power. Follow the network-specific upgrade instructions rather than treating the benchmark procedure as a fixed runbook.
+
+### Deferred work
+
+- **Gas-waiving transaction-type lane**: a zero-gas lane needs trusted mempool admission control. Without it, an attacker could submit unlimited free transactions.
+- **Sender-matching optimization**: a later release may let full nodes send precomputed sender addresses with transactions, avoiding repeated signature recovery during block proposal.
 
 :::note
 v1.4.0 is still in audit and testing. Scope and timing may change before the Mainnet upgrade. Track the [Testnet version history](/en/reference/testnet-version-history) for the latest release candidate.

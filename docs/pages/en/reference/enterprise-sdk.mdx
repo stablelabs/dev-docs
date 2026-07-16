@@ -54,15 +54,16 @@ StableEnterpriseClient { gasWaiver, guaranteedBlock: undefined, guaranteedWaiver
 | `rpcEndpoints` | `string[]?` | Chain's built-in RPC | One or more Stable RPC endpoints, tried in order on failure. Override only to point at a private endpoint. |
 | `enterpriseRpcEndpoints` | `string[]?` |  | One or more Enterprise RPC gateway endpoints, tried in order on failure. Required for `guaranteedBlock` and `guaranteedWaiver`. |
 | `batchSizeLimit` | `number?` | `100` | Maximum transactions per batched RPC call. |
+| `signer` | `Signer?` |  | Default signer for the waiver modules (`gasWaiver`, `guaranteedWaiver`) when a module has no key of its own. Set it once to drive both from a single custody backend. See [Signing keys and custody](#signing-keys-and-custody). |
 | `gasWaiver` | `GasWaiverConfig?` |  | Enable [relay with gas waiver](#relay-with-gas-waiver). |
 | `guaranteedBlock` | `GuaranteedBlockConfig?` |  | Enable [guaranteed blockspace](#guaranteed-blockspace). |
 | `guaranteedWaiver` | `GuaranteedWaiverConfig?` |  | Enable [guaranteed relay transactions](#guaranteed-relay-transactions). |
 
 ### Signing keys and custody
 
-The modules that hold the waiver key (`gasWaiver` and `guaranteedWaiver`) resolve it from a [`SignerSource`](#signersource), in order: `signer` (a custody-grade backend), then `account` (an in-process viem key), then the `STABLE_ENTERPRISE_PRIVATE_KEY` environment variable. `guaranteedBlock` takes a funded `account` directly.
+The modules that hold the waiver key (`gasWaiver` and `guaranteedWaiver`) resolve it in order: the module's own `signer`, then its `account` (an in-process viem key), then the top-level [`signer`](#stableenterpriseconfig) on the client config, then the `STABLE_ENTERPRISE_PRIVATE_KEY` environment variable. Set the top-level `signer` once to drive both waiver modules from a single custody backend. `guaranteedBlock` signs with its own funded `account`.
 
-A `Signer` signs a 32-byte digest, so the key never leaves the custody backend. Use `awsKmsSigner` for AWS KMS, `toSigner(account)` to adapt a viem account, or `privateKeySigner(key)` / `envSigner()` for an in-process key.
+A `Signer` signs a 32-byte digest, so the key never leaves the custody backend. Use `awsKmsSigner` for AWS KMS, `toSigner(account)` to adapt a viem account, or `privateKeySigner(key)` / `envSigner()` for an in-process key. The per-call sender passed to a module's `send` / `sendBatch` may likewise be a viem account or a `Signer`, so a KMS/HSM key can sign inner transactions without dropping to `relay`.
 
 ```bash
 npm install @aws-sdk/client-kms
@@ -372,7 +373,7 @@ const nonceKey = nonceKeyForLane(0n);
 
 ### `SignerSource`
 
-The signing-key fields a waiver module (`gasWaiver`, `guaranteedWaiver`) accepts. Resolved in order: `signer`, then `account`, then the `STABLE_ENTERPRISE_PRIVATE_KEY` env var. See [Signing keys and custody](#signing-keys-and-custody).
+The signing-key fields a waiver module (`gasWaiver`, `guaranteedWaiver`) accepts. Resolved in order: `signer`, then `account`, then the client's top-level [`signer`](#stableenterpriseconfig), then the `STABLE_ENTERPRISE_PRIVATE_KEY` env var. See [Signing keys and custody](#signing-keys-and-custody).
 
 | **Field** | **Type** | **Description** |
 | :--- | :--- | :--- |

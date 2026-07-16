@@ -70,6 +70,9 @@ head: (params) =>
   Without it only the initial load would be counted.
 - `person_profiles: 'identified_only'` — docs traffic is anonymous; don't create
   a person profile per visitor.
+- `posthog.register({ product: 'docs' })` — adds the Stable organization's
+  standard `product` event property to pageviews, autocaptured interactions, and
+  custom events so docs traffic can be filtered from other Stable products.
 
 **Why the `head` snippet over `posthog-js` in `Layout`:**
 
@@ -112,6 +115,7 @@ find or remove.
    echo "html total: $(find docs/dist -name '*.html' | wc -l)"   # should match
    ```
 3. **SPA config present:** `grep -o "capture_pageview:'history_change'" docs/dist/index.html`
-4. **Live ingestion** (not verifiable from a static build): run `npm run docs:dev`
+4. **Product property present:** `grep -o "product:'docs'" docs/dist/index.html`
+5. **Live ingestion** (not verifiable from a static build): run `npm run docs:dev`
    or check the deployed site, then watch PostHog's *Activity / live events*, or
    the Network tab for requests to `us.i.posthog.com`.

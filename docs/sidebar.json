@@ -729,11 +729,11 @@
               "link": "/ko/explanation/finality"
             },
             {
-              "text": "가스 가격",
+              "text": "가스 가격 책정",
               "link": "/ko/explanation/gas-pricing"
             },
             {
-              "text": "가스 가격 API",
+              "text": "가스 가격 책정 API",
               "link": "/ko/reference/gas-pricing-api"
             },
             {
@@ -759,7 +759,7 @@
               "link": "/ko/explanation/usdt0-bridging"
             },
             {
-              "text": "브릿지 보안",
+              "text": "브리지 보안",
               "link": "/ko/explanation/bridge-security"
             },
             {
@@ -779,7 +779,7 @@
               "link": "/ko/explanation/guaranteed-blockspace"
             },
             {
-              "text": "USDT 전송 Aggregator",
+              "text": "USDT 전송 애그리게이터",
               "link": "/ko/explanation/usdt-transfer-aggregator"
             },
             {
@@ -823,25 +823,25 @@
           "collapsed": true,
           "items": [
             {
-              "text": "결제 사용 사례",
+              "text": "사용 사례: 결제",
               "link": "/ko/explanation/use-case-payments"
             },
             {
-              "text": "급여 사용 사례",
+              "text": "사용 사례: 급여",
               "link": "/ko/explanation/use-case-payroll"
             },
             {
-              "text": "후원 사용 사례",
+              "text": "사용 사례: 후원",
               "link": "/ko/explanation/use-case-sponsored"
             },
             {
-              "text": "프라이빗 사용 사례",
+              "text": "사용 사례: 개인",
               "link": "/ko/explanation/use-case-private"
             }
           ]
         },
         {
-          "text": "토큰 경제학",
+          "text": "토큰노믹스",
           "link": "/ko/reference/tokenomics"
         },
         {
@@ -879,7 +879,7 @@
               "link": "/ko/tutorial/sdk-quickstart"
             },
             {
-              "text": "참조",
+              "text": "참고",
               "link": "/ko/reference/sdk"
             },
             {
@@ -887,17 +887,17 @@
               "link": "/ko/how-to/earn-yield"
             },
             {
-              "text": "Viem 통합",
+              "text": "viem 통합",
               "link": "/ko/how-to/sdk-with-viem"
             },
             {
-              "text": "Wagmi 통합",
+              "text": "wagmi 통합",
               "link": "/ko/how-to/sdk-with-wagmi"
             }
           ]
         },
         {
-          "text": "Enterprise SDK",
+          "text": "엔터프라이즈 SDK",
           "collapsed": true,
           "items": [
             {
@@ -917,7 +917,7 @@
               "link": "/ko/how-to/guaranteed-relayed-transactions"
             },
             {
-              "text": "참조",
+              "text": "참고",
               "link": "/ko/reference/enterprise-sdk"
             }
           ]
@@ -931,7 +931,7 @@
               "link": "/ko/explanation/accounts-overview"
             },
             {
-              "text": "계정 인덱스",
+              "text": "계정 색인",
               "link": "/ko/explanation/accounts-guides"
             },
             {
@@ -977,13 +977,13 @@
                   "link": "/ko/how-to/work-with-usdt-gas"
                 },
                 {
-                  "text": "USDT0 브릿지",
+                  "text": "USDT0 브리지",
                   "link": "/ko/tutorial/bridge-usdt0"
                 }
               ]
             },
             {
-              "text": "사용자에게 요금 부과",
+              "text": "사용자에게 청구",
               "collapsed": true,
               "items": [
                 {
@@ -991,11 +991,11 @@
                   "link": "/ko/how-to/build-p2p-payments"
                 },
                 {
-                  "text": "구독 및 수집",
+                  "text": "구독 및 수금",
                   "link": "/ko/how-to/subscribe-and-collect"
                 },
                 {
-                  "text": "인보이스로 결제",
+                  "text": "송장으로 결제",
                   "link": "/ko/how-to/pay-with-invoice"
                 }
               ]
@@ -1021,15 +1021,15 @@
                   "link": "/ko/reference/subscriptions"
                 },
                 {
-                  "text": "인보이스",
+                  "text": "송장",
                   "link": "/ko/reference/invoices"
                 },
                 {
-                  "text": "호출당 지불",
+                  "text": "호출당 요금",
                   "link": "/ko/reference/pay-per-call"
                 },
                 {
-                  "text": "예정된 사용 사례",
+                  "text": "향후 사용 사례",
                   "link": "/ko/explanation/upcoming-use-cases"
                 }
               ]
@@ -1083,11 +1083,11 @@
                   "link": "/ko/reference/system-modules-api-overview"
                 },
                 {
-                  "text": "은행 모듈",
+                  "text": "뱅크 모듈",
                   "link": "/ko/explanation/bank-module"
                 },
                 {
-                  "text": "은행 모듈 API",
+                  "text": "뱅크 모듈 API",
                   "link": "/ko/reference/bank-module-api"
                 },
                 {
@@ -1145,7 +1145,7 @@
           "link": "/ko/reference/connect"
         },
         {
-          "text": "Faucet 사용",
+          "text": "수도꼭지 사용",
           "link": "/ko/how-to/use-faucet"
         },
         {
@@ -1161,7 +1161,7 @@
                   "link": "/ko/reference/mainnet-information"
                 },
                 {
-                  "text": "메인넷 버전 기록",
+                  "text": "메인넷 버전 이력",
                   "link": "/ko/reference/mainnet-version-history"
                 }
               ]
@@ -1175,7 +1175,7 @@
                   "link": "/ko/reference/testnet-information"
                 },
                 {
-                  "text": "테스트넷 버전 기록",
+                  "text": "테스트넷 버전 이력",
                   "link": "/ko/reference/testnet-version-history"
                 },
                 {
@@ -1213,7 +1213,7 @@
           "collapsed": true,
           "items": [
             {
-              "text": "브릿지",
+              "text": "브리지",
               "link": "/ko/reference/bridges"
             },
             {
@@ -1225,7 +1225,7 @@
               "link": "/ko/reference/oracles"
             },
             {
-              "text": "RPC 제공자",
+              "text": "RPC 제공업체",
               "link": "/ko/reference/rpc-providers"
             },
             {
@@ -1233,7 +1233,7 @@
               "link": "/ko/reference/network-routing"
             },
             {
-              "text": "경사로",
+              "text": "램프",
               "link": "/ko/reference/ramps"
             },
             {
@@ -1251,7 +1251,7 @@
           ]
         },
         {
-          "text": "생산 준비",
+          "text": "프로덕션 준비",
           "link": "/ko/how-to/production-readiness"
         },
         {
@@ -1279,7 +1279,7 @@
           "link": "/ko/reference/node-operations-overview"
         },
         {
-          "text": "노드 시스템 요구 사항",
+          "text": "노드 시스템 요구사항",
           "link": "/ko/reference/node-system-requirements"
         },
         {
@@ -1295,7 +1295,7 @@
           "link": "/ko/how-to/use-node-snapshots"
         },
         {
-          "text": "검증자 실행",
+          "text": "검증인 실행",
           "link": "/ko/how-to/run-validator"
         },
         {
@@ -1325,7 +1325,7 @@
           "link": "/ko/explanation/ai-agents-guides"
         },
         {
-          "text": "x402 및 MPP를 통한 결제",
+          "text": "x402 및 MPP를 통해 결제",
           "collapsed": true,
           "items": [
             {
@@ -1341,7 +1341,7 @@
               "link": "/ko/explanation/mpp-sessions"
             },
             {
-              "text": "호출당 지불 구축",
+              "text": "호출당 결제 구축",
               "link": "/ko/how-to/build-pay-per-call"
             },
             {
@@ -1363,11 +1363,11 @@
               "link": "/ko/how-to/develop-with-ai"
             },
             {
-              "text": "에이전트 촉진자",
+              "text": "에이전트 조력자",
               "link": "/ko/reference/agentic-facilitators"
             },
             {
-              "text": "에이전틱 지갑",
+              "text": "에이전트 지갑",
               "link": "/ko/reference/agentic-wallets"
             }
           ]
@@ -1401,7 +1401,7 @@
               "link": "/cn/explanation/core-concepts"
             },
             {
-              "text": "主要特点",
+              "text": "主要功能",
               "link": "/cn/explanation/key-features"
             },
             {
@@ -1413,7 +1413,7 @@
               "link": "/cn/explanation/ethereum-compatibility"
             },
             {
-              "text": "最终性",
+              "text": "确定性",
               "link": "/cn/explanation/finality"
             },
             {
@@ -1443,7 +1443,7 @@
               "link": "/cn/explanation/flow-of-funds"
             },
             {
-              "text": "USDT0 跨链",
+              "text": "USDT0 跨链桥",
               "link": "/cn/explanation/usdt0-bridging"
             },
             {
@@ -1451,7 +1451,7 @@
               "link": "/cn/explanation/bridge-security"
             },
             {
-              "text": "USDT0 作为 Gas 代币",
+              "text": "USDT 作为 Gas 代币",
               "link": "/cn/explanation/usdt-as-gas-token"
             },
             {
@@ -1459,7 +1459,7 @@
               "link": "/cn/explanation/usdt0-behavior"
             },
             {
-              "text": "Gas 减免",
+              "text": "Gas 豁免",
               "link": "/cn/explanation/gas-waiver"
             },
             {
@@ -1467,11 +1467,11 @@
               "link": "/cn/explanation/guaranteed-blockspace"
             },
             {
-              "text": "USDT0 转账聚合器",
+              "text": "USDT 传输聚合器",
               "link": "/cn/explanation/usdt-transfer-aggregator"
             },
             {
-              "text": "保密转账",
+              "text": "保密传输",
               "link": "/cn/explanation/confidential-transfer"
             }
           ]
@@ -1515,7 +1515,7 @@
               "link": "/cn/explanation/use-case-payments"
             },
             {
-              "text": "薪资用例",
+              "text": "工资用例",
               "link": "/cn/explanation/use-case-payroll"
             },
             {
@@ -1551,7 +1551,7 @@
           "link": "/cn/explanation/build-overview"
         },
         {
-          "text": "快速开始",
+          "text": "快速入门",
           "link": "/cn/tutorial/quick-start"
         },
         {
@@ -1575,11 +1575,11 @@
               "link": "/cn/how-to/earn-yield"
             },
             {
-              "text": "Viem 集成",
+              "text": "viem 集成",
               "link": "/cn/how-to/sdk-with-viem"
             },
             {
-              "text": "Wagmi 集成",
+              "text": "wagmi 集成",
               "link": "/cn/how-to/sdk-with-wagmi"
             }
           ]
@@ -1679,11 +1679,11 @@
                   "link": "/cn/how-to/build-p2p-payments"
                 },
                 {
-                  "text": "订阅与收款",
+                  "text": "订阅和收款",
                   "link": "/cn/how-to/subscribe-and-collect"
                 },
                 {
-                  "text": "通过发票支付",
+                  "text": "使用发票支付",
                   "link": "/cn/how-to/pay-with-invoice"
                 }
               ]
@@ -1725,7 +1725,7 @@
           ]
         },
         {
-          "text": "发布合约",
+          "text": "部署合约",
           "collapsed": true,
           "items": [
             {
@@ -1737,7 +1737,7 @@
               "link": "/cn/explanation/contracts-guides"
             },
             {
-              "text": "部署您的第一个合约",
+              "text": "部署你的第一个合约",
               "collapsed": true,
               "items": [
                 {
@@ -1803,11 +1803,11 @@
                   "link": "/cn/reference/system-transactions-api"
                 },
                 {
-                  "text": "跟踪解除绑定",
+                  "text": "追踪解除绑定",
                   "link": "/cn/how-to/track-unbonding"
                 },
                 {
-                  "text": "索引验证者数据",
+                  "text": "索引验证器数据",
                   "link": "/cn/how-to/index-validator-data"
                 }
               ]
@@ -1879,19 +1879,19 @@
           ]
         },
         {
-          "text": "Gas 减免服务",
+          "text": "Gas 豁免服务",
           "collapsed": true,
           "items": [
             {
-              "text": "集成 Gas 减免",
+              "text": "集成 Gas 豁免",
               "link": "/cn/how-to/integrate-gas-waiver"
             },
             {
-              "text": "自托管 Gas 减免",
+              "text": "自托管 Gas 豁免",
               "link": "/cn/how-to/self-hosted-gas-waiver"
             },
             {
-              "text": "Gas 减免 API",
+              "text": "Gas 豁免 API",
               "link": "/cn/reference/gas-waiver-api"
             }
           ]
@@ -1905,7 +1905,7 @@
               "link": "/cn/reference/bridges"
             },
             {
-              "text": "DEX",
+              "text": "去中心化交易所",
               "link": "/cn/reference/dexes"
             },
             {
@@ -1921,7 +1921,7 @@
               "link": "/cn/reference/network-routing"
             },
             {
-              "text": "兑换",
+              "text": "上下坡",
               "link": "/cn/reference/ramps"
             },
             {
@@ -1983,7 +1983,7 @@
           "link": "/cn/how-to/use-node-snapshots"
         },
         {
-          "text": "运行验证者节点",
+          "text": "运行验证器",
           "link": "/cn/how-to/run-validator"
         },
         {
@@ -2037,7 +2037,7 @@
               "link": "/cn/how-to/build-mpp-endpoint"
             },
             {
-              "text": "通过 MCP 支付",
+              "text": "使用 MCP 支付",
               "link": "/cn/how-to/pay-with-mcp"
             }
           ]
@@ -2047,7 +2047,7 @@
           "collapsed": true,
           "items": [
             {
-              "text": "用 AI 进行开发",
+              "text": "使用 AI 开发",
               "link": "/cn/how-to/develop-with-ai"
             },
             {

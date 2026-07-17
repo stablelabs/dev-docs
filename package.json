@@ -11,7 +11,7 @@
     "check": "npm run style:check && npm run i18n:check && npx tsc --noEmit && npm run structured-data:check && npm run docs:build",
     "check:node": "node docs/lib/check-node.mjs",
     "docs:dev": "vocs dev",
-    "docs:build": "NODE_OPTIONS=--max-old-space-size=6144 vocs build",
+    "docs:build": "NODE_OPTIONS=--max-old-space-size=7168 vocs build",
     "docs:preview": "vocs preview",
     "i18n:check": "node docs/lib/verify-i18n.mjs",
     "i18n:check:strict": "node docs/lib/verify-i18n.mjs --strict",

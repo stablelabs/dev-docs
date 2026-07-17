@@ -1,0 +1,71 @@
+---
+title: "Stable Enterprise SDK"
+description: "Relay gas-waived and guaranteed-blockspace transactions from your backend with the typed @stablechain/enterprise SDK."
+diataxis: "explanation"
+---
+
+# Stable Enterprise SDK
+
+`@stablechain/enterprise` is a server-side TypeScript client for Stable's enterprise transaction rails. It signs and relays two kinds of privileged transactions: gas-waived transactions, where you sponsor a user's gas, and guaranteed-blockspace transactions, which land in a reserved Enterprise lane. You can enable either rail, or both, on one client.
+
+```ts
+import { createStableEnterprise, stableTestnet } from "@stablechain/enterprise";
+import { privateKeyToAccount } from "viem/accounts";
+
+const enterprise = createStableEnterprise({
+  chain: stableTestnet,
+  gasWaiver: { account: privateKeyToAccount("0xYOUR_WAIVER_KEY") },
+});
+
+const { txHash } = await enterprise.gasWaiver.send(user, { to: token, data });
+```
+
+```text
+txHash: 0x8f3a...2d41
+```
+
+The call returns `H_inner`, the hash of the user's transaction, not the wrapper transaction that carried it.
+
+## What the SDK does
+
+The SDK exposes three features, one per module. Each is optional and independently configured, and each carries its own signing account so you can use separate keys.
+
+- **Relay with gas waiver** (`gasWaiver`): build, sign, and relay a gas-waived transaction. A whitelisted waiver account wraps a user's zero-gas transaction so the user transacts without holding any USDT0. See [Gas waiver](/en/explanation/gas-waiver).
+- **Guaranteed blockspace** (`guaranteedBlock`): relay a transaction through the Enterprise RPC gateway so it lands in reserved Enterprise-lane blockspace. Unlike gas waiver, the signer pays its own gas. See [Guaranteed blockspace](/en/explanation/guaranteed-blockspace).
+- **Guaranteed relay transactions** (`guaranteedWaiver`): both combined. A gas-waived transaction routed through guaranteed blockspace, so the user needs no balance and the transaction still lands in the Enterprise lane.
+
+Every feature offers the same four methods: `send` and `sendBatch` for the custodial path where the SDK signs, and `relay` and `relayBatch` for the non-custodial path where the user signs elsewhere and hands you only the signed hex.
+
+The SDK is published on npm as [`@stablechain/enterprise`](https://www.npmjs.com/package/@stablechain/enterprise) and requires `viem >= 2.0.0` as a peer dependency.
+
+## Access
+
+The Enterprise SDK is currently available on Stable Testnet only.
+
+Both rails are gated. Gas waiver requires a governance-registered waiver key, and guaranteed blockspace requires an Enterprise RPC gateway API key. To integrate, [contact Stable](https://discord.gg/stablexyz) to get access. Stable provisions the waiver key and the gateway endpoint you need.
+
+## Server-side only
+
+:::warning
+The Enterprise SDK is a stateless, server-side library that signs with private keys. Never run it in a browser. Keep the waiver key and the Enterprise RPC gateway URL on your backend.
+:::
+
+The waiver key is a whitelisted, governance-registered account: anyone holding it can sponsor gas under your policy. The Enterprise RPC gateway URL embeds your API key. Treat both as secrets. To keep the waiver key out of process, back it with a custody signer such as AWS KMS. See [Signing keys and custody](/en/reference/enterprise-sdk#signing-keys-and-custody).
+
+## When to use it
+
+Reach for the Enterprise SDK when you operate a backend and want to sponsor users' gas or guarantee inclusion for your own traffic. For everyday transfers, bridges, swaps, and vault yield from either a backend or a browser, use the general-purpose [Stable SDK](/en/explanation/sdk-overview) instead.
+
+## Start here
+
+- [**Relay with gas waiver**](/en/how-to/relay-with-gas-waiver): Sponsor a user's gas so they transact without holding USDT0.
+- [**Send guaranteed transactions**](/en/how-to/send-guaranteed-transactions): Land transactions in reserved Enterprise-lane blockspace.
+- [**Guaranteed relayed transactions**](/en/how-to/guaranteed-relayed-transactions): Combine both rails: gas-waived transactions in the Enterprise lane.
+- [**Enterprise SDK reference**](/en/reference/enterprise-sdk): Every module, method, config option, and error class.
+
+## Next recommended
+
+- [**Install from npm**](https://www.npmjs.com/package/@stablechain/enterprise): View the package on npmjs.com and check the latest version.
+- [**Gas waiver protocol**](/en/reference/gas-waiver-api): Transaction formats, marker routing, and governance controls.
+- [**Stable SDK**](/en/explanation/sdk-overview): The general-purpose client for transfers, bridging, swaps, and yield.
+- [**Connect to Stable**](/en/reference/connect): Chain IDs, RPC endpoints, and explorers for testnet.

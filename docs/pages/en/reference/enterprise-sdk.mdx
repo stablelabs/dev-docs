@@ -1,0 +1,528 @@
+---
+title: "Enterprise SDK reference"
+description: "Complete reference for @stablechain/enterprise: createStableEnterprise, the gas waiver and guaranteed blockspace modules, build helpers, and error classes."
+diataxis: "reference"
+---
+
+# Enterprise SDK reference
+
+Full surface of `@stablechain/enterprise`. This covers the client from [`createStableEnterprise`](#createstableenterpriseconfig), its three features ([relay with gas waiver](#relay-with-gas-waiver), [guaranteed blockspace](#guaranteed-blockspace), and [guaranteed relay transactions](#guaranteed-relay-transactions)), the low-level build helpers, and the shared result and error types. For what these rails are, see [Stable Enterprise SDK](/en/explanation/enterprise-sdk), [Gas waiver](/en/explanation/gas-waiver), and [Guaranteed blockspace](/en/explanation/guaranteed-blockspace).
+
+:::note
+The Enterprise SDK is available on Stable Testnet only for now, and access is on request. To integrate, [contact Stable](https://discord.gg/stablexyz) to get a governance-registered waiver key and an Enterprise RPC gateway API key.
+:::
+
+:::warning
+This is a server-side library that signs with private keys. Never run it in a browser. Keep the waiver key and the Enterprise RPC gateway URL on your backend.
+:::
+
+## Install
+
+```bash
+npm install @stablechain/enterprise viem
+```
+
+```text
+added 2 packages, audited 3 packages in 2s
+```
+
+`viem >= 2.0.0` is a peer dependency. The package is published as [`@stablechain/enterprise`](https://www.npmjs.com/package/@stablechain/enterprise) and re-exports `stable` and `stableTestnet` from `viem/chains`, so you don't import them separately.
+
+## `createStableEnterprise(config)`
+
+Construct a `StableEnterpriseClient`. Each module is present only when you configure it, so null-check it before use.
+
+```ts
+import { createStableEnterprise, stableTestnet } from "@stablechain/enterprise";
+import { privateKeyToAccount } from "viem/accounts";
+
+const enterprise = createStableEnterprise({
+  chain: stableTestnet,
+  gasWaiver: { account: privateKeyToAccount("0xYOUR_WAIVER_KEY") },
+});
+```
+
+```text
+StableEnterpriseClient { gasWaiver, guaranteedBlock: undefined, guaranteedWaiver: undefined }
+```
+
+### `StableEnterpriseConfig`
+
+| **Field** | **Type** | **Default** | **Description** |
+| :--- | :--- | :--- | :--- |
+| `chain` | `StableChain` |  | Target chain. Pass `stable` or `stableTestnet` (re-exported by the package). Required. |
+| `rpcEndpoints` | `string[]?` | Chain's built-in RPC | One or more Stable RPC endpoints, tried in order on failure. Override only to point at a private endpoint. |
+| `enterpriseRpcEndpoints` | `string[]?` |  | One or more Enterprise RPC gateway endpoints, tried in order on failure. Required for `guaranteedBlock` and `guaranteedWaiver`. |
+| `batchSizeLimit` | `number?` | `100` | Maximum transactions per batched RPC call. |
+| `signer` | `Signer?` |  | Default signer for the waiver modules (`gasWaiver`, `guaranteedWaiver`) when a module has no key of its own. Set it once to drive both from a single custody backend. See [Signing keys and custody](#signing-keys-and-custody). |
+| `gasWaiver` | `GasWaiverConfig?` |  | Enable [relay with gas waiver](#relay-with-gas-waiver). |
+| `guaranteedBlock` | `GuaranteedBlockConfig?` |  | Enable [guaranteed blockspace](#guaranteed-blockspace). |
+| `guaranteedWaiver` | `GuaranteedWaiverConfig?` |  | Enable [guaranteed relay transactions](#guaranteed-relay-transactions). |
+
+### Signing keys and custody
+
+The modules that hold the waiver key (`gasWaiver` and `guaranteedWaiver`) resolve it in order: the module's own `signer`, then its `account` (an in-process viem key), then the top-level [`signer`](#stableenterpriseconfig) on the client config, then the `STABLE_ENTERPRISE_PRIVATE_KEY` environment variable. Set the top-level `signer` once to drive both waiver modules from a single custody backend. `guaranteedBlock` signs with its own funded `account`.
+
+A `Signer` signs a 32-byte digest, so the key never leaves the custody backend. Use `awsKmsSigner` for AWS KMS, `toSigner(account)` to adapt a viem account, or `privateKeySigner(key)` / `envSigner()` for an in-process key. The per-call sender passed to a module's `send` / `sendBatch` may likewise be a viem account or a `Signer`, so a KMS/HSM key can sign inner transactions without dropping to `relay`.
+
+```bash
+npm install @aws-sdk/client-kms
+```
+
+```ts
+import { createStableEnterprise, stableTestnet } from "@stablechain/enterprise";
+import { awsKmsSigner } from "@stablechain/enterprise/aws-kms";
+
+// the KMS key must be ECC_SECG_P256K1 (secp256k1); the SDK derives the address from it
+const signer = await awsKmsSigner({ keyId: process.env.AWS_KMS_KEY_ID });
+
+const enterprise = createStableEnterprise({
+  chain: stableTestnet,
+  gasWaiver: { signer }, // custody-grade waiver key, in place of `account`
+});
+```
+
+`awsKmsSigner` ships in the `@stablechain/enterprise/aws-kms` subpath so `@aws-sdk/client-kms` stays an optional peer dependency, out of the core install.
+
+### `StableEnterpriseClient`
+
+```ts
+interface StableEnterpriseClient {
+  gasWaiver?: GasWaiverClient;
+  guaranteedBlock?: GuaranteedBlockClient;
+  guaranteedWaiver?: GuaranteedWaiverClient;
+}
+```
+
+## Relay with gas waiver
+
+The `gasWaiver` module relays gas-waived transactions. A whitelisted waiver account wraps a user's zero-gas transaction (the InnerTx) into a WaiverTx and broadcasts it. The user needs no USDT0. Every method returns `H_inner`, the InnerTx hash, not the wrapper hash.
+
+Enable it with `gasWaiver` in the config:
+
+```ts
+const enterprise = createStableEnterprise({
+  chain: stableTestnet,
+  gasWaiver: {
+    account: privateKeyToAccount("0xYOUR_WAIVER_KEY"),
+    // optional per-partner policy limits
+    maxGasLimit: 500_000n,
+    allowedTargets: [{ address: "0xToken", selectors: ["0xa9059cbb"] }],
+  },
+});
+
+const gw = enterprise.gasWaiver;
+```
+
+### `GasWaiverConfig`
+
+Extends [`ValidationLimits`](#validationlimits) and [`SignerSource`](#signersource).
+
+| **Field** | **Type** | **Description** |
+| :--- | :--- | :--- |
+| `signer` | `Signer?` | The whitelisted, governance-registered waiver key as a custody signer (AWS KMS, HSM). See [Signing keys and custody](#signing-keys-and-custody). Takes precedence over `account`. |
+| `account` | `LocalAccount?` | The waiver key as an in-process viem account. Falls back to `STABLE_ENTERPRISE_PRIVATE_KEY` when neither is set. |
+| `maxGasLimit` | `bigint?` | Inherited from `ValidationLimits`. |
+| `maxDataLength` | `number?` | Inherited from `ValidationLimits`. |
+| `allowedTargets` | `AllowedTarget[]?` | Inherited from `ValidationLimits`. |
+
+### `send(account, tx)`
+
+Build, sign, and relay one InnerTx from `account` in one call. The `gasPrice: 0`, legacy type, `chainId`, and pending nonce are handled for you. Throws `StableEnterpriseRelayError` on rejection.
+
+```ts
+const { txHash } = await gw.send(user, { to: token, data, gas: 150_000n });
+```
+
+```text
+{ txHash: "0x8f3a...2d41" }
+```
+
+The `tx` argument is a [`WaiverInnerTx`](#waiverinnertx) plus an optional `nonce`. Returns [`RelayResult`](#relayresult).
+
+### `sendBatch(account, txs)`
+
+Build, sign, and relay several InnerTxs from one `account`. Nonces are auto-sequenced from the account's pending nonce. Returns one result per input, in order.
+
+```ts
+const results = await gw.sendBatch(user, [
+  { to: token, data: dataA, gas: 150_000n },
+  { to: token, data: dataB, gas: 150_000n },
+]);
+```
+
+```text
+[ { index: 0, success: true, txHash: "0x..." }, { index: 1, success: true, txHash: "0x..." } ]
+```
+
+`txs` is a readonly array of [`WaiverInnerTx`](#waiverinnertx). Returns [`BatchResultItem[]`](#batchresultitem).
+
+### `relay(signedInnerTxHex)`
+
+Relay a pre-signed zero-gas InnerTx. Use this for the non-custodial flow where the user signs in their own environment and hands you only the signed hex, so the waiver operator never sees the user's key. Build one with [`buildWaiverInnerTx`](#buildwaiverinnertxsigner-chainid-req). Throws on rejection.
+
+```ts
+import { buildWaiverInnerTx, toSigner } from "@stablechain/enterprise";
+
+const signed = await buildWaiverInnerTx(toSigner(user), stableTestnet.id, { to, data, gas: 150_000n, nonce });
+const { txHash } = await gw.relay(signed);
+```
+
+```text
+{ txHash: "0x8f3a...2d41" }
+```
+
+### `relayBatch(signedInnerTxHexes)`
+
+Relay a batch of pre-signed InnerTxs. Returns one [`BatchResultItem`](#batchresultitem) per input, in order.
+
+```ts
+const results = await gw.relayBatch([signed0, signed1]);
+```
+
+```text
+[ { index: 0, success: true, txHash: "0x..." }, { index: 1, success: false, error: { code: "TARGET_NOT_ALLOWED", message: "..." } } ]
+```
+
+## Guaranteed blockspace
+
+The `guaranteedBlock` module relays GuaranteedTx (type `0x3F` CustomTx) through the Enterprise RPC gateway so they land in reserved Enterprise-lane blockspace. Unlike gas waiver, the signer pays its own gas and must be funded. Each transaction carries a 2D nonce keyed to an Enterprise lane, and broadcasting goes only through the gateway.
+
+Enable it with `guaranteedBlock` plus `enterpriseRpcEndpoints`:
+
+```ts
+const enterprise = createStableEnterprise({
+  chain: stableTestnet,
+  enterpriseRpcEndpoints: [process.env.ENTERPRISE_RPC_URL], // the gateway URL Stable provisions
+  guaranteedBlock: {
+    account: privateKeyToAccount("0xFUNDED_SIGNER_KEY"),
+    laneId: 0n,
+  },
+});
+
+const gb = enterprise.guaranteedBlock;
+```
+
+### `GuaranteedBlockConfig`
+
+| **Field** | **Type** | **Description** |
+| :--- | :--- | :--- |
+| `account` | `LocalAccount` | Funded account that signs each GuaranteedTx and pays its gas. |
+| `laneId` | `bigint` | Enterprise lane id. Must be in `[0, ENTERPRISE_MASK - 1]`. An invalid id is rejected up front. |
+
+### `send(account, tx)`
+
+Build, sign, and relay one GuaranteedTx. The 1559 fee fields are required because the signer pays gas. The `chainId`, the Enterprise `nonceKey`, and the 2D nonce (discovered from the gateway) are handled for you.
+
+```ts
+const gasPrice = await publicClient.getGasPrice();
+
+const { txHash } = await gb.send(signer, {
+  to: recipient,
+  gas: 21_000n,
+  gasFeeCap: gasPrice * 2n,
+  gasTipCap: gasPrice,
+});
+```
+
+```text
+{ txHash: "0xabcd...7890" }
+```
+
+The `tx` argument is a [`GuaranteedTxRequest`](#guaranteedtxrequest) plus an optional `nonce`. Returns [`RelayResult`](#relayresult).
+
+### `sendBatch(account, txs)`
+
+Build, sign, and relay several GuaranteedTxs. Nonces are auto-sequenced from the discovered base. A failure strands its successors.
+
+```ts
+const results = await gb.sendBatch(signer, [
+  { to: a, gas: 21_000n, gasFeeCap: gasPrice * 2n, gasTipCap: gasPrice },
+  { to: b, gas: 21_000n, gasFeeCap: gasPrice * 2n, gasTipCap: gasPrice },
+]);
+```
+
+```text
+[ { index: 0, success: true, txHash: "0x..." }, { index: 1, success: true, txHash: "0x..." } ]
+```
+
+Returns [`BatchResultItem[]`](#batchresultitem).
+
+### `relay(signedTx)` / `relayBatch(signedTxs)`
+
+Relay a pre-signed GuaranteedTx, or a batch of them. Build and sign the transaction elsewhere with [`buildGuaranteedTx`](#buildguaranteedtxsigner-chainid-req), using [`nonceKeyForLane`](#noncekeyforlanelaneid) for the Enterprise nonce key, then hand the operator only the signed hex.
+
+```ts
+import { buildGuaranteedTx, nonceKeyForLane, toSigner } from "@stablechain/enterprise";
+
+const signed = await buildGuaranteedTx(toSigner(signer), stableTestnet.id, {
+  to,
+  gas: 21_000n,
+  gasFeeCap,
+  gasTipCap,
+  nonce, // the account's current 2D-lane nonce
+  nonceKey: nonceKeyForLane(0n),
+});
+const { txHash } = await gb.relay(signed);
+```
+
+```text
+{ txHash: "0xabcd...7890" }
+```
+
+## Guaranteed relay transactions
+
+The `guaranteedWaiver` module combines the two rails above: a gas-waived transaction routed through guaranteed blockspace. Both the inner and outer transaction are `0x3F` CustomTxs sharing one Enterprise `nonceKey`, so it broadcasts through the gateway like `guaranteedBlock`. The waiver sponsors gas, so the user needs no balance and no fee fields, like `gasWaiver`. Every method returns `H_inner`.
+
+Enable it with `guaranteedWaiver` plus `enterpriseRpcEndpoints`:
+
+```ts
+const enterprise = createStableEnterprise({
+  chain: stableTestnet,
+  enterpriseRpcEndpoints: [process.env.ENTERPRISE_RPC_URL], // the gateway URL Stable provisions
+  guaranteedWaiver: {
+    account: privateKeyToAccount("0xYOUR_WAIVER_KEY"),
+    laneId: 0n,
+  },
+});
+
+const gw = enterprise.guaranteedWaiver;
+```
+
+### `GuaranteedWaiverConfig`
+
+Extends [`ValidationLimits`](#validationlimits) and [`SignerSource`](#signersource). It sources the outer-wrapper waiver key exactly like `GasWaiverConfig` (`signer`, then `account`, then the env var) and accepts the same `maxGasLimit`, `maxDataLength`, and `allowedTargets` policy controls.
+
+| **Field** | **Type** | **Description** |
+| :--- | :--- | :--- |
+| `signer` | `Signer?` | The whitelisted waiver key (which signs the outer wrapper) as a custody signer. Takes precedence over `account`. See [Signing keys and custody](#signing-keys-and-custody). |
+| `account` | `LocalAccount?` | The waiver key as an in-process viem account. Falls back to `STABLE_ENTERPRISE_PRIVATE_KEY` when neither is set. |
+| `laneId` | `bigint` | Enterprise lane id. Must be in `[0, ENTERPRISE_MASK - 1]`. |
+
+### `send(user, tx)` / `sendBatch(user, txs)`
+
+Build and sign the inner `0x3F` CustomTx from `user`, wrap it with the waiver key, and relay. No fee fields are needed, since gas is waived. The inner 2D nonce is discovered from the gateway, and batches auto-sequence from that base.
+
+```ts
+// single
+const { txHash } = await gw.send(user, { to: recipient });
+
+// batch
+const results = await gw.sendBatch(user, [{ to: a }, { to: b }]);
+```
+
+```text
+{ txHash: "0x8f3a...2d41" }
+```
+
+The `tx` argument is a [`GuaranteedWaiverTxRequest`](#guaranteedwaivertxrequest) plus an optional `nonce`. `send` returns [`RelayResult`](#relayresult); `sendBatch` returns [`BatchResultItem[]`](#batchresultitem).
+
+### `relay(signedInnerTx)` / `relayBatch(signedInnerTxs)`
+
+For the non-custodial flow, the user signs the inner `0x3F` CustomTx with [`buildGuaranteedTx`](#buildguaranteedtxsigner-chainid-req) (fees `0n`, using `nonceKeyForLane(laneId)`) and hands the operator only the signed hex. The operator wraps it with the waiver key and relays.
+
+```ts
+import { buildGuaranteedTx, nonceKeyForLane, toSigner } from "@stablechain/enterprise";
+
+const signedInner = await buildGuaranteedTx(toSigner(user), stableTestnet.id, {
+  to,
+  gas: 100_000n,
+  gasFeeCap: 0n, // waived
+  gasTipCap: 0n,
+  nonce,
+  nonceKey: nonceKeyForLane(0n),
+});
+const { txHash } = await gw.relay(signedInner); // waiver wraps + broadcasts → H_inner
+```
+
+```text
+{ txHash: "0x8f3a...2d41" }
+```
+
+## Build helpers
+
+Low-level signers for the non-custodial `relay` paths. Each returns a signed transaction as `Hex`, with no nonce fetch or fee estimation. The first argument is a [`Signer`](#signing-keys-and-custody): wrap a viem account with `toSigner(account)`, or pass a custody signer such as `awsKmsSigner`.
+
+### `buildWaiverInnerTx(signer, chainId, req)`
+
+Sign a waiver-ready InnerTx with the waiver invariants baked in: `gasPrice: 0`, legacy type, and the given `chainId`. `req` is a [`WaiverInnerTx`](#waiverinnertx) plus a required `nonce`.
+
+```ts
+const signed = await buildWaiverInnerTx(toSigner(user), stableTestnet.id, { to, data, gas: 150_000n, nonce });
+```
+
+### `buildGuaranteedTx(signer, chainId, req)`
+
+Build and sign a GuaranteedTx (`0x3F` CustomTx). `req` is a [`GuaranteedTxRequest`](#guaranteedtxrequest) plus a required `nonce` and `nonceKey`.
+
+### `buildGuaranteedWaiverTx(...)`
+
+Wrap a pre-signed inner into the outer `0x3F` waiver CustomTx. Used internally by `guaranteedWaiver.relay`; exported for advanced flows.
+
+### `nonceKeyForLane(laneId)`
+
+Return the Enterprise `nonceKey` for a lane id, for use with `buildGuaranteedTx`.
+
+```ts
+import { nonceKeyForLane } from "@stablechain/enterprise";
+
+const nonceKey = nonceKeyForLane(0n);
+```
+
+## Types
+
+### `SignerSource`
+
+The signing-key fields a waiver module (`gasWaiver`, `guaranteedWaiver`) accepts. Resolved in order: `signer`, then `account`, then the client's top-level [`signer`](#stableenterpriseconfig), then the `STABLE_ENTERPRISE_PRIVATE_KEY` env var. See [Signing keys and custody](#signing-keys-and-custody).
+
+| **Field** | **Type** | **Description** |
+| :--- | :--- | :--- |
+| `signer` | `Signer?` | A custody-grade signer (AWS KMS, HSM, or `privateKeySigner`). Takes precedence over `account`. |
+| `account` | `LocalAccount?` | An in-process viem account, adapted to a `Signer` via `toSigner`. |
+
+### `Signer`
+
+A pluggable signer the SDK signs a 32-byte digest through, so the key never leaves the custody backend. Construct one with `awsKmsSigner`, `toSigner`, `privateKeySigner`, or `envSigner`.
+
+```ts
+interface Signer {
+  readonly address: Address;
+  signDigest(hash: Hex): Promise<Hex>;
+}
+```
+
+| **Helper** | **Import** | **Description** |
+| :--- | :--- | :--- |
+| `awsKmsSigner({ keyId, client? })` | `@stablechain/enterprise/aws-kms` | Signer backed by an AWS KMS `ECC_SECG_P256K1` key. Returns a `Promise<Signer>`. |
+| `toSigner(account)` | `@stablechain/enterprise` | Adapt a viem `LocalAccount` to a `Signer`. |
+| `privateKeySigner(key)` | `@stablechain/enterprise` | Signer wrapping a raw private key held in process. |
+| `envSigner(varName?)` | `@stablechain/enterprise` | Signer reading the key from `STABLE_ENTERPRISE_PRIVATE_KEY` (or `varName`). |
+
+### `WaiverInnerTx`
+
+The fields of an InnerTx that vary per call.
+
+| **Field** | **Type** | **Default** | **Description** |
+| :--- | :--- | :--- | :--- |
+| `to` | `Address` |  | Target address: token contract for an ERC-20 transfer, recipient for native. |
+| `gas` | `bigint?` | `DEFAULT_INNER_GAS` (`150_000n`) | Gas limit. Because `gasPrice` is 0, a generous limit is free. |
+| `data` | `Hex?` | `"0x"` | Calldata. |
+| `value` | `bigint?` | `0n` | Native value to send. |
+
+### `GuaranteedTxRequest`
+
+| **Field** | **Type** | **Default** | **Description** |
+| :--- | :--- | :--- | :--- |
+| `to` | `Address?` |  | Target address. |
+| `gas` | `bigint` |  | Gas limit. Required. |
+| `gasFeeCap` | `bigint` |  | `maxFeePerGas`. Required. |
+| `gasTipCap` | `bigint` |  | `maxPriorityFeePerGas`. Required. |
+| `data` | `Hex?` | `"0x"` | Calldata. |
+| `value` | `bigint?` | `0n` | Native value to send. |
+
+### `GuaranteedWaiverTxRequest`
+
+The fee fields are always 0, so they're omitted here.
+
+| **Field** | **Type** | **Default** | **Description** |
+| :--- | :--- | :--- | :--- |
+| `to` | `Address` |  | Target address. |
+| `gas` | `bigint?` | shared inner-gas default | Gas limit. |
+| `data` | `Hex?` | `"0x"` | Calldata. |
+| `value` | `bigint?` | `0n` | Native value to send. Value transfer is allowed for waivers. |
+
+### `ValidationLimits`
+
+Per-partner policy applied to each InnerTx by `gasWaiver` and `guaranteedWaiver`.
+
+| **Field** | **Type** | **Default** | **Description** |
+| :--- | :--- | :--- | :--- |
+| `maxGasLimit` | `bigint?` | `10_000_000n` | Maximum gas limit for an InnerTx. Exceeding it fails with `GAS_LIMIT_EXCEEDED`. |
+| `maxDataLength` | `number?` | `131_072` (128 KB) | Maximum calldata size in bytes. Exceeding it fails with `DATA_TOO_LARGE`. |
+| `allowedTargets` | `AllowedTarget[]?` |  | Allowlist of contracts and methods the waiver may sponsor. When set, a target outside the list fails with `TARGET_NOT_ALLOWED`. |
+
+### `AllowedTarget`
+
+| **Field** | **Type** | **Description** |
+| :--- | :--- | :--- |
+| `address` | `Address \| "*"` | Contract the InnerTx may call, or `"*"` to match any contract. |
+| `selectors` | `Hex[]?` | Permitted 4-byte method selectors (e.g. `"0xa9059cbb"` for ERC-20 `transfer`). Omit or leave empty to allow any method on `address`. |
+
+### `RelayResult`
+
+```ts
+interface RelayResult {
+  txHash: Hash; // H_inner for waivers, the GuaranteedTx hash for standalone guaranteed block
+}
+```
+
+### `BatchResultItem`
+
+One entry per input in a batch, in input order. Instead of throwing, a batch surfaces per-item outcomes.
+
+| **Field** | **Type** | **Description** |
+| :--- | :--- | :--- |
+| `index` | `number` | Zero-based position matching the input array. |
+| `success` | `boolean` | Whether this item was relayed. |
+| `txHash` | `Hash?` | Present on success: the inner-tx hash. |
+| `error` | `{ code: ErrorCode; message: string }?` | Present on failure. |
+
+## Errors
+
+Single-transaction methods (`send`, `relay`) throw on rejection. Batch methods report failures per item in [`BatchResultItem.error`](#batchresultitem) instead. All error classes extend `StableEnterpriseError`.
+
+| **Class** | **Thrown when** | **Useful fields** |
+| :--- | :--- | :--- |
+| `StableEnterpriseError` | Base class for every SDK error. | `message` |
+| `StableEnterpriseRelayError` | A transaction is rejected at the RPC or relay layer. | `code` |
+| `WaiverValidationError` | An InnerTx fails a policy check before broadcast (gas, data size, or target allowlist). | `code` |
+
+```ts
+import { StableEnterpriseRelayError } from "@stablechain/enterprise";
+
+try {
+  await gw.send(user, { to: token, data });
+} catch (err) {
+  if (err instanceof StableEnterpriseRelayError && err.code === "TARGET_NOT_ALLOWED") {
+    // the InnerTx target is outside the configured allowlist
+  }
+  throw err;
+}
+```
+
+```text
+StableEnterpriseRelayError: relay failed [TARGET_NOT_ALLOWED]: target 0x... not allowed
+```
+
+### `ErrorCode`
+
+The `code` on a thrown error or a `BatchResultItem.error` is one of:
+
+| **Code** | **Meaning** |
+| :--- | :--- |
+| `UNKNOWN_ERROR` | Fallback when no specific code is available. |
+| `BROADCAST_FAILED` | Broadcast rejected at the RPC layer, or the gateway failed to relay. |
+| `INVALID_TRANSACTION` | The InnerTx failed to decode or parse. |
+| `INVALID_SIGNATURE` | Signature verification failed. |
+| `UNSUPPORTED_TX_TYPE` | The InnerTx type is not legacy, eip2930, or eip1559. |
+| `WRONG_CHAIN_ID` | The InnerTx `chainId` is missing or doesn't match the target chain. |
+| `NON_ZERO_GAS_PRICE` | The InnerTx carries a non-zero gas price (must be zero for a waiver). |
+| `GAS_LIMIT_EXCEEDED` | The InnerTx gas limit exceeds `maxGasLimit`. |
+| `DATA_TOO_LARGE` | The InnerTx calldata exceeds `maxDataLength`. |
+| `TARGET_NOT_ALLOWED` | The InnerTx target is not in `allowedTargets`. |
+| `GATEWAY_UNAUTHORIZED` | The Enterprise RPC gateway rejected the API key (missing, invalid, or expired). |
+| `QUOTA_EXCEEDED` | The Enterprise RPC gateway gas quota is exhausted. |
+
+## Constants
+
+| **Constant** | **Type** | **Description** |
+| :--- | :--- | :--- |
+| `DEFAULT_INNER_GAS` | `bigint` | Default InnerTx gas limit (`150_000n`) when `gas` is omitted. |
+| `ENTERPRISE_FLAG` | `bigint` | Enterprise bit set on a lane's `nonceKey`. |
+| `ENTERPRISE_MASK` | `bigint` | Upper bound for a lane id: `laneId` must be in `[0, ENTERPRISE_MASK - 1]`. |
+
+## Next recommended
+
+- [**Stable Enterprise SDK**](/en/explanation/enterprise-sdk): What the rails are and when to use them.
+- [**Gas waiver protocol**](/en/reference/gas-waiver-api): Transaction formats, marker routing, and governance controls.
+- [**Guaranteed blockspace**](/en/explanation/guaranteed-blockspace): How Stable reserves block capacity for enterprise workloads.

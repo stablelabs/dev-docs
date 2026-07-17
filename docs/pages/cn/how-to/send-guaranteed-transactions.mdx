@@ -1,0 +1,151 @@
+---
+source_path: how-to/send-guaranteed-transactions.mdx
+source_sha: 6da305c74e7ddb43f31a4ed11e7f4d5313f0cabe
+title: "发送担保交易"
+description: "使用 Enterprise SDK 在预留的 Enterprise-lane 区块空间中执行交易，并将担保区块空间与免燃气费结合起来，实现无燃气转发。"
+diataxis: "how-to"
+---
+
+# 发送担保交易
+
+使用 `@stablechain/enterprise` 通过预留的 Enterprise-lane 区块空间路由交易。`guaranteedBlock` 模块通过 Enterprise RPC 网关转发 GuaranteedTx (一种 `0x3F` 类型的 CustomTx)，使其进入为企业工作负载预留的容量中。与免燃气费不同，签名者需要支付自己的燃气费，因此必须有足够的资金。
+
+您可以将其与免燃气费结合使用，以获得[担保转发交易](/cn/how-to/guaranteed-relayed-transactions)：免燃气费交易仍能进入企业通道。
+
+## 先决条件
+
+- Node.js 20 或更高版本，并安装 `@stablechain/enterprise` 和 `viem`。请参阅 [Enterprise SDK 参考](/cn/reference/enterprise-sdk#install)。
+- Enterprise RPC 网关 API 密钥。Enterprise SDK 目前仅支持测试网，并且访问受限：[联系 Stable](https://discord.gg/stablexyz) 获取网关端点。
+- 一个有资金的签名者，因为 GuaranteedTx 需要支付自己的燃气费。
+
+:::warning
+这是一个服务器端库。将 Enterprise RPC 网关 URL 保留在您的后端：它嵌入了您的 API 密钥。
+:::
+
+## 1. 使用担保区块空间模块创建客户端
+
+将 `guaranteedBlock` 和 `enterpriseRpcEndpoints` 传递给 `createStableEnterprise`。网关是唯一接受 `0x3F` GuaranteedTxs 的端点，并且它包含您的 API 密钥。无效的 `laneId` 会被提前拒绝。
+
+```ts
+import { createStableEnterprise, stableTestnet } from "@stablechain/enterprise";
+import { privateKeyToAccount } from "viem/accounts";
+
+const enterprise = createStableEnterprise({
+  chain: stableTestnet,
+  enterpriseRpcEndpoints: [process.env.ENTERPRISE_RPC_URL], // the gateway URL Stable provisions
+  guaranteedBlock: {
+    account: privateKeyToAccount(process.env.SIGNER_PRIVATE_KEY as `0x${string}`), // must be funded
+    laneId: 0n, // Enterprise lane
+  },
+});
+
+const gb = enterprise.guaranteedBlock;
+```
+
+```text
+StableEnterpriseClient { gasWaiver: undefined, guaranteedBlock, guaranteedWaiver: undefined }
+```
+
+## 2. 发送单笔交易
+
+使用签名者和可变字段调用 `send`。1559 费用字段是必需的，因为签名者需要支付燃气费。`chainId`、Enterprise `nonceKey` 和 2D nonce（从网关中发现）已为您处理。
+
+```ts
+import { createPublicClient, http } from "viem";
+
+const publicClient = createPublicClient({ chain: stableTestnet, transport: http() });
+const gasPrice = await publicClient.getGasPrice();
+
+const { txHash } = await gb.send(signer, {
+  to: recipient,
+  gas: 21_000n,
+  gasFeeCap: gasPrice * 2n,
+  gasTipCap: gasPrice,
+});
+console.log("Guaranteed tx:", txHash);
+```
+
+```text
+Guaranteed tx: 0xabcd...7890
+```
+
+`gasFeeCap` 是每单位燃气的最大总费用（EIP-1559 `maxFeePerGas`），`gasTipCap` 是每单位燃气的最大优先费用（`maxPriorityFeePerGas`）。如上所示，将 `gasTipCap` 设置为当前燃气价格并将 `gasFeeCap` 设置为其两倍是一个安全的默认值。
+
+签名者支付燃气费，因此请在转发前确认其持有余额。来自零余额账户的 GuaranteedTx 会失败。
+
+## 3. 发送批处理
+
+调用 `sendBatch` 发送多笔交易。Nonce 会从发现的基础自动排序，并且您会按输入顺序获得每个输入的一个结果。失败会使其后续交易受阻。
+
+```ts
+const results = await gb.sendBatch(signer, [
+  { to: a, gas: 21_000n, gasFeeCap: gasPrice * 2n, gasTipCap: gasPrice },
+  { to: b, gas: 21_000n, gasFeeCap: gasPrice * 2n, gasTipCap: gasPrice },
+]);
+
+for (const r of results) {
+  console.log(r.success ? `[${r.index}] ✔ ${r.txHash}` : `[${r.index}] ✖ ${r.error?.code}`);
+}
+```
+
+```text
+[0] ✔ 0xabcd...7890
+[1] ✔ 0x1f2e...66a1
+```
+
+## 4. 发送预签名交易
+
+对于非托管流程，使用 `buildGuaranteedTx` 在其他地方构建并签署 GuaranteedTx，然后只将签署的十六进制数据交给操作员。Enterprise nonce 密钥来自 `nonceKeyForLane`。
+
+```ts
+import { buildGuaranteedTx, nonceKeyForLane, toSigner } from "@stablechain/enterprise";
+
+const signed = await buildGuaranteedTx(toSigner(signer), stableTestnet.id, {
+  to: recipient,
+  gas: 21_000n,
+  gasFeeCap,
+  gasTipCap,
+  nonce, // the account's current 2D-lane nonce
+  nonceKey: nonceKeyForLane(0n), // Enterprise lane 0
+});
+
+const { txHash } = await gb.relay(signed);
+console.log("Guaranteed tx:", txHash);
+```
+
+```text
+Guaranteed tx: 0xabcd...7890
+```
+
+对于多笔预签名交易，请使用 `relayBatch`。
+
+## 与免燃气费结合
+
+要免除用户的燃气费并仍进入 Enterprise 通道，请使用 `guaranteedWaiver` 模块组合两个轨道。用户无需余额和费用字段，并且交易通过相同的网关进行路由。请参阅[担保转发交易](/cn/how-to/guaranteed-relayed-transactions)。
+
+## 处理拒绝
+
+`send` 和 `relay` 在拒绝时会抛出 `StableEnterpriseRelayError`。网关特定的错误代码包括 `GATEWAY_UNAUTHORIZED`（API 密钥缺失或无效）和 `QUOTA_EXCEEDED`（网关燃气配额已用尽）。
+
+```ts
+import { StableEnterpriseRelayError } from "@stablechain/enterprise";
+
+try {
+  await gb.send(signer, { to: recipient, gas: 21_000n, gasFeeCap, gasTipCap });
+} catch (err) {
+  if (err instanceof StableEnterpriseRelayError && err.code === "GATEWAY_UNAUTHORIZED") {
+    // the Enterprise RPC gateway rejected the API key
+  }
+  throw err;
+}
+```
+
+```text
+StableEnterpriseRelayError: relay failed [GATEWAY_UNAUTHORIZED]: invalid api key
+```
+
+## 下一步
+
+- [**担保转发交易**](/cn/how-to/guaranteed-relayed-transactions)：一次调用即可免除用户的燃气费并进入 Enterprise 通道。
+- [**免燃气费转发**](/cn/how-to/relay-with-gas-waiver)：为用户的燃气费提供赞助，以便他们在不持有 USDT0 的情况下进行交易。
+- [**Enterprise SDK 参考**](/cn/reference/enterprise-sdk#guaranteed-blockspace)：所有方法、配置选项和错误类的完整说明。

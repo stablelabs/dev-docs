@@ -1,0 +1,530 @@
+---
+source_path: reference/enterprise-sdk.mdx
+source_sha: d0bc44dc34b19b1a7f7cadeda2ceaa68d296220a
+title: "엔터프라이즈 SDK 레퍼런스"
+description: "@stablechain/enterprise에 대한 완벽한 레퍼런스: createStableEnterprise, 가스 면제 및 보장된 블록스페이스 모듈, 빌드 헬퍼, 그리고 오류 클래스."
+diataxis: "reference"
+---
+
+# 엔터프라이즈 SDK 레퍼런스
+
+`@stablechain/enterprise`의 완전한 표면입니다. 여기에는 [`createStableEnterprise`](#createstableenterpriseconfig)로부터의 클라이언트, 세 가지 기능([가스 면제 릴레이](#relay-with-gas-waiver), [보장된 블록스페이스](#guaranteed-blockspace), [보장된 릴레이 트랜잭션](#guaranteed-relay-transactions)), 하위 수준 빌드 헬퍼, 그리고 공유 결과 및 오류 유형이 포함됩니다. 이러한 레일이 무엇인지는 [Stable 엔터프라이즈 SDK](/ko/explanation/enterprise-sdk), [가스 면제](/ko/explanation/gas-waiver), 그리고 [보장된 블록스페이스](/ko/explanation/guaranteed-blockspace)를 참조하십시오.
+
+:::note
+엔터프라이즈 SDK는 현재 Stable 테스트넷에서만 사용할 수 있으며, 액세스는 요청 시에 제공됩니다. 통합하려면 [Stable에 문의](https://discord.gg/stablexyz)하여 거버넌스에 등록된 면제 키와 엔터프라이즈 RPC 게이트웨이 API 키를 받으세요.
+:::
+
+:::warning
+이것은 개인 키로 서명하는 서버 측 라이브러리입니다. 브라우저에서 절대 실행하지 마세요. 면제 키와 엔터프라이즈 RPC 게이트웨이 URL은 백엔드에 보관하십시오.
+:::
+
+## 설치
+
+```bash
+npm install @stablechain/enterprise viem
+```
+
+```text
+added 2 packages, audited 3 packages in 2s
+```
+
+`viem >= 2.0.0`은 피어 종속성입니다. 이 패키지는 `viem/chains`에서 `stable` 및 `stableTestnet`을 다시 내보내므로 별도로 가져올 필요가 없습니다.
+
+## `createStableEnterprise(config)`
+
+`StableEnterpriseClient`를 생성합니다. 각 모듈은 구성할 때만 존재하므로 사용하기 전에 널 체크를 하세요.
+
+```ts
+import { createStableEnterprise, stableTestnet } from "@stablechain/enterprise";
+import { privateKeyToAccount } from "viem/accounts";
+
+const enterprise = createStableEnterprise({
+  chain: stableTestnet,
+  gasWaiver: { account: privateKeyToAccount("0xYOUR_WAIVER_KEY") },
+});
+```
+
+```text
+StableEnterpriseClient { gasWaiver, guaranteedBlock: undefined, guaranteedWaiver: undefined }
+```
+
+### `StableEnterpriseConfig`
+
+| **필드** | **유형** | **기본값** | **설명** |
+| :--- | :--- | :--- | :--- |
+| `chain` | `StableChain` | | 대상 체인. `stable` 또는 `stableTestnet`을 전달합니다(패키지에서 다시 내보냄). 필수. |
+| `rpcEndpoints` | `string[]?` | 체인의 내장 RPC | 하나 이상의 Stable RPC 엔드포인트이며, 실패 시 순서대로 시도됩니다. 개인 엔드포인트를 가리키도록만 오버라이드합니다. |
+| `enterpriseRpcEndpoints` | `string[]?` | | 하나 이상의 엔터프라이즈 RPC 게이트웨이 엔드포인트이며, 실패 시 순서대로 시도됩니다. `guaranteedBlock` 및 `guaranteedWaiver`에 필요합니다. |
+| `batchSizeLimit` | `number?` | `100` | 배치된 RPC 호출당 최대 트랜잭션 수. |
+| `signer` | `Signer?` | | 모듈 자체에 키가 없을 때 면제 모듈(`gasWaiver`, `guaranteedWaiver`)의 기본 서명자입니다. 단일 커스터디 백엔드에서 둘 다 구동하려면 한 번 설정합니다. [서명 키 및 커스터디](#signing-keys-and-custody)를 참조하십시오. |
+| `gasWaiver` | `GasWaiverConfig?` | | [가스 면제 릴레이](#relay-with-gas-waiver)를 활성화합니다. |
+| `guaranteedBlock` | `GuaranteedBlockConfig?` | | [보장된 블록스페이스](#guaranteed-blockspace)를 활성화합니다. |
+| `guaranteedWaiver` | `GuaranteedWaiverConfig?` | | [보장된 릴레이 트랜잭션](#guaranteed-relay-transactions)을 활성화합니다. |
+
+### 서명 키 및 커스터디
+
+면제 키를 보유하는 모듈(`gasWaiver` 및 `guaranteedWaiver`)은 순서대로 이를 해결합니다: 모듈 자체의 `signer`, 그 다음 해당 `account`(인 프로세스 viem 키), 그 다음 클라이언트 구성의 최상위 [`signer`](#stableenterpriseconfig), 그 다음 `STABLE_ENTERPRISE_PRIVATE_KEY` 환경 변수. 단일 커스터디 백엔드에서 두 면제 모듈을 모두 구동하려면 최상위 `signer`를 한 번 설정합니다. `guaranteedBlock`은 자체 자금 조달된 `account`로 서명합니다.
+
+`Signer`는 32바이트 다이제스트에 서명하므로, 키는 커스터디 백엔드를 떠나지 않습니다. AWS KMS의 경우 `awsKmsSigner`를 사용하고, viem 계정을 적용하기 위해 `toSigner(account)`를 사용하거나, 인 프로세스 키의 경우 `privateKeySigner(key)` / `envSigner()`를 사용합니다. 모듈의 `send` / `sendBatch`에 전달되는 호출당 발신자도 viem 계정 또는 `Signer`일 수 있으므로, KMS/HSM 키는 `relay`로 떨어뜨리지 않고 내부 트랜잭션에 서명할 수 있습니다.
+
+```bash
+npm install @aws-sdk/client-kms
+```
+
+```ts
+import { createStableEnterprise, stableTestnet } from "@stablechain/enterprise";
+import { awsKmsSigner } from "@stablechain/enterprise/aws-kms";
+
+// KMS 키는 ECC_SECG_P256K1(secp256k1)이어야 합니다. SDK는 그로부터 주소를 파생합니다.
+const signer = await awsKmsSigner({ keyId: process.env.AWS_KMS_KEY_ID });
+
+const enterprise = createStableEnterprise({
+  chain: stableTestnet,
+  gasWaiver: { signer }, // 'account' 대신 커스터디 등급의 면제 키
+});
+```
+
+`awsKmsSigner`는 `@stablechain/enterprise/aws-kms` 하위 경로에서 제공되므로 `@aws-sdk/client-kms`는 코어 설치에서 제외되는 선택적 피어 종속성으로 유지됩니다.
+
+### `StableEnterpriseClient`
+
+```ts
+interface StableEnterpriseClient {
+  gasWaiver?: GasWaiverClient;
+  guaranteedBlock?: GuaranteedBlockClient;
+  guaranteedWaiver?: GuaranteedWaiverClient;
+}
+```
+
+## 가스 면제 릴레이
+
+`gasWaiver` 모듈은 가스 면제 트랜잭션을 릴레이합니다. 화이트리스트된 면제 계정은 사용자의 제로 가스 트랜잭션(InnerTx)을 WaiverTx로 래핑하고 이를 브로드캐스트합니다. 사용자는 USDT0가 필요하지 않습니다. 모든 메서드는 래퍼 해시가 아닌 InnerTx 해시인 `H_inner`를 반환합니다.
+
+구성에서 `gasWaiver`로 활성화합니다.
+
+```ts
+const enterprise = createStableEnterprise({
+  chain: stableTestnet,
+  gasWaiver: {
+    account: privateKeyToAccount("0xYOUR_WAIVER_KEY"),
+    // 선택적 파트너별 정책 제한
+    maxGasLimit: 500_000n,
+    allowedTargets: [{ address: "0xToken", selectors: ["0xa9059cbb"] }],
+  },
+});
+
+const gw = enterprise.gasWaiver;
+```
+
+### `GasWaiverConfig`
+
+[`ValidationLimits`](#validationlimits) 및 [`SignerSource`](#signersource)를 확장합니다.
+
+| **필드** | **유형** | **설명** |
+| :--- | :--- | :--- |
+| `signer` | `Signer?` | 커스터디 서명자(AWS KMS, HSM)로 화이트리스트에 등록된 거버넌스 등록 면제 키. [서명 키 및 커스터디](#signing-keys-and-custody)를 참조하십시오. `account`보다 우선합니다. |
+| `account` | `LocalAccount?` | 인 프로세스 viem 계정으로서의 면제 키. 둘 다 설정되지 않은 경우 `STABLE_ENTERPRISE_PRIVATE_KEY`로 폴백됩니다. |
+| `maxGasLimit` | `bigint?` | `ValidationLimits`에서 상속됨. |
+| `maxDataLength` | `number?` | `ValidationLimits`에서 상속됨. |
+| `allowedTargets` | `AllowedTarget[]?` | `ValidationLimits`에서 상속됨. |
+
+### `send(account, tx)`
+
+`account`로부터 하나의 InnerTx를 한 번의 호출로 빌드, 서명 및 릴레이합니다. `gasPrice: 0`, 레거시 유형, `chainId`, 그리고 보류 중인 nonce는 자동으로 처리됩니다. 거부 시 `StableEnterpriseRelayError`를 throw 합니다.
+
+```ts
+const { txHash } = await gw.send(user, { to: token, data, gas: 150_000n });
+```
+
+```text
+{ txHash: "0x8f3a...2d41" }
+```
+
+`tx` 인수는 [`WaiverInnerTx`](#waiverinnertx)와 선택적 `nonce`입니다. [`RelayResult`](#relayresult)를 반환합니다.
+
+### `sendBatch(account, txs)`
+
+하나의 `account`에서 여러 InnerTx를 빌드, 서명 및 릴레이합니다. nonce는 계정의 보류 중인 nonce를 기준으로 자동 시퀀싱됩니다. 입력 순서대로 각 입력에 대한 결과를 하나씩 반환합니다.
+
+```ts
+const results = await gw.sendBatch(user, [
+  { to: token, data: dataA, gas: 150_000n },
+  { to: token, data: dataB, gas: 150_000n },
+]);
+```
+
+```text
+[ { index: 0, success: true, txHash: "0x..." }, { index: 1, success: true, txHash: "0x..." } ]
+```
+
+`txs`는 [`WaiverInnerTx`](#waiverinnertx)의 읽기 전용 배열입니다. [`BatchResultItem[]`](#batchresultitem)를 반환합니다.
+
+### `relay(signedInnerTxHex)`
+
+미리 서명된 제로 가스 InnerTx를 릴레이합니다. 사용자가 자신의 환경에서 서명하고 서명된 헥스만 전달하는 비관리형 흐름에 사용하므로, 면제 운영자는 사용자의 키를 보지 않습니다. [`buildWaiverInnerTx`](#buildwaiverinnertxsigner-chainid-req)로 빌드합니다. 거부 시 예외를 발생시킵니다.
+
+```ts
+import { buildWaiverInnerTx, toSigner } from "@stablechain/enterprise";
+
+const signed = await buildWaiverInnerTx(toSigner(user), stableTestnet.id, { to, data, gas: 150_000n, nonce });
+const { txHash } = await gw.relay(signed);
+```
+
+```text
+{ txHash: "0x8f3a...2d41" }
+```
+
+### `relayBatch(signedInnerTxHexes)`
+
+미리 서명된 InnerTx의 배치를 릴레이합니다. 입력 순서대로 각 입력에 대한 [`BatchResultItem`](#batchresultitem)을 하나씩 반환합니다.
+
+```ts
+const results = await gw.relayBatch([signed0, signed1]);
+```
+
+```text
+[ { index: 0, success: true, txHash: "0x..." }, { index: 1, success: false, error: { code: "TARGET_NOT_ALLOWED", message: "..." } } ]
+```
+
+## 보장된 블록스페이스
+
+`guaranteedBlock` 모듈은 엔터프라이즈 RPC 게이트웨이를 통해 GuaranteedTx(유형 `0x3F` CustomTx)를 릴레이하여 예약된 엔터프라이즈 레인 블록스페이스에 도달하도록 합니다. 가스 면제와 달리, 서명자는 자신의 가스를 지불하며 자금이 있어야 합니다. 각 트랜잭션은 엔터프라이즈 레인에 키가 지정된 2D 논스를 포함하며, 브로드캐스팅은 게이트웨이를 통해서만 이루어집니다.
+
+`guaranteedBlock`과 `enterpriseRpcEndpoints`로 활성화합니다.
+
+```ts
+const enterprise = createStableEnterprise({
+  chain: stableTestnet,
+  enterpriseRpcEndpoints: [process.env.ENTERPRISE_RPC_URL], // Stable에서 제공하는 게이트웨이 URL
+  guaranteedBlock: {
+    account: privateKeyToAccount("0xFUNDED_SIGNER_KEY"),
+    laneId: 0n,
+  },
+});
+
+const gb = enterprise.guaranteedBlock;
+```
+
+### `GuaranteedBlockConfig`
+
+| **필드** | **유형** | **설명** |
+| :--- | :--- | :--- |
+| `account` | `LocalAccount` | 각 GuaranteedTx에 서명하고 가스를 지불하는 자금이 있는 계정. |
+| `laneId` | `bigint` | 엔터프라이즈 레인 ID. `[0, ENTERPRISE_MASK - 1]` 범위 내에 있어야 합니다. 유효하지 않은 ID는 즉시 거부됩니다. |
+
+### `send(account, tx)`
+
+하나의 GuaranteedTx를 빌드, 서명 및 릴레이합니다. 서명자가 가스를 지불하므로 1559 수수료 필드가 필요합니다. `chainId`, 엔터프라이즈 `nonceKey`, 그리고 게이트웨이에서 검색된 2D nonce는 자동으로 처리됩니다.
+
+```ts
+const gasPrice = await publicClient.getGasPrice();
+
+const { txHash } = await gb.send(signer, {
+  to: recipient,
+  gas: 21_000n,
+  gasFeeCap: gasPrice * 2n,
+  gasTipCap: gasPrice,
+});
+```
+
+```text
+{ txHash: "0xabcd...7890" }
+```
+
+`tx` 인수는 [`GuaranteedTxRequest`](#guaranteedtxrequest)에 선택적 `nonce`가 추가된 것입니다. [`RelayResult`](#relayresult)를 반환합니다.
+
+### `sendBatch(account, txs)`
+
+여러 GuaranteedTx를 빌드, 서명 및 릴레이합니다. 논스는 검색된 기본값에서 자동으로 시퀀싱됩니다. 실패는 후속 작업에 영향을 미칩니다.
+
+```ts
+const results = await gb.sendBatch(signer, [
+  { to: a, gas: 21_000n, gasFeeCap: gasPrice * 2n, gasTipCap: gasPrice },
+  { to: b, gas: 21_000n, gasFeeCap: gasPrice * 2n, gasTipCap: gasPrice },
+]);
+```
+
+```text
+[ { index: 0, success: true, txHash: "0x..." }, { index: 1, success: true, txHash: "0x..." } ]
+```
+
+[`BatchResultItem[]`](#batchresultitem)를 반환합니다.
+
+### `relay(signedTx)` / `relayBatch(signedTxs)`
+
+미리 서명된 GuaranteedTx 또는 배치로 릴레이합니다. 엔터프라이즈 nonce 키에는 [`nonceKeyForLane`](#noncekeyforlanelaneid)을 사용하여 [`buildGuaranteedTx`](#buildguaranteedtxsigner-chainid-req)로 트랜잭션을 다른 곳에서 빌드하고 서명한 다음, 서명된 헥스만 운영자에게 전달합니다.
+
+```ts
+import { buildGuaranteedTx, nonceKeyForLane, toSigner } from "@stablechain/enterprise";
+
+const signed = await buildGuaranteedTx(toSigner(signer), stableTestnet.id, {
+  to,
+  gas: 21_000n,
+  gasFeeCap,
+  gasTipCap,
+  nonce, // 계정의 현재 2D 레인 nonce
+  nonceKey: nonceKeyForLane(0n),
+});
+const { txHash } = await gb.relay(signed);
+```
+
+```text
+{ txHash: "0xabcd...7890" }
+```
+
+## 보장된 릴레이 트랜잭션
+
+`guaranteedWaiver` 모듈은 위 두 가지 레일을 결합합니다: 보장된 블록스페이스를 통해 라우팅되는 가스 면제 트랜잭션. 내부 및 외부 트랜잭션 모두 하나의 엔터프라이즈 `nonceKey`를 공유하는 `0x3F` CustomTx이므로, `guaranteedBlock`처럼 게이트웨이를 통해 브로드캐스트됩니다. 면제는 가스를 지원하므로, `gasWaiver`처럼 사용자는 잔액이나 수수료 필드가 필요하지 않습니다. 모든 메서드는 `H_inner`를 반환합니다.
+
+`guaranteedWaiver`와 `enterpriseRpcEndpoints`로 활성화합니다.
+
+```ts
+const enterprise = createStableEnterprise({
+  chain: stableTestnet,
+  enterpriseRpcEndpoints: [process.env.ENTERPRISE_RPC_URL], // Stable에서 제공하는 게이트웨이 URL
+  guaranteedWaiver: {
+    account: privateKeyToAccount("0xYOUR_WAIVER_KEY"),
+    laneId: 0n,
+  },
+});
+
+const gw = enterprise.guaranteedWaiver;
+```
+
+### `GuaranteedWaiverConfig`
+
+[`ValidationLimits`](#validationlimits) 및 [`SignerSource`](#signersource)를 확장합니다. 이는 `GasWaiverConfig`와 동일하게 외부 래퍼 면제 키를 소싱하며(`signer`, 그 다음 `account`, 그 다음 env 변수), 동일한 `maxGasLimit`, `maxDataLength`, `allowedTargets` 정책 컨트롤을 허용합니다.
+
+| **필드** | **유형** | **설명** |
+| :--- | :--- | :--- |
+| `signer` | `Signer?` | 커스터디 서명자로서의 화이트리스트된 면제 키(외부 래퍼에 서명). `account`보다 우선합니다. [서명 키 및 커스터디](#signing-keys-and-custody)를 참조하십시오. |
+| `account` | `LocalAccount?` | 인 프로세스 viem 계정으로서의 면제 키. 둘 다 설정되지 않은 경우 `STABLE_ENTERPRISE_PRIVATE_KEY`로 폴백됩니다. |
+| `laneId` | `bigint` | 엔터프라이즈 레인 ID. `[0, ENTERPRISE_MASK - 1]` 범위 내에 있어야 합니다. |
+
+### `send(user, tx)` / `sendBatch(user, txs)`
+
+`user`로부터 내부 `0x3F` CustomTx를 빌드하고 서명한 다음, 면제 키로 래핑하고 릴레이합니다. 가스가 면제되므로 수수료 필드는 필요하지 않습니다. 내부 2D 논스는 게이트웨이에서 검색되며, 배치는 해당 베이스에서 자동으로 시퀀싱됩니다.
+
+```ts
+// 단일
+const { txHash } = await gw.send(user, { to: recipient });
+
+// 배치
+const results = await gw.sendBatch(user, [{ to: a }, { to: b }]);
+```
+
+```text
+{ txHash: "0x8f3a...2d41" }
+```
+
+`tx` 인수는 [`GuaranteedWaiverTxRequest`](#guaranteedwaivertxrequest)에 선택적 `nonce`가 추가된 것입니다. `send`는 [`RelayResult`](#relayresult)를 반환하고, `sendBatch`는 [`BatchResultItem[]`](#batchresultitem)를 반환합니다.
+
+### `relay(signedInnerTx)` / `relayBatch(signedInnerTxs)`
+
+비관리형 흐름의 경우, 사용자는 [`buildGuaranteedTx`](#buildguaranteedtxsigner-chainid-req)를 사용하여 내부 `0x3F` CustomTx에 서명하고(수수료 `0n`, `nonceKeyForLane(laneId)` 사용), 서명된 헥스만 운영자에게 전달합니다. 운영자는 이를 면제 키로 래핑하고 릴레이합니다.
+
+```ts
+import { buildGuaranteedTx, nonceKeyForLane, toSigner } from "@stablechain/enterprise";
+
+const signedInner = await buildGuaranteedTx(toSigner(user), stableTestnet.id, {
+  to,
+  gas: 100_000n,
+  gasFeeCap: 0n, // 면제됨
+  gasTipCap: 0n,
+  nonce,
+  nonceKey: nonceKeyForLane(0n),
+});
+const { txHash } = await gw.relay(signedInner); // 면제 래핑 + 브로드캐스트 → H_inner
+```
+
+```text
+{ txHash: "0x8f3a...2d41" }
+```
+
+## 빌드 헬퍼
+
+비관리형 `relay` 경로를 위한 하위 수준 서명자입니다. 각 서명자는 서명된 트랜잭션을 `Hex`로 반환하며, 논스 가져오기 또는 수수료 추정은 없습니다. 첫 번째 인수는 [`Signer`](#signing-keys-and-custody)입니다: `toSigner(account)`로 viem 계정을 래핑하거나 `awsKmsSigner`와 같은 커스터디 서명자를 전달합니다.
+
+### `buildWaiverInnerTx(signer, chainId, req)`
+
+면제 준비된 InnerTx에 서명합니다. 면제 불변값이 내장되어 있습니다: `gasPrice: 0`, 레거시 유형, 그리고 주어진 `chainId`. `req`는 필수 `nonce`가 포함된 [`WaiverInnerTx`](#waiverinnertx)입니다.
+
+```ts
+const signed = await buildWaiverInnerTx(toSigner(user), stableTestnet.id, { to, data, gas: 150_000n, nonce });
+```
+
+### `buildGuaranteedTx(signer, chainId, req)`
+
+GuaranteedTx(`0x3F` CustomTx)를 빌드하고 서명합니다. `req`는 필수 `nonce` 및 `nonceKey`가 포함된 [`GuaranteedTxRequest`](#guaranteedtxrequest)입니다.
+
+### `buildGuaranteedWaiverTx(...)`
+
+미리 서명된 내부 트랜잭션을 외부 `0x3F` 면제 CustomTx로 래핑합니다. `guaranteedWaiver.relay`에서 내부적으로 사용됩니다. 고급 흐름을 위해 내보내집니다.
+
+### `nonceKeyForLane(laneId)`
+
+`buildGuaranteedTx`에서 사용하기 위해 레인 ID에 대한 엔터프라이즈 `nonceKey`를 반환합니다.
+
+```ts
+import { nonceKeyForLane } from "@stablechain/enterprise";
+
+const nonceKey = nonceKeyForLane(0n);
+```
+
+## 타입
+
+### `SignerSource`
+
+면제 모듈(`gasWaiver`, `guaranteedWaiver`)이 허용하는 서명 키 필드입니다. 순서대로 해결됩니다: `signer`, 그 다음 `account`, 그 다음 클라이언트의 최상위 [`signer`](#stableenterpriseconfig), 그 다음 `STABLE_ENTERPRISE_PRIVATE_KEY` 환경 변수. [서명 키 및 커스터디](#signing-keys-and-custody)를 참조하십시오.
+
+| **필드** | **유형** | **설명** |
+| :--- | :--- | :--- |
+| `signer` | `Signer?` | 커스터디 등급의 서명자 (AWS KMS, HSM 또는 `privateKeySigner`). `account`보다 우선합니다. |
+| `account` | `LocalAccount?` | `toSigner`를 통해 `Signer`로 변환된 인 프로세스 viem 계정. |
+
+### `Signer`
+
+SDK가 32바이트 다이제스트에 서명하는 플러그형 서명자이므로, 키는 커스터디 백엔드를 떠나지 않습니다. `awsKmsSigner`, `toSigner`, `privateKeySigner` 또는 `envSigner`로 하나를 구성합니다.
+
+```ts
+interface Signer {
+  readonly address: Address;
+  signDigest(hash: Hex): Promise<Hex>;
+}
+```
+
+| **헬퍼** | **가져오기** | **설명** |
+| :--- | :--- | :--- |
+| `awsKmsSigner({ keyId, client? })` | `@stablechain/enterprise/aws-kms` | AWS KMS `ECC_SECG_P256K1` 키로 지원되는 서명자. `Promise<Signer>`를 반환합니다. |
+| `toSigner(account)` | `@stablechain/enterprise` | `LocalAccount` viem 계정을 `Signer`로 적용합니다. |
+| `privateKeySigner(key)` | `@stablechain/enterprise` | 프로세스 내에서 유지되는 원시 개인 키를 래핑하는 서명자입니다. |
+| `envSigner(varName?)` | `@stablechain/enterprise` | `STABLE_ENTERPRISE_PRIVATE_KEY`(또는 `varName`)에서 키를 읽는 서명자입니다. |
+
+### `WaiverInnerTx`
+
+호출마다 달라지는 InnerTx의 필드입니다.
+
+| **필드** | **유형** | **기본값** | **설명** |
+| :--- | :--- | :--- | :--- |
+| `to` | `Address` | | 대상 주소: ERC-20 전송을 위한 토큰 계약, 네이티브 전송을 위한 수신자. |
+| `gas` | `bigint?` | `DEFAULT_INNER_GAS` (`150_000n`) | 가스 한도. `gasPrice`가 0이므로, 넉넉한 한도는 무료입니다. |
+| `data` | `Hex?` | `"0x"` | Calldata. |
+| `value` | `bigint?` | `0n` | 보낼 네이티브 값. |
+
+### `GuaranteedTxRequest`
+
+| **필드** | **유형** | **기본값** | **설명** |
+| :--- | :--- | :--- | :--- |
+| `to` | `Address?` | | 대상 주소. |
+| `gas` | `bigint` | | 가스 한도. 필수. |
+| `gasFeeCap` | `bigint` | | `maxFeePerGas`. 필수. |
+| `gasTipCap` | `bigint` | | `maxPriorityFeePerGas`. 필수. |
+| `data` | `Hex?` | `"0x"` | Calldata. |
+| `value` | `bigint?` | `0n` | 보낼 네이티브 값. |
+
+### `GuaranteedWaiverTxRequest`
+
+수수료 필드는 항상 0이므로 여기서는 생략됩니다.
+
+| **필드** | **유형** | **기본값** | **설명** |
+| :--- | :--- | :--- | :--- |
+| `to` | `Address` | | 대상 주소. |
+| `gas` | `bigint?` | 공유 내부 가스 기본값 | 가스 한도. |
+| `data` | `Hex?` | `"0x"` | Calldata. |
+| `value` | `bigint?` | `0n` | 보낼 네이티브 값. 면제를 위해 값 전송이 허용됩니다. |
+
+### `ValidationLimits`
+
+`gasWaiver` 및 `guaranteedWaiver`에 의해 각 InnerTx에 적용되는 파트너별 정책입니다.
+
+| **필드** | **유형** | **기본값** | **설명** |
+| :--- | :--- | :--- | :--- |
+| `maxGasLimit` | `bigint?` | `10_000_000n` | InnerTx의 최대 가스 한도. 이를 초과하면 `GAS_LIMIT_EXCEEDED`로 실패합니다. |
+| `maxDataLength` | `number?` | `131_072` (128 KB) | 바이트 단위의 최대 calldata 크기. 이를 초과하면 `DATA_TOO_LARGE`로 실패합니다. |
+| `allowedTargets` | `AllowedTarget[]?` | | 면제를 후원할 수 있는 계약 및 메서드의 허용 목록. 설정된 경우, 목록에 없는 대상은 `TARGET_NOT_ALLOWED`로 실패합니다. |
+
+### `AllowedTarget`
+
+| **필드** | **유형** | **설명** |
+| :--- | :--- | :--- |
+| `address` | `Address \| "*"` | InnerTx가 호출할 수 있는 계약, 또는 모든 계약과 일치하는 `"*"`입니다. |
+| `selectors` | `Hex[]?` | 허용된 4바이트 메서드 선택자(예: ERC-20 `transfer`의 `"0xa9059cbb"`). `address`에서 모든 메서드를 허용하려면 생략하거나 비워 둡니다. |
+
+### `RelayResult`
+
+```ts
+interface RelayResult {
+  txHash: Hash; // 면제의 경우 H_inner, 독립형 보장 블록의 경우 GuaranteedTx 해시
+}
+```
+
+### `BatchResultItem`
+
+배치에서 입력당 하나씩, 입력 순서대로 항목. 예외를 던지는 대신, 배치는 항목별 결과를 [`BatchResultItem.error`](#batchresultitem)로 표시합니다.
+
+| **필드** | **유형** | **설명** |
+| :--- | :--- | :--- |
+| `index` | `number` | 입력 배열과 일치하는 0부터 시작하는 위치. |
+| `success` | `boolean` | 이 항목이 릴레이되었는지 여부. |
+| `txHash` | `Hash?` | 성공 시 존재: 내부 트랜잭션 해시. |
+| `error` | `{ code: ErrorCode; message: string }?` | 실패 시 존재. |
+
+## 오류
+
+단일 트랜잭션 메서드(`send`, `relay`)는 거부 시 예외를 발생시킵니다. 배치 메서드는 대신 [`BatchResultItem.error`](#batchresultitem)에서 항목별 실패를 보고합니다. 모든 오류 클래스는 `StableEnterpriseError`를 확장합니다.
+
+| **클래스** | **발생 시점** | **유용한 필드** |
+| :--- | :--- | :--- |
+| `StableEnterpriseError` | 모든 SDK 오류의 기본 클래스. | `message` |
+| `StableEnterpriseRelayError` | RPC 또는 릴레이 레이어에서 트랜잭션이 거부될 때. | `code` |
+| `WaiverValidationError` | InnerTx가 브로드캐스트 전에 정책 검사(가스, 데이터 크기 또는 대상 허용 목록)에 실패하는 경우. | `code` |
+
+```ts
+import { StableEnterpriseRelayError } from "@stablechain/enterprise";
+
+try {
+  await gw.send(user, { to: token, data });
+} catch (err) {
+  if (err instanceof StableEnterpriseRelayError && err.code === "TARGET_NOT_ALLOWED") {
+    // InnerTx 대상이 구성된 허용 목록 외부에 있습니다
+  }
+  throw err;
+}
+```
+
+```text
+StableEnterpriseRelayError: relay failed [TARGET_NOT_ALLOWED]: target 0x... not allowed
+```
+
+### `ErrorCode`
+
+던진 오류 또는 `BatchResultItem.error`의 `code`는 다음 중 하나입니다.
+
+| **코드** | **의미** |
+| :--- | :--- |
+| `UNKNOWN_ERROR` | 특정 코드를 사용할 수 없을 때의 폴백. |
+| `BROADCAST_FAILED` | RPC 계층에서 브로드캐스트가 거부되거나 게이트웨이가 릴레이에 실패했습니다. |
+| `INVALID_TRANSACTION` | InnerTx가 디코딩 또는 파싱에 실패했습니다. |
+| `INVALID_SIGNATURE` | 서명 확인에 실패했습니다. |
+| `UNSUPPORTED_TX_TYPE` | InnerTx 유형이 레거시, eip2930 또는 eip1559가 아닙니다. |
+| `WRONG_CHAIN_ID` | InnerTx `chainId`가 없거나 대상 체인과 일치하지 않습니다. |
+| `NON_ZERO_GAS_PRICE` | InnerTx는 0이 아닌 가스 가격을 가집니다(면제의 경우 0이어야 함). |
+| `GAS_LIMIT_EXCEEDED` | InnerTx 가스 한도가 `maxGasLimit`을 초과합니다. |
+| `DATA_TOO_LARGE` | InnerTx calldata가 `maxDataLength`를 초과합니다. |
+| `TARGET_NOT_ALLOWED` | InnerTx 대상이 `allowedTargets`에 없습니다. |
+| `GATEWAY_UNAUTHORIZED` | 엔터프라이즈 RPC 게이트웨이가 API 키를 거부했습니다(누락, 유효하지 않거나 만료됨). |
+| `QUOTA_EXCEEDED` | 엔터프라이즈 RPC 게이트웨이 가스 할당량이 소진되었습니다. |
+
+## 상수
+
+| **상수** | **유형** | **설명** |
+| :--- | :--- | :--- |
+| `DEFAULT_INNER_GAS` | `bigint` | `gas`가 생략될 때의 기본 InnerTx 가스 한도(`150_000n`). |
+| `ENTERPRISE_FLAG` | `bigint` | 레인의 `nonceKey`에 설정된 엔터프라이즈 비트. |
+| `ENTERPRISE_MASK` | `bigint` | 레인 ID의 상한: `laneId`는 `[0, ENTERPRISE_MASK - 1]` 범위 내에 있어야 합니다. |
+
+## 다음 권장 사항
+
+- [**Stable 엔터프라이즈 SDK**](/ko/explanation/enterprise-sdk): 레일이 무엇이며 언제 사용해야 하는지.
+- [**가스 면제 프로토콜**](/ko/reference/gas-waiver-api): 트랜잭션 형식, 마커 라우팅 및 거버넌스 제어.
+- [**보장된 블록스페이스**](/ko/explanation/guaranteed-blockspace): Stable이 엔터프라이즈 워크로드에 대한 블록 용량을 예약하는 방법.

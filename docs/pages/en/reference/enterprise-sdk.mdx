@@ -74,7 +74,7 @@ import { createStableEnterprise, stableTestnet } from "@stablechain/enterprise";
 import { awsKmsSigner } from "@stablechain/enterprise/aws-kms";
 
 // the KMS key must be ECC_SECG_P256K1 (secp256k1); the SDK derives the address from it
-const signer = await awsKmsSigner({ keyId: process.env.KMS_KEY_ID });
+const signer = await awsKmsSigner({ keyId: process.env.AWS_KMS_KEY_ID });
 
 const enterprise = createStableEnterprise({
   chain: stableTestnet,

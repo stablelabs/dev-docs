@@ -28,9 +28,11 @@ Read more: [USDT0 as gas](/en/explanation/usdt-as-gas-token) · [USDT0 behavior 
 
 ## Guaranteed blockspace
 
-Stable reserves a portion of each block's capacity for pre-allocated enterprise workloads. Reserved traffic settles with predictable latency and cost even when general traffic is congested; it doesn't compete in the fee market.
+Stable v1.4.0 can reserve a gas quota within each block for eligible priority workloads. Normal traffic cannot consume this VIP-lane capacity during congestion.
 
-This behavior is transparent at the caller level. You submit transactions the normal way; allocations are applied at the protocol level for enrolled accounts.
+Standard EVM transactions keep using the default nonce channel, `NonceKey = 0`. Eligible priority flows use `CustomTx` type `0x3F` and a protocol-reserved `NonceKey` that identifies the VIP lane.
+
+Governance configures the lanes and quotas. With no configuration, every transaction uses one normal lane. The feature is currently in the v1.4.0 Testnet release candidate, with its Mainnet schedule pending.
 
 Read more: [Guaranteed blockspace](/en/explanation/guaranteed-blockspace).
 

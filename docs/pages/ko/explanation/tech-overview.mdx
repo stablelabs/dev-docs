@@ -1,44 +1,66 @@
 ---
 source_path: explanation/tech-overview.mdx
-source_sha: d71b320a46b9bc5aa2c45ca6f25c192f0d33a2af
+source_sha: 66c5144a0a00b4fc60545e70df03a2260238b7b8
 title: "기술 개요"
-description: "Stable의 블록체인 아키텍처, 합의 메커니즘, EVM 호환 실행 스택에 대한 개요."
+description: "스테이블의 4계층 스택(합의, 실행, 저장, RPC)이 스테이블코인 결제 처리량에 최적화된 방식입니다."
+diataxis: "explanation"
 ---
 
 # 기술 개요
 
-상태 데이터베이스, 실행, 합의부터 USDT 전용 최적화에 이르기까지, Stable은 성능, 확장성, 신뢰성을 중점으로 설계되었습니다. Stable 스택의 각 구성 요소는 높은 처리량을 요구하는 워크로드 및 네트워크 전반에서 USDT 중심의 원활한 운영을 위해 최적화되어 있습니다.
+:::note
+**릴리스 상태:** StableBFT, 순차적 Stable EVM, 분할 경로 RPC 계층이 메인넷에 출시되었습니다. OPE, 선택적 RecheckTx, MemIAVL, 2D nonce 및 보장된 블록 공간은 v1.4.0 테스트넷 릴리스 후보에 있습니다. 메인넷 업그레이드 일정은 보류 중입니다.
+:::
+
+Hardhat, Foundry 또는 모든 표준 EVM 툴링을 사용하여 현재 Stable에 Solidity 또는 Vyper 컨트랙트를 배포할 수 있으며, 컨트랙트는 수정 없이 작동합니다. 변경되는 점: 가스는 USDT0으로 지불되고, 트랜잭션은 단일 슬롯 완결성에 도달하며, 스택의 모든 계층은 스테이블코인 처리량에 최적화되어 있습니다.
 
 <img
   className="block"
   src="/images/futurework.png"
-  alt="Tech Overview"
+  alt="기술 개요"
 />
 
 ## StableBFT
 
-초기 Stable 블록체인은 CometBFT 기반의 맞춤형 PoS 합의 프로토콜인 **StableBFT**를 활용하여, 네트워크 전반에 걸친 높은 처리량, 낮은 지연 시간, 강력한 신뢰성을 보장합니다. 합의 성능을 더욱 최적화하기 위해, Stable은 데이터 전파와 합의 과정을 분리하고, 트랜잭션을 블록 프로포저에게 직접 브로드캐스트하는 방식을 도입할 계획입니다.
+**상태: 라이브**
 
-합의를 획기적으로 가속화하기 위해 Stable은 DAG 기반 **Autobahn**으로의 프로토콜 업그레이드를 계획하고 있습니다. Autobahn을 기반으로 구축된 StableBFT는 다음을 가능케 합니다:
+Stable 블록체인은 네트워크 전반에 걸쳐 높은 처리량, 낮은 지연 시간 및 강력한 안정성을 위해 CometBFT를 기반으로 구축된 맞춤형 PoS 합의 프로토콜인 **StableBFT**를 활용합니다.
 
-- 단일 리더 제한 제거를 통한 프로포절 병렬 처리
-- 데이터 전파와 트랜잭션 순서 정렬을 분리하여 더 빠른 완결성 달성
-- 강력한 BFT 메커니즘을 통한 네트워크 장애에 대한 높은 복원력
+:::note
+**계획됨:** 데이터 분리를 위한 DAG 기반 **Autobahn** 합의. [로드맵](/ko/explanation/technical-roadmap#phase-3-full-stack-optimized-layer-for-usdt)을 참조하십시오.
+:::
 
 ## Stable EVM
 
-**Stable EVM**은 Stable의 이더리움 호환 실행 계층으로, 기존 이더리움 툴 및 지갑을 사용해 체인과 원활히 상호작용할 수 있도록 합니다. Stable EVM은 StableSDK와의 연결을 위해 일련의 프리컴파일을 도입하여, EVM 스마트 컨트랙트가 핵심 체인 로직에 안전하고 아토믹하게 접근할 수 있도록 지원합니다.
+**상태: 라이브**
 
-Stable은 EVM 실행 성능을 극대화하기 위해 StableVM++를 도입할 예정이며, 이는 EVMONE과 같은 대체 EVM 구현체와 Block-STM 기반의 낙관적 병렬 실행 엔진을 통합합니다.
+**Stable EVM**은 Stable의 이더리움 호환 실행 계층입니다. 표준 이더리움 도구와 지갑은 변경 없이 체인과 상호 작용합니다. 일련의 **프리컴파일**은 Stable EVM을 Stable SDK에 연결하여 EVM 스마트 컨트랙트가 핵심 체인 로직을 원자적으로 호출할 수 있도록 합니다.
+
+:::note
+**v1.4.0에 포함됨:** Block-STM은 CPU 코어 전반에 걸쳐 낙관적 병렬 실행을 추가합니다. 선택적 RecheckTx는 커밋 후 멤풀 작업을 줄입니다. [실행](/ko/explanation/execution)을 참조하십시오.
+:::
+
+현재 Go 기반 EVM 구현을 대체할 수 있는 StableVM++는 나중 로드맵 항목으로 남아 있습니다.
 
 ## StableDB
 
-**상태: v1.4.0 업그레이드에서 출시**
+**상태: 테스트넷의 v1.4.0 릴리스 후보**
 
-Stable은 각 블록 생성 후 디스크 저장이 느리다는 주요 병목 현상을 해결함으로써 블록체인 속도를 개선합니다. Stable은 상태 커밋과 상태 저장을 분리하여, 블록 처리를 지연 없이 진행할 수 있도록 합니다. `mmap` 기반의 `MemDB` 및 `VersionDB`를 통해 최근 데이터는 메모리에서 처리하고, 이전 데이터는 디스크에 효율적으로 저장하여 전체 처리량을 높일 수 있습니다.
+MemIAVL은 LevelDB를 메모리 매핑 스냅샷과 추가 전용 쓰기 우선 로깅으로 대체합니다. RocksDB 기반 VersionDB는 보존된 스냅샷보다 오래된 기록 쿼리를 제공합니다.
 
 ## 고성능 RPC
 
-아무리 블록체인이 빠르더라도, RPC 레이어가 느리다면 사용자 경험이 망가질 수 있습니다. Stable은 기존 모놀리틱 RPC 구조가 리소스 충돌 및 확장성 부족 문제를 일으킬 수 있다는 점을 인식하고, 이를 재설계했습니다. Stable은 기능별로 작업 경로를 분리한 split-path 아키텍처를 도입하며, 가벼우면서도 특화된 RPC 노드를 통해 응답 시간을 크게 단축합니다.
+**상태: 라이브**
 
-향후 EVM 내 view 호출에 최적화된 RPC 노드 및 네이티브 인덱서를 통합하여, dApp의 온체인 데이터 접근 속도를 더욱 향상시킬 예정입니다.
+느린 RPC 계층은 빠른 체인에서도 사용자 경험을 망칩니다. Stable은 함수별로 작업을 분리하는 **분할 경로 아키텍처**를 통해 이 문제를 해결하고, 더 빠른 응답 시간을 위해 경량의 전문화된 RPC 노드를 배포합니다.
+
+:::note
+**계획됨:** EVM 뷰 호출에 최적화된 RPC 노드와 노드 통합 인덱서. [로드맵](/ko/explanation/technical-roadmap#phase-3-full-stack-optimized-layer-for-usdt)을 참조하십시오.
+:::
+
+## 다음으로 이동할 곳
+
+- [**실행**](/ko/explanation/execution): OPE 및 선택적 RecheckTx가 CPU 병목 현상을 제거하는 방법을 이해하십시오.
+- [**저장소(StableDB)**](/ko/explanation/stable-db): MemIAVL이 현재 및 기록 상태 저장소를 변경하는 방법을 확인하십시오.
+- [**보장된 블록 공간**](/ko/explanation/guaranteed-blockspace): 2D nonce 및 블록 레인 모델을 이해하십시오.
+- [**네트워크 업그레이드**](/ko/reference/network-upgrades): v1.4.0 호환성, 출시 및 연기된 작업을 검토하십시오.

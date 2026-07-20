@@ -32,23 +32,27 @@ Stable Pay is a Web2.5 UX wallet experience designed to simplify onboarding for 
 
 ## Phase 2: Experience layer for USDT
 
-Status: **In development.** State DB optimization ships in the v1.4.0 upgrade. The remaining items are still in development.
+Status: **v1.4.0 release candidate on Testnet.** The Mainnet upgrade schedule is pending. The USDT Transfer Aggregator remains in development.
 
-### State DB optimization: Ships in v1.4.0
+### MemIAVL state store: Included in v1.4.0
 
-Stable decouples state commitment from state storage. Validators commit the latest state in memory while historical state is deferred to disk. `MemDB` and `VersionDB` powered by `mmap` handle real-time commitment without blocking on disk I/O. See [Storage (StableDB)](/en/explanation/stable-db).
+MemIAVL replaces LevelDB with one memory-mapped snapshot and an append-only write-ahead log. A RocksDB-backed VersionDB serves historical queries older than the retained snapshots. See [Storage (StableDB)](/en/explanation/stable-db).
 
-### Optimistic parallel execution: Planned
+### Optimistic parallel execution: Included in v1.4.0
 
-Real-world telemetry shows 60–80% of transactions interact with disjoint state and can safely execute in parallel. Stable will execute transactions optimistically under the no-conflict assumption, with rollback and sequential re-execution on detected conflicts. This preserves correctness while improving throughput.
+Block-STM executes transactions concurrently across CPU cores, detects conflicts, and re-executes affected work. A fixed in-block order preserves deterministic state across validators. See [Execution](/en/explanation/execution).
+
+### Selective RecheckTx: Included in v1.4.0
+
+After a block commits, the node rechecks only pending transactions from affected accounts. CometBFT falls back to a full mempool recheck when application support is unavailable.
+
+### 2D nonce and guaranteed blockspace: Included in v1.4.0
+
+Independent nonce channels prevent one stuck transaction from blocking every later transaction from the same account. Protocol-reserved nonce keys identify VIP traffic, while per-lane gas quotas reserve block capacity. See [Guaranteed blockspace](/en/explanation/guaranteed-blockspace).
 
 ### USDT Transfer Aggregator: Planned
 
 Aggregating mechanism that groups USDT0 transfers and processes them collectively, reducing per-transaction overhead and improving overall throughput. See [USDT transfer aggregator](/en/explanation/usdt-transfer-aggregator).
-
-### Guaranteed blockspace: Planned
-
-Reserved block capacity for enterprise partners, enforced through validator-level reservations and dedicated RPC endpoints. Delivers predictable latency for mission-critical payment flows even under network congestion. See [Guaranteed blockspace](/en/explanation/guaranteed-blockspace).
 
 ## Phase 3: Full-stack optimized layer for USDT
 

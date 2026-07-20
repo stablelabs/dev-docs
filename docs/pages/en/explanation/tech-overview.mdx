@@ -7,7 +7,7 @@ diataxis: "explanation"
 # Tech overview
 
 :::note
-**What's live today:** StableBFT consensus, Stable EVM (full EVM compatibility), and the split-path RPC layer are all production-ready. StableDB ships in the v1.4.0 upgrade. Autobahn (DAG-based consensus) and StableVM\+\+ (optimistic parallel execution) are roadmap items. See the [Roadmap](/en/explanation/technical-roadmap) for timelines.
+**Release status:** StableBFT, the sequential Stable EVM, and the split-path RPC layer are live on Mainnet. OPE, Selective RecheckTx, MemIAVL, 2D nonce, and guaranteed blockspace are in the v1.4.0 Testnet release candidate. The Mainnet upgrade schedule is pending.
 :::
 
 You can deploy Solidity or Vyper contracts on Stable today using Hardhat, Foundry, or any standard EVM tooling, and your contracts work without modification. What changes: gas is paid in USDT0, transactions reach single-slot finality, and every layer of the stack is tuned for stablecoin throughput.
@@ -35,14 +35,16 @@ Stable Blockchain leverages **StableBFT**, a customized PoS consensus protocol b
 **Stable EVM** is Stable's Ethereum-compatible execution layer. Standard Ethereum tools and wallets interact with the chain unchanged. A set of **precompiles** bridges Stable EVM to the Stable SDK, letting EVM smart contracts call into core chain logic atomically.
 
 :::note
-**Planned:** **StableVM\+\+** with optimistic parallel execution (Block-STM). See the [Roadmap](/en/explanation/technical-roadmap#phase-3-full-stack-optimized-layer-for-usdt).
+**Included in v1.4.0:** Block-STM adds optimistic parallel execution across CPU cores. Selective RecheckTx reduces post-commit mempool work. See [Execution](/en/explanation/execution).
 :::
+
+StableVM\+\+, a possible replacement for the current Go-based EVM implementation, remains a later roadmap item.
 
 ## StableDB
 
-**Status: Ships in v1.4.0**
+**Status: v1.4.0 release candidate on Testnet**
 
-Stable fixes a major blockchain bottleneck: slow disk storage after each block. It separates state commitment from storage so blocks process without delay. `MemDB` and `VersionDB`, powered by `mmap`, keep recent data in memory while older data is stored efficiently, boosting overall throughput.
+MemIAVL replaces LevelDB with a memory-mapped snapshot and an append-only write-ahead log. A RocksDB-backed VersionDB serves historical queries older than the retained snapshots.
 
 ## High performance RPC
 
@@ -53,3 +55,10 @@ A slow RPC layer ruins the user experience even on a fast chain. Stable addresse
 :::note
 **Planned:** RPC nodes optimized for EVM view calls, plus a node-integrated indexer. See the [Roadmap](/en/explanation/technical-roadmap#phase-3-full-stack-optimized-layer-for-usdt).
 :::
+
+## Where to go next
+
+- [**Execution**](/en/explanation/execution): Understand how OPE and Selective RecheckTx remove CPU bottlenecks.
+- [**Storage (StableDB)**](/en/explanation/stable-db): See how MemIAVL changes current and historical state storage.
+- [**Guaranteed blockspace**](/en/explanation/guaranteed-blockspace): Understand the 2D nonce and block-lane model.
+- [**Network upgrades**](/en/reference/network-upgrades): Review v1.4.0 compatibility, rollout, and deferred work.

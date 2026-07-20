@@ -1,14 +1,14 @@
 ---
 source_path: how-to/upgrade-node.mdx
-source_sha: e18a08860589cf17c4cc3abd3c3bc4df00630efb
+source_sha: c05435b6446847bcf6c1ef3c51961b184f712073
 title: 升级指南
-description: "Stable 网络版本变更的节点升级流程、升级类型和回滚策略。"
+description: "Stable 网络版本变更的节点升级过程、升级类型和回滚策略。"
 diataxis: "how-to"
 ---
 
-本指南涵盖 Stable 节点的升级过程，包括升级流程和回滚策略。
+本指南介绍 Stable 节点的升级过程，包括升级步骤和回滚策略。
 
-> 有关完整的版本历史和升级详情，请参阅[版本历史](/cn/reference/testnet-version-history)。
+> 有关完整的版本历史和升级详情，请参阅 [版本历史](/cn/reference/testnet-version-history)。
 
 ## 升级类型
 
@@ -17,13 +17,25 @@ diataxis: "how-to"
 - 向后兼容
 
 ### 硬升级（破坏性）
-- 需要在特定高度升级
+- 需要在特定高度进行升级
 - 不向后兼容
 
 ### 紧急升级
 - 关键安全修复
 - 需要立即采取行动
-- 可能需要停链
+- 可能需要暂停链
+
+## v1.4.0 存储迁移
+
+v1.4.0 将基于 LevelDB 的状态存储替换为 MemIAVL。除了正常二进制替换外，本次升级还需要数据迁移。
+
+除非网络特定的升级说明选择其他方法，否则请使用本地快照导出和恢复。基准测试表明，标准恢复的平均验证器停机时间为 19.4 秒，并行恢复约为 2.6 秒。
+
+以轮询方式迁移验证器，以便至少三分之二的投票权保持在线。如果您的节点必须回答早于其最早保留快照的历史查询，请配置基于 RocksDB 的 VersionDB。
+
+:::warning
+请勿对 v1.4.0 使用下面通用的纯二进制过程。请等待 [网络升级](/cn/reference/network-upgrades) 中的最终网络特定二进制文件、升级高度、备份路径和恢复命令。
+:::
 
 ## 标准升级流程
 
@@ -67,7 +79,7 @@ tar -xvzf stabled-1.2.0-rc1-linux-*.tar.gz -C /tmp/
 
 ### 步骤 3：执行升级
 
-#### 软升级
+#### 对于软升级
 
 ```bash
 # Stop node
@@ -90,7 +102,7 @@ sudo systemctl start ${SERVICE_NAME}
 sudo journalctl -u ${SERVICE_NAME} -f
 ```
 
-#### 硬升级
+#### 对于硬升级
 
 ```bash
 # Monitor for upgrade height
@@ -135,9 +147,9 @@ watch -n 2 'curl -s localhost:26657/status | jq ".result.sync_info"'
 sudo journalctl -u ${SERVICE_NAME} --since "10 minutes ago" | grep -i error
 ```
 
-## Cosmovisor 设置（自动升级）
+## Cosmovisor 设置（自动化升级）
 
-Cosmovisor 可为协调升级自动化升级过程。
+Cosmovisor 自动化协调升级过程。
 
 ### 安装
 
@@ -232,7 +244,7 @@ sudo mv /usr/bin/stabled.backup /usr/bin/stabled
 sudo systemctl start ${SERVICE_NAME}
 ```
 
-## 紧急流程
+## 紧急程序
 
 ```bash
 # If chain halts unexpectedly
@@ -245,6 +257,6 @@ stabled export --height <last_good_height> > export.json
 
 ## 后续步骤
 
-- [版本历史](/cn/reference/testnet-version-history) - 完整的升级历史和发布说明
-- 升级后[监控你的节点](/cn/how-to/monitor-node)
-- 查阅[故障排查](/cn/how-to/troubleshoot-node)了解常见问题
+- [版本历史](/cn/reference/testnet-version-history) - 完整的升级历史和发行说明
+- 升级后[监控您的节点](/cn/how-to/monitor-node)
+- 查看[故障排除](/cn/how-to/troubleshoot-node)以获取常见问题

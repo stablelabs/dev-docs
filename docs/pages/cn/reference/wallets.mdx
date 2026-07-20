@@ -1,6 +1,6 @@
 ---
 source_path: reference/wallets.mdx
-source_sha: d3f045bc50543457fa0717ff9f909f4c0b515996
+source_sha: b2fc7c78eac59fbdfff218414289f61682016987
 title: "钱包"
 description: "用于在 Stable 上持有、发送和接收 USDT 的钱包提供商和 SDK。"
 diataxis: "reference"
@@ -20,7 +20,7 @@ diataxis: "reference"
 | [Gate 钱包](https://www.gate.com/) (Gate Onchain)                                                                                                                                                   | 用户钱包                               | 交易所关联钱包                                                                                                     | [https://www.gate.com/](https://www.gate.com/)                                                                                                                                             | 交易所关联钱包；适用于 CEX ↔ 钱包流                                    |
 | [OKX 钱包](https://web3.okx.com/) (OKX Onchain) | 用户钱包                               | 非托管 / 用于恢复的 MPC                                                                                           | [https://www.okx.com/earn/onchain-earn](https://www.okx.com/earn/onchain-earn)                                                                                                             | 具有交易所集成的多链钱包                                               |
 | [Anchorage](https://www.anchorage.com/)                                                                                                                                                                                                              | 托管 / 机构钱包          | 银行级受监管托管（联邦特许银行）                                                                    | [https://www.anchorage.com/who-we-serve](https://www.anchorage.com/who-we-serve)                                                                                                           | 稳定资产的机构级托管                                              |
-| Coinbase Developer Platform (CDP)                                                                                                                                                                                                                     | 嵌入式 / 应用内钱包基础设施            | 非托管；密钥安全存储在受信任的执行环境中                                                             | [https://docs.cdp.coinbase.com/wallets/non-custodial-wallets/overview](https://docs.cdp.coinbase.com/wallets/non-custodial-wallets/overview)                                               | 适用于 EVM 网络的嵌入式用户钱包和 API 密钥钱包                                 |
+| Coinbase Developer Platform (CDP)                                                                                                                                                                                                                     | 嵌入式 / 应用内钱包基础设施            | 非托管；密钥安全存储在受信任的执行环境中                                                             | [https://docs.cdp.coinbase.com/wallets/non-custodial-wallets/overview](https://docs.cdp.coinbase.com/wallets/non-custodial-wallets/overview)                                               | 通过自定义 RPC 支持 Stable 钱包；Coinbase Onramp 需要单独的桥接服务                                 |
 | [Dynamic](https://www.dynamic.xyz/)                                                                                                                                                                                                                  | 嵌入式 / 应用内钱包基础设施            | 通过 SDK 或后端进行的托管密钥 / 托管基础设施                                                                             | [https://www.dynamic.xyz/docs/introduction/welcome](https://www.dynamic.xyz/docs/introduction/welcome)                                                                                     | 使应用程序能够嵌入钱包流，无需外部钱包                                |
 | [Alchemy](https://www.alchemy.com/)                                                                                                                                                                                                                  | 智能钱包与账户抽象基础设施 | 打包器 + Paymaster 基础设施 (ERC-4337)                                                                              | [https://docs.alchemy.com](https://docs.alchemy.com)                                                                                                                                       | 为 AA 钱包提供支持；支持赞助 Gas、智能账户                                  |
 | [Atomic Wallet](https://atomicwallet.io/)                                                                                                                                                                                                            | 用户钱包                               | 非托管（密钥存储在用户设备上）                                                                                 | [https://atomicwallet.io/assets-status](https://atomicwallet.io/assets-status)                                                                                                             | 多资产移动端、桌面端和浏览器扩展钱包；通过内置的 [Simplex](/cn/reference/ramps#simplex-by-nuvei) 入口在 Stable 上购买 USDT |
@@ -137,17 +137,27 @@ Tether 提供的开源 SDK，用于在任何平台和区块链上构建自托管
 
 ### Coinbase Developer Platform (CDP)
 
-CDP 为面向用户的应用程序和后端系统提供非托管钱包基础设施。用户认证钱包使用电子邮件、短信或社交登录。API 密钥钱包允许服务器管理账户，而 CDP 在受信任的执行环境中保护私钥。
+CDP 为面向用户的应用程序和后端系统提供非托管钱包。用户认证钱包使用电子邮件、短信或社交登录。API 密钥钱包允许服务器管理账户，而 CDP 负责保护私钥。
 
 **功能**
 
-- 可通过电子邮件、短信或社交登录且无需助记词的嵌入式钱包
-- 用于自动化工作流、代理和后端服务的 API 密钥钱包
-- 钱包创建、交易签名、余额、转账、互换、质押以及法定资产入口和出口
-- 支持 EVM 兼容网络（包括 Stable）和 Solana
+- 无需助记词的嵌入式钱包
+- 用于自动化工作流和后端服务的 API 密钥钱包
+- EVM 账户创建和交易签名
 - 用户控制钱包的密钥导出
 
-**开始使用**：按照 [CDP 非托管钱包文档](https://docs.cdp.coinbase.com/wallets/non-custodial-wallets/overview)为您的应用程序选择用户认证或 API 密钥快速入门。
+**Stable 集成**
+
+Stable 不是 CDP 托管的网络。请使用链 ID `988` 和 `https://rpc.stable.xyz` 将其配置为自定义网络，或使用 CDP 签名并通过 Stable RPC 广播交易。
+
+Coinbase Onramp 不会将资金直接交付到 Stable。完整的资金流如下：
+
+1. 在 Coinbase 支持的网络上使用 Coinbase Onramp。
+2. 使用单独的桥接或编排服务，将资金以 USDT0 的形式转入 Stable。
+
+CDP 托管的余额、转账、互换、质押、法币入口和出口功能不应被视为对 Stable 的原生支持。
+
+**开始使用**：按照 [CDP 非托管钱包文档](https://docs.cdp.coinbase.com/wallets/non-custodial-wallets/overview)选择用户认证或 API 密钥快速入门。
 
 ### Dynamic
 

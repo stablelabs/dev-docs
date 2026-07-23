@@ -1,11 +1,214 @@
 ---
 source_path: reference/bridges.mdx
-source_sha: 6bb5564e9c8ac9625112f5e5e53afe3e82c7e394
-title: "桥"
-description: "比较桥提供商、意图网络、支持的资产、合约和传输到 Stable 和从 Stable 传输的费用。"
+source_sha: eb8757fb57671fe50bbe3005cd2f9e053164de8d
+title: "跨链桥"
+description: "比较跨链桥提供商、意图网络、支持资产、合约和传输到 Stable 和从 Stable 传输的费用。"
 diataxis: "reference"
 ---
 
-# 桥
+# 跨链桥
 
-使用此参考资料比较支持 Stable 的桥接接口
+使用此参考来比较支持 Stable 的跨链桥界面、跨链基础设施、聚合器和意图网络。有关 USDT0 传输机制，请参阅[将 USDT0 桥接到 Stable](/cn/explanation/usdt0-bridging)。有关动手演练，请参阅[将 USDT0 桥接到 Stable 测试网](/cn/tutorial/bridge-usdt0)教程。
+
+:::tip[希望将资金转移到 Stable 或从 Stable 转移资金？]
+使用 [Stable Hub](https://hub.stable.xyz/) 在主网上进行桥接。
+
+正在构建集成？请继续阅读以下内容，比较跨链桥提供商、意图网络、合约和费用。
+
+正在进行编程测试？请按照[使用 TypeScript 将 USDT0 桥接到 Stable 测试网](/cn/tutorial/bridge-usdt0)进行操作。
+:::
+
+---
+
+## USDT0 源链
+
+任何拥有 USDT0 的链都可以通过 OFT Mesh 桥接到 Stable。任何拥有原生 USDT 的链都可以通过 Arbitrum 中心通过 Legacy Mesh 进行路由。当前的参与者：
+
+| 路径 | 示例链 | 机制 | 费用 |
+| :--- | :--- | :--- | :--- |
+| **OFT Mesh** | Arbitrum, Bera, Conflux, Ethereum, Flare, Hedera, Hyperliquid, Ink, Mantle, MegaETH, Monad, Morph, MP1, Optimism, Plasma, Polygon, Rootstock, Sei, Tempo, Unichain, X Layer | 在源链上销毁，在 Stable 上铸造 | 仅源链 gas 费 |
+| **Legacy Mesh** | Tron, TON | 锁定原生 USDT → Arbitrum 中心 → 在 Stable 上铸造 USDT0 | 0.03% + 源链 gas 费 |
+
+Ethereum 和 Arbitrum 都支持这两种路径：持有原生 USDT 的用户可以使用 Legacy Mesh，而持有 USDT0 的用户可以直接使用 OFT Mesh。
+
+---
+
+## 合约地址
+
+| | 测试网 (链 ID 2201) | 主网 (链 ID 988) |
+| :--- | :--- | :--- |
+| **LayerZero EID** | `40374` | 参见 [LayerZero 部署的合约](https://docs.layerzero.network/v2/deployments/deployed-contracts?chains=stable) |
+| **LayerZero Endpoint V2** | `0x3aCAAf60502791D199a5a5F0B173D78229eBFe32` | 参见 LayerZero 文档 |
+| **USDT0 token** | `0x78Cf24370174180738C5B8E352B6D14c83a6c9A9` | `0x779Ded0c9e1022225f8E0630b35a9b54bE713736` |
+| **USDT0 OApp (on Stable)** | N/A | `0xedaba024be4d87974d5aB11C6Dd586963CcCB027` |
+| **Source USDT0 (Sepolia)** | `0xc4DCC311c028e341fd8602D8eB89c5de94625927` | 在源链上使用主网 USDT0 |
+| **Source OApp (Sepolia)** | `0xc099cD946d5efCC35A99D64E808c1430cEf08126` | 在源链上使用主网 OApp |
+| **LiFi Diamond (Stable mainnet)** | N/A | `0x026F252016A7C47CDEf1F05a3Fc9E20C92a49C37` |
+
+有关完整的测试网合约列表（LayerZero 端点、DVN、执行器），请参阅[测试网生态系统合约](/cn/reference/testnet-ecosystem)。
+
+---
+
+## STABLE OFT 合约
+
+STABLE 代币使用 LayerZero OFT 标准桥接到其他链。Stable 上的适配器锁定 STABLE 以进行出站传输；每个远程链上的可升级代理铸造和销毁封装的供应。有关安全模型和每个合约角色的描述，请参阅[跨链桥安全和 DVN](/cn/explanation/bridge-security)。
+
+| 链 | 合约 | 地址 |
+| :--- | :--- | :--- |
+| **Stable** | `StableOFTAdapter` | `0x386f92606b2D5E0A992ECc3704c31eF39Ff56392` |
+| **BSC** | `StableOFTUpgradeable` (代理) | `0x011EBe7d75E2C9D1E0bD0be0bEf5C36f0A90075F` |
+| **HyperEVM** | `StableOFTUpgradeable` (代理) | `0xa51dC81944a15623874981181a99D6c56B20ED56` |
+
+:::note
+远程链地址不同，尽管它们都与 EVM 兼容。在 HyperCore 上激活目标地址需要一笔交易，这将推进部署随机数并生成与 BSC 不同的确定性地址。请参阅 [stablelabs/chain-oft](https://github.com/stablelabs/chain-oft) 获取规范配置。
+:::
+
+---
+
+## Stable 的 DVN 运营商
+
+Stable 的跨链桥运行 3/3 所需的 DVN 配置：三个独立运营商必须分别签署每个跨链消息才能被接受。没有可选池。三个所需的签名者及其 DVN 合约地址：
+
+| 运营商 | DVN 地址 |
+| :--- | :--- |
+| **LayerZero Labs** | `0x9c061c9a4782294eef65ef28cb88233a987f4bdd` |
+| **Canary** | `0x8d6cc20d84fbeb5733c60436ceb8957da2ac02c8` |
+| **Horizen** | `0x965a80dc87cec5848310e612dead84b543aef874` |
+
+有关每个路径的链上配置，请参阅 [LayerZero 部署的合约](https://docs.layerzero.network/v2/deployments/deployed-contracts?chains=stable)。有关安全基本原理，请参阅[跨链桥安全和 DVN](/cn/explanation/bridge-security)。
+
+---
+
+## 跨链桥提供商
+
+跨链桥通过协议定义的验证和结算，在链之间移动资产。以下选项包括用户界面、消息传递协议、流动性桥、聚合器和互操作性基础设施。
+
+| **提供商** | **类型** | **状态** | **描述** | **文档 / 入门** |
+| :--- | :--- | :--- | :--- | :--- |
+| **[USDT0](https://usdt0.to)** | 官方资产跨链桥界面 | 实时 | 通过 OFT Mesh 传输 USDT0，通过 Legacy Mesh 传输原生 USDT | [https://usdt0.to](https://usdt0.to) |
+| **[LayerZero](https://docs.layerzero.network/v2)** | 跨链消息传递 (OFT) | 实时 | 通过 DVN 验证支持 USDT0 OFT 销毁/铸造传输 | [https://docs.layerzero.network/v2](https://docs.layerzero.network/v2) |
+| **[Chainlink CCIP](https://docs.chain.link/ccip)** | 跨链消息传递和代币传输 | 实时 | 在支持的 Stable 通道中传输 `BTC.b`、`LBTC` 和 `LINK` | [Stable CCIP 目录](https://docs.chain.link/ccip/directory/mainnet/chain/stable-mainnet) |
+| **[Stargate](https://docs.stargate.finance/introduction/overview)** | 直接桥接 (流动性池) | 实时 | 使用统一的流动性池进行稳定币路由 | [https://docs.stargate.finance](https://docs.stargate.finance/introduction/overview) |
+| **[Gas.Zip](https://dev.gas.zip/overview)** | 直接桥接 (流动性路由) | 实时 | 在支持的链之间路由流动性 | [https://dev.gas.zip](https://dev.gas.zip/overview) |
+| **[LiFi](https://docs.li.fi/api-reference/introduction)** | 桥聚合器 | 实时 | 路由多个桥和 DEX 交换 | [https://docs.li.fi](https://docs.li.fi/api-reference/introduction) |
+| **[Polymer](https://docs.polymerlabs.org/docs/build/start/)** | 跨链互操作性 (IBC) | 集成中 | 为以太坊兼容链提供基于 IBC 的消息传递 | [https://docs.polymerlabs.org](https://docs.polymerlabs.org/docs/build/start/) |
+
+### USDT0
+
+USDT0 界面提供 USDT0 和原生 USDT 的用户界面传输。它使用 LayerZero 作为底层跨链消息传递基础设施。
+
+**能力**
+
+- 通过 OFT Mesh 传输 USDT0
+- 通过 Legacy Mesh 路由原生 USDT
+- 在提交传输之前报价目标输出和费用
+
+### LayerZero
+
+LayerZero 支持 USDT0 OFT 销毁和铸造传输以及 Legacy Mesh 消息传递路径。
+
+**能力**
+
+- OFT 标准的源链销毁和目标链铸造传输
+- DVN 消息验证
+- 支持 USDT0 OFT 和 Legacy Mesh 路径
+
+### Chainlink CCIP
+
+Chainlink CCIP 在 Stable 上提供跨链消息传递和代币传输。CCIP 目录是当前信道、合约和支持代币的事实来源。
+
+**能力**
+
+- 任意跨链消息传递
+- `BTC.b`、`LBTC` 和 `LINK` 的代币传输
+- 通过 CCIP 目录发现当前的 Stable 主网路由和合约
+
+### Stargate
+
+Stargate 是一个带有稳定币路由的流动性池桥。
+
+**能力**
+
+- 跨链统一流动性池
+- 稳定币路由
+- 目标链流动性结算
+
+### Gas.Zip
+
+Gas.Zip 通过支持的流动性来源路由跨链传输。
+
+**能力**
+
+- 跨链流动性路由
+- 快速传输路由
+- 广泛的链覆盖
+
+### LiFi
+
+LiFi 聚合跨桥和 DEX 交换的路由。
+
+**能力**
+
+- 多桥路由优化
+- SDK 和 REST API 集成
+- DEX 交换聚合
+
+### Polymer
+
+Polymer 为以太坊兼容链提供基于 IBC 的跨链消息传递。其 Stable 集成正在进行中。
+
+**能力**
+
+- IBC 协议消息传递
+- 以太坊兼容互操作性
+
+---
+
+## 意图网络
+
+意图描述了您想要的结果，例如在 Stable 上接收特定代币。求解器提供目标资产并单独结算。这与通过固定跨链路由传输、锁定、销毁或铸造资产的桥不同。
+
+| **提供商** | **类型** | **状态** | **描述** | **文档 / 入门** |
+| :--- | :--- | :--- | :--- | :--- |
+| **[Aori](https://www.aori.io/)** | 意图结算网络 | 实时 | 求解器填写已签名的跨链交换意图，并通过 LayerZero 结算已完成的填充 | [https://docs.aori.io](https://docs.aori.io/) |
+| **[Relay](https://docs.relay.link/what-is-relay)** | 意图网络 | 集成中 | 求解器执行请求的跨链结果并处理结算 | [https://docs.relay.link](https://docs.relay.link/what-is-relay) |
+
+### Aori
+
+Aori 离线匹配已签名的跨链订单。求解器提供请求的目标资产，Aori 通过 LayerZero 在链上结算已完成的填充。
+
+**能力**
+
+- 已签名的跨链交换意图
+- 离线订单匹配
+- 求解器提供的目标流动性
+- 通过 LayerZero 进行链上结算
+
+### Relay
+
+Relay 使用求解器网络来执行请求的跨链结果。其 Stable 集成正在进行中。
+
+**能力**
+
+- 基于意图的传输
+- 求解器提供的执行
+- 求解器网络结算
+
+---
+
+## 费用结构
+
+| **提供商** | **费用模型** |
+| :--- | :--- |
+| **USDT0 (OFT Mesh)** | 仅源链 gas 费；无 USDT0 协议费 |
+| **USDT0 (Legacy Mesh)** | USDT0 团队收取转账金额的 0.03%，加上源链 gas 费 |
+| **Chainlink CCIP** | 费用因通道和传输代币而异；使用路由报价和 [Stable CCIP 目录](https://docs.chain.link/ccip/directory/mainnet/chain/stable-mainnet) |
+| **Stargate** | 适用流动性池费用；请参阅 [Stargate 文档](https://docs.stargate.finance/introduction/overview) |
+| **LiFi** | 根据所选路径，可能适用聚合器路由费用 |
+| **Gas.Zip** | 有关其当前费用表，请参阅 [Gas.Zip 文档](https://dev.gas.zip/overview) |
+| **Aori** | 费用包含在求解器报价中，并因路由而异 |
+| **Relay** | 适用求解器费用；请参阅 [Relay 文档](https://docs.relay.link/what-is-relay) |
+
+---
+
+是否有桥接 Stable 的桥？请联系 [bizdev@stable.xyz](mailto:bizdev@stable.xyz)。

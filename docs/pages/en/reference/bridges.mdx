@@ -1,16 +1,16 @@
 ---
 title: "Bridges"
-description: "Bridge providers, contract addresses, and fee structures for USDT0 transfers to and from Stable."
+description: "Compare bridge providers, intent networks, supported assets, contracts, and fees for transfers to and from Stable."
 diataxis: "reference"
 ---
 
 # Bridges
 
-Bridge providers supporting USDT0 transfers to and from Stable. For how cross-chain USDT0 movement works, see [Bridging to Stable](/en/explanation/usdt0-bridging). For a hands-on walkthrough, see the [Bridge USDT0 to Stable Testnet](/en/tutorial/bridge-usdt0) tutorial.
+Use this reference to compare bridge interfaces, cross-chain infrastructure, aggregators, and intent networks that support Stable. For USDT0 transfer mechanics, see [Bridging USDT0 to Stable](/en/explanation/usdt0-bridging). For a hands-on walkthrough, see the [Bridge USDT0 to Stable Testnet](/en/tutorial/bridge-usdt0) tutorial.
 
 ---
 
-## Supported source chains
+## USDT0 source chains
 
 Any chain with USDT0 can bridge to Stable via the OFT Mesh. Any chain with native USDT can route through the Legacy Mesh via the Arbitrum hub. Current participants:
 
@@ -71,48 +71,71 @@ For the on-chain config per pathway, see [LayerZero deployed contracts](https://
 
 ## Bridge providers
 
-| Provider | Type | Status | Description | Docs |
+A bridge moves assets between chains through protocol-defined verification and settlement. The options below include user-facing interfaces, messaging protocols, liquidity bridges, aggregators, and interoperability infrastructure.
+
+| **Provider** | **Type** | **Status** | **Description** | **Docs / Get started** |
 | :--- | :--- | :--- | :--- | :--- |
-| **[LayerZero](https://docs.layerzero.network/v2)** | Cross-chain messaging (OFT) | Live | Powers USDT0 OFT burn/mint transfers; dual DVN verification | [docs.layerzero.network/v2](https://docs.layerzero.network/v2) |
-| **[Stargate](https://docs.stargate.finance/introduction/overview)** | Direct bridge (liquidity pools) | Live | Unified liquidity pools; stablecoin-optimized routing | [docs.stargate.finance](https://docs.stargate.finance/introduction/overview) |
-| **[Gas.Zip](https://dev.gas.zip/overview)** | Direct bridge (liquidity routing) | Live | Liquidity routing across 350+ chains; fast finality | [dev.gas.zip](https://dev.gas.zip/overview) |
-| **[LiFi](https://docs.li.fi/api-reference/introduction)** | Bridge aggregator | Live | Routes across multiple bridges and DEX swaps; SDK + REST API | [docs.li.fi](https://docs.li.fi/api-reference/introduction) |
-| **[Polymer](https://docs.polymerlabs.org/docs/build/start/)** | Cross-chain interoperability (IBC) | Integration in progress | IBC-based messaging for Ethereum-native chains | [docs.polymerlabs.org](https://docs.polymerlabs.org/docs/build/start/) |
-| **[Relay](https://docs.relay.link/what-is-relay)** | Intent-based bridge | Integration in progress | Gasless execution via solver network | [docs.relay.link](https://docs.relay.link/what-is-relay) |
+| **[USDT0](https://usdt0.to)** | Official asset bridge interface | Live | Transfers USDT0 through the OFT Mesh and native USDT through the Legacy Mesh | [https://usdt0.to](https://usdt0.to) |
+| **[LayerZero](https://docs.layerzero.network/v2)** | Cross-chain messaging (OFT) | Live | Powers USDT0 OFT burn/mint transfers with DVN verification | [https://docs.layerzero.network/v2](https://docs.layerzero.network/v2) |
+| **[Chainlink CCIP](https://docs.chain.link/ccip)** | Cross-chain messaging and token transfer | Live | Transfers `BTC.b`, `LBTC`, and `LINK` across supported Stable lanes | [Stable CCIP Directory](https://docs.chain.link/ccip/directory/mainnet/chain/stable-mainnet) |
+| **[Stargate](https://docs.stargate.finance/introduction/overview)** | Direct bridge (liquidity pools) | Live | Uses unified liquidity pools for stablecoin routes | [https://docs.stargate.finance](https://docs.stargate.finance/introduction/overview) |
+| **[Gas.Zip](https://dev.gas.zip/overview)** | Direct bridge (liquidity routing) | Live | Routes liquidity across supported chains | [https://dev.gas.zip](https://dev.gas.zip/overview) |
+| **[LiFi](https://docs.li.fi/api-reference/introduction)** | Bridge aggregator | Live | Routes across multiple bridges and DEX swaps | [https://docs.li.fi](https://docs.li.fi/api-reference/introduction) |
+| **[Polymer](https://docs.polymerlabs.org/docs/build/start/)** | Cross-chain interoperability (IBC) | Integration in progress | Provides IBC-based messaging for Ethereum-compatible chains | [https://docs.polymerlabs.org](https://docs.polymerlabs.org/docs/build/start/) |
 
-### LayerZero
+### USDT0
 
-Cross-chain messaging protocol powering USDT0 OFT burn/mint transfers with dual DVN verification.
+The USDT0 interface provides user-facing transfers for USDT0 and native USDT. It uses LayerZero as the underlying cross-chain messaging infrastructure.
 
 **Capabilities**
 
-- OFT-standard burn-on-source, mint-on-destination transfers
-- Dual DVN (Decentralized Verifier Network) message verification
-- Powers both OFT Mesh and Legacy Mesh paths
+- Transfer USDT0 through the OFT Mesh
+- Route native USDT through the Legacy Mesh
+- Quote destination output and fees before submitting a transfer
+
+### LayerZero
+
+LayerZero powers USDT0 OFT burn-and-mint transfers and the Legacy Mesh messaging path.
+
+**Capabilities**
+
+- OFT-standard burn-on-source and mint-on-destination transfers
+- DVN message verification
+- Support for the USDT0 OFT and Legacy Mesh paths
+
+### Chainlink CCIP
+
+Chainlink CCIP provides cross-chain messaging and token transfers on Stable. The CCIP Directory is the source of truth for current lanes, contracts, and supported tokens.
+
+**Capabilities**
+
+- Arbitrary cross-chain messaging
+- Token transfers for `BTC.b`, `LBTC`, and `LINK`
+- Current Stable mainnet route and contract discovery through the CCIP Directory
 
 ### Stargate
 
-Liquidity pool-based bridge optimized for stablecoin routing.
+Stargate is a liquidity-pool bridge with stablecoin routes.
 
 **Capabilities**
 
 - Unified liquidity pools across chains
-- Stablecoin-optimized routing
-- Instant guaranteed finality
+- Stablecoin routing
+- Destination-chain liquidity settlement
 
 ### Gas.Zip
 
-Liquidity routing protocol supporting fast transfers across 350+ chains.
+Gas.Zip routes cross-chain transfers through supported liquidity sources.
 
 **Capabilities**
 
 - Cross-chain liquidity routing
-- Fast finality
-- Broad chain coverage (350+ chains)
+- Fast transfer routes
+- Broad chain coverage
 
 ### LiFi
 
-Bridge aggregator routing transfers across multiple bridges and DEX swaps.
+LiFi aggregates routes across bridges and DEX swaps.
 
 **Capabilities**
 
@@ -122,35 +145,59 @@ Bridge aggregator routing transfers across multiple bridges and DEX swaps.
 
 ### Polymer
 
-IBC-based cross-chain messaging for Ethereum-native chains. Integration in progress.
+Polymer provides IBC-based cross-chain messaging for Ethereum-compatible chains. Its Stable integration is in progress.
 
 **Capabilities**
 
-- IBC protocol messaging on Ethereum
-- Native interoperability without external validators
+- IBC protocol messaging
+- Ethereum-compatible interoperability
+
+---
+
+## Intent networks
+
+An intent describes the result you want, such as receiving a specific token on Stable. A solver supplies the destination assets and settles separately. This differs from a bridge that transfers, locks, burns, or mints assets through a fixed cross-chain route.
+
+| **Provider** | **Type** | **Status** | **Description** | **Docs / Get started** |
+| :--- | :--- | :--- | :--- | :--- |
+| **[Aori](https://www.aori.io/)** | Intent settlement network | Live | Solvers fill signed cross-chain swap intents and settle completed fills through LayerZero | [https://docs.aori.io](https://docs.aori.io/) |
+| **[Relay](https://docs.relay.link/what-is-relay)** | Intent network | Integration in progress | Solvers execute requested cross-chain outcomes and handle settlement | [https://docs.relay.link](https://docs.relay.link/what-is-relay) |
+
+### Aori
+
+Aori matches signed cross-chain orders off-chain. Solvers provide the requested destination assets, and Aori settles completed fills on-chain through LayerZero.
+
+**Capabilities**
+
+- Signed cross-chain swap intents
+- Off-chain order matching
+- Solver-provided destination liquidity
+- On-chain settlement through LayerZero
 
 ### Relay
 
-Intent-based bridge with gasless execution via a solver network. Integration in progress.
+Relay uses a solver network to execute requested cross-chain outcomes. Its Stable integration is in progress.
 
 **Capabilities**
 
-- Intent-based bridging
-- Gasless execution for users
-- Solver network settlement
+- Intent-based transfers
+- Solver-provided execution
+- Solver-network settlement
 
 ---
 
 ## Fee structure
 
-| Provider | Fee model |
+| **Provider** | **Fee model** |
 | :--- | :--- |
-| **LayerZero (OFT Mesh)** | Source chain gas only (no protocol fee) |
-| **LayerZero (Legacy Mesh)** | 0.03% of transferred amount (charged by USDT0 team) + source chain gas |
+| **USDT0 (OFT Mesh)** | Source chain gas only; no USDT0 protocol fee |
+| **USDT0 (Legacy Mesh)** | 0.03% of the transferred amount, charged by the USDT0 team, plus source chain gas |
+| **Chainlink CCIP** | Fees vary by lane and transferred token; use the route quote and [Stable CCIP Directory](https://docs.chain.link/ccip/directory/mainnet/chain/stable-mainnet) |
 | **Stargate** | Liquidity pool fees apply; see [Stargate docs](https://docs.stargate.finance/introduction/overview) |
-| **LiFi** | Aggregator routing fee may apply depending on path |
-| **Gas.Zip** | See [Gas.Zip docs](https://dev.gas.zip/overview) for current fee schedule |
-| **Relay** | Solver fees; see [Relay docs](https://docs.relay.link/what-is-relay) |
+| **LiFi** | Aggregator routing fees may apply depending on the selected path |
+| **Gas.Zip** | See [Gas.Zip docs](https://dev.gas.zip/overview) for its current fee schedule |
+| **Aori** | Fees are included in the solver quote and vary by route |
+| **Relay** | Solver fees apply; see [Relay docs](https://docs.relay.link/what-is-relay) |
 
 ---
 

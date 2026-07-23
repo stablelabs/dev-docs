@@ -1,43 +1,43 @@
 ---
 source_path: explanation/usdt-features-overview.mdx
-source_sha: 67a8a81a92b665ffc6eb9a704a78524905a219dd
-title: "概述"
-description: "Stable 五项 USDT 特有功能如何协同工作，使稳定币支付流程能够实际规模化应用。"
+source_sha: 57d3ff5eccb576fb54ee22d218ee257c2e845bff
+title: "概览"
+description: "Stable 的五个 USDT 特定功能如何协同工作，使稳定币支付流能够大规模实际应用。"
 diataxis: "explanation"
 ---
 
-# 概述
+# 概览
 
-Stable 的 USDT 特定功能并非相互独立的选项集合。它们是组合搭配的。每项功能都消除了稳定币支付从演示走向生产时出现的特定摩擦。本页面解释了为什么这五项功能共同存在。
+Stable 的 USDT 特有功能并非独立的选项菜单。它们相互复合。每个功能都消除了稳定币支付从演示走向生产过程中出现的特定摩擦。本页面解释了这五个功能为何协同存在。
 
 ## 摩擦堆栈
 
-大多数通用链上的稳定币支付架构都会遇到相同的堆栈问题：
+通用链上大多数稳定币支付架构都会遇到相同的系列问题：
 
-1.  **用户必须持有第二种代币** (ETH, SOL) 才能支付移动稳定币交易的 gas 费。这是一个导致转化率下降的入门步骤。
-2.  **即使有第二种代币，用户也必须支付 gas 费。** 这打破了商家和支付应用所需要的“一美元对一美元”的心智模型。
-3.  **交易成本随网络活动而波动。** 工资发放、财务运营和批量结算无法规划成本或包含性。
-4.  **每笔交易的限制限制了吞吐量。** 大量 USDT 资金流会遇到全链竞争，并与不相关的活动一样降低性能。
-5.  **每笔交易都可公开观察。** 供应商付款、薪资发放和财务转移会泄露具有商业敏感性的数据。
+1. **用户必须持有第二种代币**（ETH、SOL）才能支付用于移动稳定币的交易费用。这是一个导致转化率流失的入门步骤。
+2. **即使有第二种代币，用户也必须支付 Gas 费。**这打破了商家和支付应用所需的“一美元对一美元”的心理模型。
+3. **交易成本随网络活动波动。**薪资、财务操作和批量结算无法规划成本或纳入考量。
+4. **每笔交易的限制降低了吞吐量。**高容量的 USDT 流会遇到全链竞争，并与不相关的活动一起退化。
+5. **每笔交易都是公开可见的。**供应商付款、薪资发放和财务操作会泄露商业敏感数据。
 
 ## 功能如何协同
 
-Stable 通过专用机制解决每个摩擦：
+Stable 通过专用机制解决了每个摩擦：
 
 | 摩擦 | 机制 | 页面 |
 | :--- | :--- | :--- |
 | 单独的 Gas 代币 | USDT0 是原生 Gas 代币 | [USDT 作为 Gas](/cn/explanation/usdt-as-gas-token) |
-| 用户支付所有 Gas 费 | 治理授权的豁免涵盖 Gas 费 | [Gas 豁免](/cn/explanation/gas-waiver) |
-| 成本和包含性差异 | 为注册合作伙伴保留区块容量 | [保证的区块空间](/cn/explanation/guaranteed-blockspace) |
+| 用户支付所有 Gas | 治理授权的豁免涵盖 Gas | [Gas 豁免](/cn/explanation/gas-waiver) |
+| 成本和纳入差异 | 为注册合作伙伴保留区块容量 | [保证区块空间](/cn/explanation/guaranteed-blockspace) |
 | 吞吐量上限 | 并行化 USDT0 传输批处理 | [USDT 传输聚合器](/cn/explanation/usdt-transfer-aggregator) |
-| 公开金额可见性 | 通过 ZK 加密实现选择性隐私 | [保密传输](/cn/explanation/confidential-transfer) |
+| 公开数量可见性 | 通过 ZK 加密实现选择性隐私 | [保密传输](/cn/explanation/confidential-transfer) |
 
-其中任何一项都有帮助。将它们结合起来，它们使 Stable 成为一个支付团队可以像在传统卡网络上一样建模成本、延迟和隐私的链，同时具有区块链的结算终结性。
+其中任何一个都有帮助。综合起来，它们使 Stable 成为一个链，支付团队可以在其中像在传统卡网络上一样，对成本、延迟和隐私进行建模，并具有区块链的结算最终性。
 
-有关 Stable 与通用 EVM 链之间所有差异的完整信息，请参阅[以太坊对比](/cn/explanation/ethereum-comparison)。有关 USDT 端到端通过这些功能的实际示例，请参阅[资金流转](/cn/explanation/flow-of-funds)。
+有关 Stable 与通用 EVM 链之间的所有区别，请参阅[以太坊比较](/cn/explanation/ethereum-comparison)。有关 USDT 经过这些功能端到端移动的具体示例，请参阅[资金流](/cn/explanation/flow-of-funds)。
 
-## 下一步建议
+## 推荐下一步
 
--   [**USDT 作为 Gas**](/cn/explanation/usdt-as-gas-token)：了解同时替代 ETH 作为 Gas 和支付的资产。
--   [**资金流转**](/cn/explanation/flow-of-funds)：追踪 USDT 从入金到链上转移再到出金结算的整个过程。
--   [**桥接到 Stable**](/cn/explanation/usdt0-bridging)：了解 USDT0 如何从其他链转移到 Stable。
+- [**USDT 作为 Gas**](/cn/explanation/usdt-as-gas-token)：了解同时替代 ETH 作为 Gas 和支付的资产。
+- [**资金流**](/cn/explanation/flow-of-funds)：追踪 USDT 从充值到链上转账再到提现结算的全过程。
+- [**将 USDT0 桥接到 Stable**](/cn/explanation/usdt0-bridging)：了解 USDT0 如何从其他链移动到 Stable。

@@ -1,22 +1,216 @@
 ---
 source_path: reference/bridges.mdx
-source_sha: 6bb5564e9c8ac9625112f5e5e53afe3e82c7e394
+source_sha: 32f8003347cb3efc6a860c1809759b338e936cbe
 title: "브릿지"
-description: "Stable 입출금 전송을 위한 브릿지 공급자, 인텐트 네트워크, 지원 자산, 계약 및 수수료를 비교하세요."
+description: "Stable로 및 Stable로부터의 이전을 위한 브릿지 제공자, 인텐트 네트워크, 지원 자산, 컨트랙트 및 수수료를 비교합니다."
 diataxis: "reference"
 ---
 
 # 브릿지
 
-Stable을 지원하는 브릿지 인터페이스, 크로스체인 인프라, 애그리게이터 및 인텐트 네트워크를 비교하려면 이 레퍼런스를 사용하세요. USDT0 전송 메커니즘에 대한 자세한 내용은 [Stable로 USDT0 브릿지하기](/ko/explanation/usdt0-bridging)를 참조하세요. 실제 작동 방식에 대한 자세한 내용은 [Stable 테스트넷으로 USDT0 브릿지하기](/ko/tutorial/bridge-usdt0) 튜토리얼을 참조하세요.
+Stable을 지원하는 브릿지 인터페이스, 크로스체인 인프라, 애그리게이터 및 인텐트 네트워크를 비교하려면 이 참조를 사용하세요. USDT0 전송 메커니즘에 대한 자세한 내용은 [USDT0를 Stable로 브릿징](/ko/explanation/usdt0-bridging)을 참조하십시오. 실습 가이드는 [USDT0를 Stable Testnet으로 브릿징](/ko/tutorial/bridge-usdt0) 튜토리얼을 참조하십시오.
+
+:::tip[자금을 Stable로 옮기시겠습니까?]
+메인넷에서 브릿지하려면 [Stable Hub](https://hub.stable.xyz/bridge)를 사용하십시오.
+
+[Stable Hub에서 브릿지 연결](https://hub.stable.xyz/bridge)
+
+통합을 구축하시겠습니까? 브릿지 제공자, 인텐트 네트워크, 계약 및 수수료를 비교하려면 아래를 계속하십시오.
+
+프로그래밍 방식으로 테스트하시겠습니까? [TypeScript를 사용하여 USDT0를 Stable Testnet으로 브릿징](/ko/tutorial/bridge-usdt0)을 따르십시오.
+:::
 
 ---
 
 ## USDT0 소스 체인
 
-USDT0가 있는 모든 체인은 OFT Mesh를 통해 Stable로 브릿지할 수 있습니다. 기본 USDT가 있는 모든 체인은 Arbitrum 허브를 통해 Legacy Mesh를 통해 라우팅할 수 있습니다. 현재 참여자:
+USDT0가 있는 모든 체인은 OFT Mesh를 통해 Stable로 브릿지할 수 있습니다. 기본 USDT가 있는 모든 체인은 Arbitrum 허브를 통해 Legacy Mesh로 라우팅할 수 있습니다. 현재 참여자:
 
 | 경로 | 예시 체인 | 메커니즘 | 수수료 |
 | :--- | :--- | :--- | :--- |
 | **OFT Mesh** | Arbitrum, Bera, Conflux, Ethereum, Flare, Hedera, Hyperliquid, Ink, Mantle, MegaETH, Monad, Morph, MP1, Optimism, Plasma, Polygon, Rootstock, Sei, Tempo, Unichain, X Layer | 소스에서 소각, Stable에서 발행 | 소스 체인 가스만 |
-| **Legacy Mesh** | Tron, TON | 기본 USDT 잠금 → Arbitrum 허브 → Stable에서 USDT0 발행 | 0.03
+| **Legacy Mesh** | Tron, TON | 기본 USDT 잠금 → Arbitrum 허브 → Stable에서 USDT0 발행 | 0.03% + 소스 체인 가스 |
+
+이더리움과 아비트럼은 두 가지 경로를 모두 지원합니다. 기본 USDT를 보유한 사용자는 Legacy Mesh를 사용할 수 있고, USDT0를 보유한 사용자는 OFT Mesh를 직접 사용할 수 있습니다.
+
+---
+
+## 컨트랙트 주소
+
+| | 테스트넷 (체인 ID 2201) | 메인넷 (체인 ID 988) |
+| :--- | :--- | :--- |
+| **LayerZero EID** | `40374` | [LayerZero 배포된 컨트랙트](https://docs.layerzero.network/v2/deployments/deployed-contracts?chains=stable) 참조 |
+| **LayerZero Endpoint V2** | `0x3aCAAf60502791D199a5a5F0B173D78229eBFe32` | LayerZero 문서 참조 |
+| **USDT0 토큰** | `0x78Cf24370174180738C5B8E352B6D14c83a6c9A9` | `0x779Ded0c9e1022225f8E0630b35a9b54bE713736` |
+| **USDT0 OApp (on Stable)** | N/A | `0xedaba024be4d87974d5aB11C6Dd586963CcCB027` |
+| **Source USDT0 (Sepolia)** | `0xc4DCC311c028e341fd8602D8eB89c5de94625927` | 소스 체인에서 메인넷 USDT0 사용 |
+| **Source OApp (Sepolia)** | `0xc099cD946d5efCC35A99D64E808c1430cEf08126` | 소스 체인에서 메인넷 OApp 사용 |
+| **LiFi Diamond (Stable mainnet)** | N/A | `0x026F252016A7C47CDEf1F05a3Fc9E20C92a49C37` |
+
+전체 테스트넷 컨트랙트 목록(LayerZero 엔드포인트, DVN, 실행기)은 [테스트넷 생태계 컨트랙트](/ko/reference/testnet-ecosystem)를 참조하세요.
+
+---
+
+## STABLE OFT 컨트랙트
+
+STABLE 토큰은 LayerZero OFT 표준을 사용하여 다른 체인으로 브릿지됩니다. Stable의 어댑터는 아웃바운드 전송을 위해 STABLE을 잠급니다. 각 원격 체인의 업그레이드 가능한 프록시는 래핑된 공급을 발행 및 소각합니다. 보안 모델 및 각 컨트랙트의 역할에 대한 설명은 [브릿지 보안 및 DVN](/ko/explanation/bridge-security)을 참조하세요.
+
+| 체인 | 컨트랙트 | 주소 |
+| :--- | :--- | :--- |
+| **Stable** | `StableOFTAdapter` | `0x386f92606b2D5E0A992ECc3704c31eF39Ff56392` |
+| **BSC** | `StableOFTUpgradeable` (프록시) | `0x011EBe7d75E2C9D1E0bD0be0bEf5C36f0A90075F` |
+| **HyperEVM** | `StableOFTUpgradeable` (프록시) | `0xa51dC81944a15623874981181a99D6c56B20ED56` |
+
+:::note
+두 체인 모두 EVM 호환이지만 원격 체인 주소는 다릅니다. HyperCore에서 대상 주소를 활성화하려면 트랜잭션이 필요하며, 이는 배포 nonce를 발전시키고 BSC와 다른 확정적 주소를 생성합니다. 정식 구성에 대한 자세한 내용은 [stablelabs/chain-oft](https://github.com/stablelabs/chain-oft)를 참조하세요.
+:::
+
+---
+
+## Stable의 DVN 운영자
+
+Stable의 브릿지는 3/3 필수 DVN 구성을 실행합니다. 세 명의 독립적인 운영자가 모든 크로스체인 메시지를 수락하기 전에 각각 서명해야 합니다. 선택적 풀은 없습니다. 세 명의 필수 서명자와 DVN 계약 주소는 다음과 같습니다.
+
+| 운영자 | DVN 주소 |
+| :--- | :--- |
+| **LayerZero 연구소** | `0x9c061c9a4782294eef65ef28cb88233a987f4bdd` |
+| **Canary** | `0x8d6cc20d84fbeb5733c60436ceb8957da2ac02c8` |
+| **Horizen** | `0x965a80dc87cec5848310e612dead84b543aef874` |
+
+경로별 온체인 구성에 대한 자세한 내용은 [LayerZero 배포된 컨트랙트](https://docs.layerzero.network/v2/deployments/deployed-contracts?chains=stable)를 참조하세요. 보안 근거에 대한 자세한 내용은 [브릿지 보안 및 DVN](/ko/explanation/bridge-security)을 참조하세요.
+
+---
+
+## 브릿지 제공자
+
+브릿지는 프로토콜 정의 검증 및 정산을 통해 체인 간 자산을 이동시킵니다. 아래 옵션에는 사용자 대면 인터페이스, 메시징 프로토콜, 유동성 브릿지, 애그리게이터 및 상호 운용성 인프라가 포함됩니다.
+
+| **제공자** | **유형** | **상태** | **설명** | **문서 / 시작하기** |
+| :--- | :--- | :--- | :--- | :--- |
+| **[USDT0](https://usdt0.to)** | 공식 자산 브릿지 인터페이스 | 라이브 | OFT Mesh를 통해 USDT0를 전송하고 Legacy Mesh를 통해 네이티브 USDT를 전송합니다. | [https://usdt0.to](https://usdt0.to) |
+| **[LayerZero](https://docs.layerzero.network/v2)** | 크로스체인 메시징 (OFT) | 라이브 | DVN 검증을 통해 USDT0 OFT 소각/발행 전송을 지원합니다. | [https://docs.layerzero.network/v2](https://docs.layerzero.network/v2) |
+| **[Chainlink CCIP](https://docs.chain.link/ccip)** | 크로스체인 메시징 및 토큰 전송 | 라이브 | 지원되는 Stable 레인을 통해 `BTC.b`, `LBTC`, `LINK`를 전송합니다. | [Stable CCIP 디렉토리](https://docs.chain.link/ccip/directory/mainnet/chain/stable-mainnet) |
+| **[Stargate](https://docs.stargate.finance/introduction/overview)** | 직접 브릿지 (유동성 풀) | 라이브 | 스테이블코인 경로에 통합 유동성 풀을 사용합니다. | [https://docs.stargate.finance](https://docs.stargate.finance/introduction/overview) |
+| **[Gas.Zip](https://dev.gas.zip/overview)** | 직접 브릿지 (유동성 라우팅) | 라이브 | 지원되는 체인 간에 유동성을 라우팅합니다. | [https://dev.gas.zip](https://dev.gas.zip/overview) |
+| **[LiFi](https://docs.li.fi/api-reference/introduction)** | 브릿지 애그리게이터 | 라이브 | 여러 브릿지 및 DEX 스왑을 통해 라우팅합니다. | [https://docs.li.fi](https://docs.li.fi/api-reference/introduction) |
+| **[Polymer](https://docs.polymerlabs.org/docs/build/start/)** | 크로스체인 상호 운용성 (IBC) | 통합 진행 중 | 이더리움 호환 체인을 위한 IBC 기반 메시징을 제공합니다. | [https://docs.polymerlabs.org](https://docs.polymerlabs.org/docs/build/start/) |
+
+### USDT0
+
+USDT0 인터페이스는 USDT0 및 기본 USDT에 대한 사용자 대면 이전을 제공합니다. 이는 LayerZero를 기본적인 크로스체인 메시징 인프라로 사용합니다.
+
+**기능**
+
+- OFT Mesh를 통해 USDT0 전송
+- Legacy Mesh를 통해 기본 USDT 라우팅
+- 전송 제출 전에 대상 출력 및 수수료 견적
+
+### LayerZero
+
+LayerZero는 USDT0 OFT 소각 및 발행 전송과 Legacy Mesh 메시징 경로를 지원합니다.
+
+**기능**
+
+- OFT 표준 소스에서 소각, 대상에서 발행 전송
+- DVN 메시지 검증
+- USDT0 OFT 및 Legacy Mesh 경로 지원
+
+### Chainlink CCIP
+
+Chainlink CCIP는 Stable에서 크로스체인 메시징 및 토큰 전송을 제공합니다. CCIP 디렉토리는 현재 레인, 컨트랙트 및 지원되는 토큰에 대한 진실의 원천입니다.
+
+**기능**
+
+- 임의의 크로스체인 메시징
+- `BTC.b`, `LBTC`, `LINK`에 대한 토큰 전송
+- CCIP 디렉토리를 통한 현재 Stable 메인넷 경로 및 컨트랙트 검색
+
+### Stargate
+
+Stargate는 스테이블코인 경로가 있는 유동성 풀 브릿지입니다.
+
+**기능**
+
+- 체인 간 통합 유동성 풀
+- 스테이블코인 라우팅
+- 대상 체인 유동성 정산
+
+### Gas.Zip
+
+Gas.Zip은 지원되는 유동성 소스를 통해 크로스체인 전송을 라우팅합니다.
+
+**기능**
+
+- 크로스체인 유동성 라우팅
+- 빠른 전송 경로
+- 광범위한 체인 커버리지
+
+### LiFi
+
+LiFi는 브릿지 및 DEX 스왑을 통해 경로를 집계합니다.
+
+**기능**
+
+- 다중 브릿지 경로 최적화
+- SDK 및 REST API 통합
+- DEX 스왑 집계
+
+### Polymer
+
+폴리머는 이더리움 호환 체인을 위한 IBC 기반 크로스체인 메시징을 제공합니다. Stable 통합은 진행 중입니다.
+
+**기능**
+
+- IBC 프로토콜 메시징
+- 이더리움 호환 상호 운용성
+
+---
+
+## 인텐트 네트워크
+
+인텐트는 Stable에서 특정 토큰을 받는 것과 같이 원하는 결과를 설명합니다. 솔버는 대상 자산을 제공하고 별도로 정산합니다. 이는 고정된 크로스체인 경로를 통해 자산을 전송, 잠금, 소각 또는 발행하는 브릿지와 다릅니다.
+
+| **제공자** | **유형** | **상태** | **설명** | **문서 / 시작하기** |
+| :--- | :--- | :--- | :--- | :--- |
+| **[Aori](https://www.aori.io/)** | 인텐트 정산 네트워크 | 라이브 | 솔버는 서명된 크로스체인 스왑 인텐트를 채우고 LayerZero를 통해 완료된 채우기를 정산합니다. | [https://docs.aori.io](https://docs.aori.io/) |
+| **[Relay](https://docs.relay.link/what-is-relay)** | 인텐트 네트워크 | 통합 진행 중 | 솔버는 요청된 크로스체인 결과를 실행하고 정산을 처리합니다. | [https://docs.relay.link](https://docs.relay.link/what-is-relay) |
+
+### 아오리
+
+Aori는 오프체인에서 서명된 크로스체인 주문을 매칭합니다. 솔버는 요청된 대상 자산을 제공하고, Aori는 LayerZero를 통해 온체인에서 완료된 채우기를 정산합니다.
+
+**기능**
+
+- 서명된 크로스체인 스왑 인텐트
+- 오프체인 주문 매칭
+- 솔버가 제공하는 대상 유동성
+- LayerZero를 통한 온체인 정산
+
+### 릴레이
+
+릴레이는 솔버 네트워크를 사용하여 요청된 크로스체인 결과를 실행합니다. Stable과의 통합은 진행 중입니다.
+
+**기능**
+
+- 인텐트 기반 전송
+- 솔버가 제공하는 실행
+- 솔버 네트워크 정산
+
+---
+
+## 수수료 구조
+
+| **제공자** | **수수료 모델** |
+| :--- | :--- |
+| **USDT0 (OFT Mesh)** | 소스 체인 가스만; USDT0 프로토콜 수수료 없음 |
+| **USDT0 (Legacy Mesh)** | 전송 금액의 0.03%(USDT0 팀이 부과) 및 소스 체인 가스 |
+| **Chainlink CCIP** | 레인 및 전송된 토큰에 따라 수수료 상이; 경로 견적 및 [Stable CCIP Directory](https://docs.chain.link/ccip/directory/mainnet/chain/stable-mainnet) 참조 |
+| **Stargate** | 유동성 풀 수수료 적용; [Stargate 문서](https://docs.stargate.finance/introduction/overview) 참조 |
+| **LiFi** | 선택된 경로에 따라 애그리게이터 라우팅 수수료가 적용될 수 있습니다. |
+| **Gas.Zip** | 현재 수수료 일정에 대한 자세한 내용은 [Gas.Zip 문서](https://dev.gas.zip/overview)를 참조하십시오. |
+| **아오리** | 수수료는 솔버 견적에 포함되며 경로에 따라 다릅니다. |
+| **릴레이** | 솔버 수수료가 적용됩니다. [릴레이 문서](https://docs.relay.link/what-is-relay)를 참조하십시오. |
+
+---
+
+Stable을 통합하는 브릿지가 있습니까? [bizdev@stable.xyz](mailto:bizdev@stable.xyz)로 연락주세요.

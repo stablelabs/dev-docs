@@ -1,20 +1,20 @@
 ---
 source_path: how-to/create-wallet.mdx
-source_sha: 0735e9a5c8737cb5606dd4ea1d7406859b371377
-title: "지갑 생성하기"
-description: "ethers.js 또는 Tether WDK를 사용하여 새로운 Stable 지갑을 생성하거나 시드 구문으로 지갑을 복원합니다."
+source_sha: 4b3b9be0bb4d643712c86cd2622554cc03fec4f1
+title: "지갑 생성"
+description: "ethers.js 또는 Tether WDK를 사용하여 새 Stable 지갑을 생성하거나 시드 구문으로 복원합니다."
 diataxis: "how-to"
 ---
 
-# 지갑 생성하기
+# 지갑 생성
 
-Stable 지갑은 이더리움 표준 키 페어입니다. EVM 계정을 생성하는 모든 지갑 라이브러리는 수정 없이 Stable에서 작동합니다. 이 가이드는 두 가지 경로를 보여줍니다: 대부분의 애플리케이션에 적합한 ethers.js, 그리고 에이전트 및 결제를 위한 턴키 자체 보관 레이어를 원하는 통합을 위한 Tether의 [WDK(Wallet Development Kit)](https://github.com/tetherto/wdk).
+Stable 지갑은 이더리움 표준 키 페어입니다. EVM 계정을 생성하는 모든 지갑 라이브러리는 수정 없이 Stable에서 작동합니다. 이 가이드는 두 가지 방법을 보여줍니다. 대부분의 애플리케이션을 위한 ethers.js와 에이전트 및 결제를 위한 턴키 자체 보관 계층을 원하는 통합을 위한 Tether의 [WDK (Wallet Development Kit)](https://github.com/tetherto/wdk)입니다.
 
 :::note
-등록도, Stable 특정 계정 설정도 필요하지 않습니다. 지갑은 [테스트넷 수도꼭지](/ko/how-to/use-faucet) 또는 메인넷 전송을 통해 USDT0를 즉시 받을 수 있습니다.
+등록이나 Stable 특정 계정 설정이 필요 없습니다. 지갑은 [테스트넷 수도꼭지](/ko/how-to/use-faucet) 또는 메인넷 전송으로부터 즉시 USDT0를 받을 수 있습니다.
 :::
 
-## 필수 조건
+## 전제 조건
 
 - Node.js 20 이상.
 
@@ -38,11 +38,11 @@ export function createWallet() {
   return {
     wallet,
     address: wallet.address,
-    seedPhrase: wallet.mnemonic!.phrase, // 백업을 위해 사용자에게 한 번만 보여줍니다.
+    seedPhrase: wallet.mnemonic!.phrase, // 백업을 위해 사용자에게 한 번 표시
   };
 }
 
-/** 시드 구문으로 지갑을 복원합니다(재방문 사용자). */
+/** 시드 구문으로 지갑을 복원합니다 (기존 사용자). */
 export function restoreWallet(seedPhrase: string) {
   const wallet = ethers.Wallet.fromPhrase(seedPhrase, provider);
   return { wallet, address: wallet.address };
@@ -65,12 +65,12 @@ Seed phrase: liberty shoot ... (12 words)
 ```
 
 :::warning
-프로덕션 환경에서 시드 구문을 일반 텍스트로 기록하거나 저장하지 마십시오. 저장 시 암호화하거나 비밀 관리자를 사용하십시오. `ethers.Wallet.createRandom`은 호출당 한 번씩 구문을 반환합니다. 잃어버리면 자금을 복구할 수 없습니다.
+프로덕션 환경에서 시드 구문을 일반 텍스트로 기록하거나 저장하지 마세요. 저장 시 암호화하거나 비밀 관리자를 사용하세요. `ethers.Wallet.createRandom`은 호출당 한 번 구문을 반환합니다. 잃어버리면 자금을 복구할 수 없습니다.
 :::
 
 ## 옵션 2: Tether WDK
 
-WDK는 키 도출, 서명 및 트랜잭션 제출을 단일 인터페이스로 래핑합니다. 일반적인 계정 흐름을 재구현하지 않고도 자체 보관을 원할 때 올바른 선택이며, 에이전트 결제를 위해 [x402](/ko/how-to/build-pay-per-call)와 직접 통합됩니다.
+WDK는 키 도출, 서명 및 트랜잭션 제출을 단일 인터페이스로 묶습니다. 일반적인 계정 흐름을 재구현하지 않고 자체 보관을 원할 때 적합하며, 에이전트 결제를 위해 [x402](/ko/how-to/build-pay-per-call)와 직접 통합됩니다.
 
 ```bash
 npm install @tetherto/wdk @tetherto/wdk-wallet-evm
@@ -96,11 +96,11 @@ export async function createWallet() {
   return {
     account,
     address: await account.getAddress(),
-    seedPhrase, // 백업을 위해 사용자에게 한 번만 보여줍니다.
+    seedPhrase, // 백업을 위해 사용자에게 한 번 표시
   };
 }
 
-/** 시드 구문으로 지갑을 복원합니다(재방문 사용자). */
+/** 시드 구문으로 지갑을 복원합니다 (기존 사용자). */
 export async function restoreWallet(seedPhrase: string) {
   const wdk = initWdk(seedPhrase);
   const account = await wdk.getAccount("stable", 0);
@@ -117,19 +117,19 @@ Address:     0xAlice...1234
 Seed phrase: liberty shoot ... (12 words)
 ```
 
-## 지갑에 자금 조달
+## 지갑 자금 조달
 
-지갑이 거래를 시작하기 전에 가스용 USDT0가 필요합니다. 테스트넷에서는 수도꼭지에서 요청합니다:
+지갑이 트랜잭션을 수행하기 전에 가스용 USDT0가 필요합니다. 테스트넷에서는 수도꼭지에서 요청하세요.
 
 ```bash
 open https://faucet.stable.xyz
 ```
 
-주소를 붙여넣고 버튼을 선택하여 1개의 테스트넷 USDT0 (수천 건의 기본 전송에 충분함)을 받으세요. 메인넷의 경우 지원되는 모든 거래소 또는 브리지에서 USDT0를 보내십시오. [Stable로 브리징](/ko/explanation/usdt0-bridging)을 참조하십시오.
+주소를 붙여넣고 버튼을 선택하여 1 테스트넷 USDT0를 받습니다 (수천 번의 기본 전송에 충분함). 메인넷의 경우, 지원되는 모든 거래소 또는 브릿지에서 USDT0를 보냅니다. [Stable로 USDT0 브릿지하기](/ko/explanation/usdt0-bridging)를 참조하세요.
 
 ## 잔액 확인
 
-기본 USDT0는 18자릿수를 사용합니다. 기본 잔액은 가스가 지불되는 잔액입니다.
+네이티브 USDT0는 18개의 소수 자릿수를 사용합니다. 가스가 지불되는 것은 네이티브 잔액입니다.
 
 ```typescript
 // balance.ts
@@ -148,8 +148,8 @@ npx tsx balance.ts
 Balance: 1.0 USDT0
 ```
 
-## 다음에 권장되는 사항
+## 다음 권장 사항
 
 - [**EIP-7702로 위임하기**](/ko/how-to/account-abstraction): 이 지갑에 배치 결제, 지출 한도 및 세션 키를 추가합니다.
-- [**첫 USDT0 전송하기**](/ko/tutorial/send-usdt0): 동일한 잔액에서 기본 및 ERC-20 전송.
-- [**테스트넷 지갑에 자금 조달하기**](/ko/how-to/use-faucet): 더 큰 테스트 잔액을 위한 수도꼭지 및 Sepolia 브리지 옵션.
+- [**첫 USDT0 보내기**](/ko/tutorial/send-usdt0): 동일한 잔액에서 네이티브 및 ERC-20 전송.
+- [**테스트넷 지갑에 자금 조달하기**](/ko/how-to/use-faucet): 더 많은 테스트 잔액을 위한 수도꼭지 및 Sepolia 브릿지 옵션.

@@ -48,9 +48,11 @@ Before returning any page, read it back and answer these four questions. Fix any
 | STABLE | Referring to the token (all caps) | Stable (when meaning the token), stable |
 | StableChain | Referring to the underlying settlement layer / protocol (capital S and C) | Stablechain, Stable chain, stablechain |
 | Stablechain | Only in the introductory definition ("Stable is the first Stablechain") | |
-| USDT | Referring to the asset | Tether (unless referring to the company) |
+| USDT | Referring to native USDT on a source chain, or to the broader asset where the distinction from USDT0 does not matter | Usdt, Tether (unless referring to the company) |
+| USDT0 | Referring to the omnichain asset, including Stable's native gas and settlement asset | Usdt0, USDT when referring specifically to the asset on Stable |
 
 - Use the product or protocol name exactly as branded (e.g., "LayerZero", "RedStone", "USDT0").
+- Never title-case an acronym or branded identifier. Write `USDT0`, `FAQ`, and `API`, not `Usdt0`, `Faq`, or `Api`.
 
 ### UI and keyboard actions
 
@@ -64,6 +66,11 @@ Before returning any page, read it back and answer these four questions. Fix any
 - Use **sentence case**: capitalize only the first word and proper nouns (e.g., "Gas pricing", "USDT-specific features").
 - Do not use title case (e.g., ~~"Gas Pricing And Fees"~~).
 - Vocs builds the right-side outline from your headings, so keep them short and scannable.
+
+### FAQ sections
+
+- In an FAQ section within a larger page, write each question as a `###` heading. This gives every question a visible hierarchy and a stable anchor.
+- On the dedicated `reference/faq.mdx` page, write each question as a bold paragraph ending in `?`. The structured-data parser uses that format to generate `FAQPage` question-and-answer entries.
 
 ## Frontmatter
 
@@ -119,6 +126,12 @@ Sidebar grouping lives in `docs/sidebar.json` and is independent of the filesyst
 Every page has exactly one home in the sidebar. Edit only the `/en` section of `docs/sidebar.json`; the `/cn` and `/ko` sections are generated from it. There is no soft alias that renders the same page under two groups without a jump.
 
 When a concept is relevant to multiple sections (e.g., a Learn concept that readers also need mid-task in Build), keep it in its canonical section and surface it from the others through **content**, not navigation. Link to it from the relevant overview page inline. Concepts live in one place; task-oriented sections point at them.
+
+### Sidebar labels
+
+- Use sentence case for English sidebar labels.
+- Preserve the exact capitalization of acronyms, standards, and branded identifiers such as `USDT0`, `FAQ`, `API`, `JSON-RPC`, and `EIP-7702`.
+- Match the destination page's title unless the surrounding navigation provides context that allows a shorter label.
 
 ## Page structure
 

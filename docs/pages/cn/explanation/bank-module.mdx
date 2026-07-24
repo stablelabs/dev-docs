@@ -1,44 +1,44 @@
 ---
 source_path: explanation/bank-module.mdx
-source_sha: c19264aa3a4aa590a16f97192b30d5ffe1d88b08
+source_sha: d1e8701c692bce3df6e4d7c6e16cf350e18165ef
 title: "银行模块"
-description: "银行预编译合约暴露了与 ERC-20 兼容的代币转账以及由 SDK x/bank 模块支持的铸造、销毁和授权方法。"
+description: "银行预编译合约公开了与 ERC-20 兼容的代币转移以及由 SDK x/bank 模块支持的铸币、销毁和授权方法。"
 diataxis: "explanation"
 ---
 
 # 银行模块
 
-Stable SDK 中的 `x/bank` 模块处理代币余额、转账和供应。其 EVM 接口（**银行预编译合约**）封装了此模块，并添加了 ERC-20 语义以及一个用于特权铸币/销毁操作的授权层。需要在 Stable 上转移代币的合约可以直接调用预编译合约，而无需部署自己的代币实现。
+Stable 的 SDK 中的 `x/bank` 模块负责处理代币余额、转移和供应。其 EVM 接口（**银行预编译合约**）封装了该模块，并增加了 ERC-20 语义以及用于特权铸币/销毁操作的授权层。需要在 Stable 上转移代币的合约可以直接调用预编译合约，而无需部署自己的代币实现。
 
-## 它暴露了什么
+## 它公开了什么
 
 银行预编译合约提供了标准的 ERC-20 方法：
 
 - `transfer`、`balanceOf`、`totalSupply`
 - `approve`、`transferFrom`、`allowance`、`revoke`
 
-这些方法适用于任何调用者。无需注册。
+这些方法可以由任何调用者使用。无需注册。
 
 它还提供了特权方法：
 
 - `mint`: 铸造新代币并将其转移到账户。
 - `burn`: 销毁账户持有的代币。
-- `multiTransfer`: 通过单个调用将代币从一个发送方转移到多个接收方。
+- `multiTransfer`: 在单个调用中将代币从一个发送方转移到多个接收方。
 
-铸币和销毁要求调用合约通过治理提案在 `x/precompile` 允许列表中注册。治理代币的铸造被完全阻止。这使得供应通胀只受授权合约的限制。
+铸币和销毁需要通过治理提案将调用合约注册到 `x/precompile` 白名单中。治理代币的铸币被完全阻止。这使得供应膨胀仅限于授权合约。
 
-## 何时使用
+## 何时使用它
 
 - DeFi 合约需要代表用户转移 STABLE 或 USDT0：直接在预编译合约上调用 `transfer` 或 `transferFrom`。
 - 协议合约根据业务逻辑铸造或销毁代币：首先通过治理注册，然后调用 `mint` / `burn`。
-- 支付合约需要一对多支付：在单个交易中调用 `multiTransfer`，而不是循环转账。
+- 支付合约需要一对多支付：在单个事务中调用 `multiTransfer`，而不是循环转移。
 
-## 在哪里找到 ABI
+## 在哪里可以找到 ABI
 
-完整的方法签名、事件负载和授权流程在[银行预编译合约参考](/cn/reference/bank-module-api)中。
+完整的方法签名、事件负载和授权流程可在[银行预编译合约参考](/cn/reference/bank-module-api)中找到。
 
 ## 接下来推荐
 
-- [**银行预编译合约参考**](/cn/reference/bank-module-api)：调用 `transfer`、`approve`、`mint`、`burn` 并读取事件。
-- [**系统模块概览**](/cn/explanation/system-modules-overview)：返回预编译合约暴露的模块完整列表。
-- [**USDT 作为 Gas**](/cn/explanation/usdt-as-gas-token)：了解银行模块管理的双重资产模型。
+- [**银行预编译合约参考**](/cn/reference/bank-module-api)：调用 `transfer`、`approve`、`mint`、`burn`，并读取事件。
+- [**系统模块概述**](/cn/explanation/system-modules-overview)：返回预编译合约公开的模块完整列表。
+- [**USDT0 作为 gas**](/cn/explanation/usdt-as-gas-token)：了解银行模块管理的双重角色资产模型。

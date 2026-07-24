@@ -1,36 +1,36 @@
 ---
 source_path: explanation/key-features.mdx
-source_sha: 743dbe77cee418846f01652fecf871c2ab504539
+source_sha: 84c73f9671496f1f3dc766dd878111ef4d1b121a
 title: '主要功能'
-description: "Stable 的主要技术规格（单槽确定性、USDT0 作为燃料、完全 EVM 兼容性）以及在此基础上构建的 USDT 特有功能。"
+description: "Stable 的亮点规格（单槽最终性、USDT0 作为燃料、完全兼容 EVM）以及在其基础上构建的 USDT 特定功能。"
 diataxis: "explanation"
 ---
 
 # 主要功能
 
-Stable 是一个委托权益证明 Layer 1，具有单槽最终性、完全 EVM 兼容性，并以 USDT0 作为原生 gas 代币。以下功能决定了日常集成。每个功能都链接到详细介绍它的页面。
+Stable 是一个委托权益证明（Delegated Proof-of-Stake）Layer 1，具有单槽最终性、完全兼容 EVM，并以 USDT0 作为原生燃料代币。以下功能是影响日常集成的关键点。每个功能都链接到详细介绍其内容的页面。
 
-## 协议级功能
+## 协议级别功能
 
 | 功能 | 含义 |
 | :--- | :--- |
-| **单槽确定性** | 交易一旦进入区块即为最终确认。无需多区块确认等待。 |
-| **完全 EVM 兼容性** | Solidity、Vyper、Foundry、Hardhat、ethers、viem 和 `eth_*` RPC 方法无需更改即可工作。 |
-| **USDT0 作为燃料** | 同一资产既是原生余额又是 ERC-20 代币。无需持有单独的 gas 代币。 |
-| **跨链桥接** | USDT0 通过 LayerZero OFT 从 Ethereum、Arbitrum、HyperEVM、Tron 和其他链移动到 Stable。 |
+| **单槽最终性** | 交易一旦进入区块即最终确定。无需等待多区块确认。 |
+| **完全兼容 EVM** | Solidity、Vyper、Foundry、Hardhat、ethers、viem 和 `eth_*` RPC 方法无需修改即可工作。 |
+| **USDT0 作为燃料** | 同一资产既是原生余额又是 ERC-20 代币。无需持有单独的燃料代币。 |
+| **跨链桥接** | USDT0 通过 LayerZero OFT 从以太坊、Arbitrum、HyperEVM、Tron 和其他链转移到 Stable。 |
 
-## USDT 特有功能
+## USDT 特定功能
 
-- [**USDT 作为燃料**](/cn/explanation/usdt-as-gas-token)：USDT0 在同一余额中既作为原生 gas 代币又作为 ERC-20 代币。
-- [**Gas 豁免**](/cn/explanation/gas-waiver)：治理授权的豁免提交包装器交易，以零 gas 价格代表用户执行。
-- [**保证区块空间**](/cn/explanation/guaranteed-blockspace)：企业合作伙伴为支付流在每个区块中确保预留容量。
-- [**USDT 转账聚合器**](/cn/explanation/usdt-transfer-aggregator)：大容量 USDT0 转账批量处理成并行化、容错的结算捆绑。
-- [**私密转账**](/cn/explanation/confidential-transfer)：零知识密码学屏蔽转账金额，同时保持参与方可审计。
+- [**USDT0 作为燃料**](/cn/explanation/usdt-as-gas-token)：USDT0 在同一余额中既作为原生燃料代币，又作为 ERC-20 代币。
+- [**燃料豁免**](/cn/explanation/gas-waiver)：经治理授权的豁免会提交包装交易，以零燃料费代表用户执行。
+- [**保证区块空间**](/cn/explanation/guaranteed-blockspace)：企业合作伙伴为支付流在每个区块中获得预留容量。
+- [**USDT 转账聚合器**](/cn/explanation/usdt-transfer-aggregator)：大批量 USDT0 转账被批量处理成并行化、容错的结算捆绑。
+- [**保密转账**](/cn/explanation/confidential-transfer)：零知识密码学保护转账金额，同时保持参与方可审计。
 
-有关当前已上线和路线图上的升级，请参阅[路线图](/cn/explanation/technical-roadmap)。
+要了解哪些升级已上线，哪些正在开发中，请参阅[路线图](/cn/explanation/technical-roadmap)。
 
-## 下一步建议
+## 下一步推荐
 
-- [**以太坊比较**](/cn/explanation/ethereum-comparison)：识别将 DApp 从以太坊移植到 Stable 时保持不变和发生变化的地方。
-- [**资金流向**](/cn/explanation/flow-of-funds)：追踪 USDT 从充值到链上转账再到提现结算。
-- [**架构概览**](/cn/explanation/core-optimization-overview)：了解提供这些功能的共识、执行、数据库和 RPC 层。
+- [**以太坊比较**](/cn/explanation/ethereum-comparison)：了解从以太坊移植到 Stable 时哪些保持不变，哪些发生变化。
+- [**资金流向**](/cn/explanation/flow-of-funds)：追踪 USDT 从入金到链上转账再到出金结算的整个过程。
+- [**架构概览**](/cn/explanation/core-optimization-overview)：深入了解提供这些功能的共识层、执行层、数据库层和 RPC 层。

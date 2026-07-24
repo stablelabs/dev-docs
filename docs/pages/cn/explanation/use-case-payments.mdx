@@ -1,27 +1,27 @@
 ---
 source_path: explanation/use-case-payments.mdx
-source_sha: a5e26e7574265dccbb0f71370598384bdeeea5f6
+source_sha: 9685590c6fb8bb68a3a4b8be6c907bf5547d0372
 title: "支付与转账"
-description: "Stable 如何通过单资产模型、零费用用户体验和即时终结性支持 P2P 支付和商家结算。"
+description: "Stable 如何通过单资产模型、零费用用户体验和即时最终性来支持点对点支付和商家结算。"
 diataxis: "explanation"
 ---
 
 # 支付与转账
 
-P2P 支付和商家结算围绕一种资产构建，这种资产既用于资金转移也用于支付交易费用。
+点对点支付和商家结算围绕单一资产构建，该资产用于资金流动和支付交易。
 
 ## 问题
 
-在通用链上，用户必须持有单独的 Gas 代币（ETH、SOL）才能转移稳定币。这打破了“发送一美元，接收一美元”的心智模型，并在用户入驻时造成了转换流失，因为一个只有 USDT 的支付者甚至无法提交转账。
+在通用链上，用户必须持有单独的 Gas 代币（ETH、SOL）才能转移稳定币。这打破了“发送一美元，接收一美元”的心智模型，导致新用户注册时出现转换流失，因为只有 USDT 的付款人甚至无法提交转账。
 
 ## Stable 如何解决
 
-- **USDT0 既是 Gas 代币也是支付资产。** 用户只需一种资产即可发送或接收。请参阅[作为 Gas 的 USDT](/cn/explanation/usdt-as-gas-token)。
+- **USDT0 既是 Gas 代币也是支付资产。** 用户只需一种资产即可发送或接收。请参阅[USDT0 作为 Gas](/cn/explanation/usdt-as-gas-token)。
 - **Gas 豁免允许应用程序代表用户支付 Gas**，从而实现零费用用户体验，而用户无需接触第二种代币。请参阅[Gas 豁免](/cn/explanation/gas-waiver)。
-- **单槽最终性意味着结算即时。** 一旦转账进入区块，它就是最终的。请参阅[以太坊对比](/cn/explanation/ethereum-comparison)。
+- **单槽最终性意味着即时结算。** 一旦转账进入区块，它就是最终的。请参阅[以太坊对比](/cn/explanation/ethereum-comparison)。
 
 ## 下一步建议
 
-- [**作为 Gas 的 USDT**](/cn/explanation/usdt-as-gas-token)：了解同时替代 ETH 作为 Gas 和支付的资产。
-- [**Gas 豁免**](/cn/explanation/gas-waiver)：了解应用程序如何通过治理批准的豁免地址支付用户 Gas。
-- [**以太坊对比**](/cn/explanation/ethereum-comparison)：回顾从以太坊迁移时发生的变化（最终性、Gas 代币、优先提示）。
+- [**USDT0 作为 Gas**](/cn/explanation/usdt-as-gas-token): 了解替代 ETH 用于 Gas 和支付的资产。
+- [**Gas 豁免**](/cn/explanation/gas-waiver): 了解应用程序如何通过治理批准的豁免地址支付用户 Gas。
+- [**以太坊对比**](/cn/explanation/ethereum-comparison): 审查从以太坊迁移时发生的变化（最终性、Gas 代币、优先小费）。

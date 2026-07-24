@@ -59,7 +59,7 @@
           "collapsed": true,
           "items": [
             {
-              "text": "Usdt Features Overview",
+              "text": "USDT0 features overview",
               "link": "/en/explanation/usdt-features-overview"
             },
             {
@@ -75,11 +75,11 @@
               "link": "/en/explanation/bridge-security"
             },
             {
-              "text": "Usdt As Gas Token",
+              "text": "USDT0 as gas",
               "link": "/en/explanation/usdt-as-gas-token"
             },
             {
-              "text": "Usdt0 Behavior",
+              "text": "USDT0 behavior",
               "link": "/en/explanation/usdt0-behavior"
             },
             {
@@ -91,7 +91,7 @@
               "link": "/en/explanation/guaranteed-blockspace"
             },
             {
-              "text": "Usdt Transfer Aggregator",
+              "text": "USDT Transfer Aggregator",
               "link": "/en/explanation/usdt-transfer-aggregator"
             },
             {
@@ -277,7 +277,7 @@
               "collapsed": true,
               "items": [
                 {
-                  "text": "Send Usdt0",
+                  "text": "Send your first USDT0",
                   "link": "/en/tutorial/send-usdt0"
                 },
                 {
@@ -285,11 +285,11 @@
                   "link": "/en/how-to/zero-gas-transactions"
                 },
                 {
-                  "text": "Work With Usdt Gas",
+                  "text": "Work with USDT0 as gas",
                   "link": "/en/how-to/work-with-usdt-gas"
                 },
                 {
-                  "text": "Bridge Usdt0",
+                  "text": "Bridge USDT0 to Stable",
                   "link": "/en/tutorial/bridge-usdt0"
                 }
               ]

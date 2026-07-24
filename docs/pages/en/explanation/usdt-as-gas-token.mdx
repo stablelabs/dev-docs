@@ -1,10 +1,10 @@
 ---
-title: USDT as gas
+title: USDT0 as gas
 description: "How USDT0 functions as Stable's native gas token, replacing volatile assets for predictable transaction fees."
 diataxis: "explanation"
 ---
 
-# USDT as gas
+# USDT0 as gas
 
 **You pay fees in USDT0. No second token, no wrapping, no ETH-equivalent to keep topped up.** USDT0 serves as both the native gas token and an ERC-20 token on the same balance. The same asset that moves as payment also pays for the transaction that moves it. Fees are denominated in dollars, not a volatile native token.
 
@@ -272,25 +272,25 @@ Correct contract design on Stable requires:
 
 ## FAQ
 
-**We’re using USDT0 as the wrapped native token today. After this upgrade, which token should be treated as the wrapped native?**
+### Which token should integrations treat as the wrapped native token?
 
-USDT0 becomes both the native token and an ERC-20 token after the upgrade. You should use USDT0 directly, and wrapping or unwrapping is no longer required.
+USDT0 becomes both the native token and an ERC-20 token after the upgrade. Use USDT0 directly. You no longer need to wrap or unwrap it.
 
-**What happens to the original USDT0 contract address (`0x779Ded0c9e1022225f8E0630b35a9b54bE713736`)?**
+### What happens to the original USDT0 contract address?
 
-Nothing changes. The same address remains valid and continues to represent USDT0.
+Nothing changes. `0x779Ded0c9e1022225f8E0630b35a9b54bE713736` remains valid and continues to represent USDT0.
 
-**After the upgrade, is the native token address `0x779Ded0c9e1022225f8E0630b35a9b54bE713736` (instead of `0x0000000000000000000000000000000000001000`)?**
+### Which address identifies the native token?
 
-Yes. After the upgrade, the native token identifier/address is `0x779Ded0c9e1022225f8E0630b35a9b54bE713736`.
+The native token identifier is `0x779Ded0c9e1022225f8E0630b35a9b54bE713736`, not `0x0000000000000000000000000000000000001000`.
 
-**What about `0x0000000000000000000000000000000000001000`? Is it still used as the token address for gUSDT, and should we keep it on our side?**
+### Should integrations keep the former gUSDT address?
 
-No. You can remove it. It will not be used after the upgrade.
+No. You can remove `0x0000000000000000000000000000000000001000`. It isn't used after the upgrade.
 
-**For DEX calldata, will protocols stop using `0x0000000000000000000000000000000000001000` as the “native token” identifier and use `0x779Ded0c9e1022225f8E0630b35a9b54bE713736` instead?**
+### Which native token identifier should DEX calldata use?
 
-Correct. After the upgrade, DEXs should use `0x779Ded0c9e1022225f8E0630b35a9b54bE713736` as the native token identifier.
+DEX calldata should use `0x779Ded0c9e1022225f8E0630b35a9b54bE713736` as the native token identifier.
 
 ## Next recommended
 

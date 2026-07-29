@@ -11,7 +11,7 @@ This guide covers various methods to synchronize your Stable node quickly using 
 | Method | Sync Time | Storage Required | Use Case |
 |--------|-----------|------------------|----------|
 | **Pruned Snapshot** | ~10 min | < 5 GiB | Regular full nodes |
-| **Archive Snapshot** | ~1 hours | ~500 GB | Archive nodes, block explorers |
+| **Archive Snapshot** | ~3 hours | ~700 GB | Archive nodes, block explorers |
 
 ## Official snapshots
 
@@ -24,14 +24,14 @@ Stable provides official snapshots updated daily (00:00 UTC).
 | Type | Compression | Size | URL | Update Frequency |
   |------|-----------------|-------------|------|-----|
 | **Pruned** | LZ4 | < 5 GiB | [Download](https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/snapshots/snapshot.tar.lz4) | Daily |
-| **Archive** | ZSTD | ~300 GB | [Download](https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/snapshots/stable_archive.tar.zst) | Weekly |
+| **Archive** | ZSTD | ~700 GB | [Download](https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/snapshots/stable_archive.tar.zst) | Weekly |
 
 ### Testnet
 
 | Type | Compression | Size | URL | Update Frequency |
 |------|-----------------|-------------|------|-----|
 | **Pruned** | LZ4 | < 5 GiB | [Download](https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/snapshots/snapshot.tar.lz4) | Daily |
-  | **Archive** | ZSTD | ~800 GB | [Download](https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/snapshots/stable_archive.tar.zst) | Weekly |
+| **Archive** | ZSTD | ~1.2 TB | [Download](https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/snapshots/stable_archive.tar.zst) | Weekly |
 
 ## Using pruned snapshots
 

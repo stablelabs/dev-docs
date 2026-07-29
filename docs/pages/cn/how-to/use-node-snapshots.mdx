@@ -1,52 +1,52 @@
 ---
 source_path: how-to/use-node-snapshots.mdx
-source_sha: 9560891a991acf962e514bb5bc630f0db8012b79
+source_sha: 993d315124d0c2d5137403d7a1b0197467c89247
 title: 快照与同步指南
-description: "用于快速引导 Stable 全节点和归档节点的基于快照的同步方法。"
+description: "通过基于快照的同步方法，快速启动 Stable 全节点和归档节点。"
 diataxis: "how-to"
 ---
 
-本指南介绍了使用快照和状态同步快速同步 Stable 节点的各种方法。
+本指南涵盖了使用快照和状态同步快速同步 Stable 节点的各种方法。
 
-## 同步方法概览
+## 同步方法概述
 
-| 方法 | 同步时间 | 所需存储 | 使用场景 |
-|--------|-----------|------------------|----------|
-| **裁剪快照** | ~10 分钟 | < 5 GiB | 常规全节点 |
-| **归档快照** | ~1 小时 | ~500 GB | 归档节点、区块浏览器 |
+| 方法 | 同步时间 | 所需存储空间 | 用例 |
+|---|---|---|---|
+| **修剪快照 (Pruned Snapshot)** | 约10分钟 | < 5 GiB | 常规全节点 |
+| **归档快照 (Archive Snapshot)** | 约3小时 | 约700 GB | 归档节点、区块浏览器 |
 
 ## 官方快照
 
-Stable 提供每日更新的官方快照（00:00 UTC）。
+Stable 提供每日更新（UTC 时间 00:00）的官方快照。
 
 ### 快照信息
 
 ### 主网
 
-| 类型 | 压缩格式 | 大小 | URL | 更新频率 |
-  |------|-----------------|-------------|------|-----|
-| **裁剪** | LZ4 | < 5 GiB | [下载](https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/snapshots/snapshot.tar.lz4) | 每日 |
-| **归档** | ZSTD | ~300 GB | [下载](https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/snapshots/stable_archive.tar.zst) | 每周 |
+| 类型 | 压缩方式 | 大小 | URL | 更新频率 |
+|---|---|---|---|---|
+| **修剪快照** | LZ4 | < 5 GiB | [下载](https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/snapshots/snapshot.tar.lz4) | 每日 |
+| **归档快照** | ZSTD | 约700 GB | [下载](https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/snapshots/stable_archive.tar.zst) | 每周 |
 
 ### 测试网
 
-| 类型 | 压缩格式 | 大小 | URL | 更新频率 |
-|------|-----------------|-------------|------|-----|
-| **裁剪** | LZ4 | < 5 GiB | [下载](https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/snapshots/snapshot.tar.lz4) | 每日 |
-  | **归档** | ZSTD | ~800 GB | [下载](https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/snapshots/stable_archive.tar.zst) | 每周 |
+| 类型 | 压缩方式 | 大小 | URL | 更新频率 |
+|---|---|---|---|---|
+| **修剪快照** | LZ4 | < 5 GiB | [下载](https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/snapshots/snapshot.tar.lz4) | 每日 |
+| **归档快照** | ZSTD | 约1.2 TB | [下载](https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/snapshots/stable_archive.tar.zst) | 每周 |
 
-## 使用裁剪快照
+## 使用修剪快照
 
-裁剪快照包含最近的区块链状态（最后 100-1000 个区块）。
+修剪快照包含最近的区块链状态（最近100-1000个区块）。
 
-### 第 1 步：设置环境变量
+### 步骤 1：设置环境变量
 
 ```bash
 # Set service name (default: stable)
 export SERVICE_NAME=stable
 ```
 
-### 第 2 步：停止节点服务
+### 步骤 2：停止节点服务
 
 ```bash
 # Stop the running node
@@ -56,7 +56,7 @@ sudo systemctl stop ${SERVICE_NAME}
 sudo systemctl status ${SERVICE_NAME}
 ```
 
-### 第 3 步：备份当前数据（可选）
+### 步骤 3：备份当前数据（可选）
 
 ```bash
 # Create backup directory
@@ -66,7 +66,7 @@ mkdir -p ~/stable-backup
 cp -r ~/.stabled/data ~/stable-backup/
 ```
 
-### 第 4 步：下载并解压裁剪快照
+### 步骤 4：下载并解压修剪快照
 
 :::code-group
 ```bash [Mainnet]
@@ -120,7 +120,7 @@ rm snapshot.tar.lz4
 ```
 :::
 
-### 第 5 步：重启节点
+### 步骤 5：重启节点
 
 ```bash
 # Start the node
@@ -137,7 +137,7 @@ sudo journalctl -u stabled -f
 
 归档快照包含完整的区块链历史。
 
-### 第 1 步：准备系统
+### 步骤 1：准备系统
 
 ```bash
 # Stop node
@@ -150,7 +150,7 @@ sudo apt install -y wget zstd pv
 df -h ~/.stabled
 ```
 
-### 第 2 步：下载并解压归档快照
+### 步骤 2：下载并解压归档快照
 
 :::code-group
 ```bash [Mainnet]
@@ -195,7 +195,7 @@ rm archive.tar.zst
 ```
 :::
 
-### 第 3 步：启动节点
+### 步骤 3：启动节点
 
 ```bash
 # Start service
@@ -205,7 +205,7 @@ sudo systemctl start ${SERVICE_NAME}
 curl -s localhost:26657/status | jq '.result.sync_info'
 ```
 
-## 创建你自己的快照
+## 创建自己的快照
 
 ### 手动创建快照
 
@@ -265,14 +265,14 @@ sudo systemctl start ${SERVICE_NAME}
 echo "Snapshot created: $SNAPSHOT_DIR/$SNAPSHOT_NAME"
 ```
 
-### 调度自动化快照
+### 安排自动化快照
 
 ```bash
 # Add to crontab (weekly on Sunday at 2 AM)
 (crontab -l ; echo "0 2 * * 0 /usr/local/bin/snapshot.sh") | crontab -
 ```
 
-## 验证与故障排查
+## 验证与故障排除
 
 ### 验证快照完整性
 
@@ -363,16 +363,16 @@ zstd -d --long=31 --memory=4096MB archive.tar.zst
 
 ## 最佳实践
 
-1. 在替换数据之前**始终备份验证者密钥**
-2. 在解压快照之前**验证校验和**
-3. 在解压期间**监控磁盘空间**（需要 2 倍快照大小）
+1. **始终备份验证者密钥**，然后再替换数据
+2. 解压快照前**验证校验和**
+3. 解压期间**监控磁盘空间**（需要快照大小的2倍）
 4. 尽可能**使用官方快照**
-5. 先在非生产环境中**测试快照**
-6. 为你的归档节点**调度定期快照**
-7. **记录快照来源**以便审计追踪
+5. **在非生产环境中**先行测试快照
+6. 为您的归档节点**定期安排快照**
+7. **记录快照来源**以便进行审计追踪
 
 ## 后续步骤
 
-- [配置你的节点](/cn/reference/node-configuration)以获得最佳性能
+- [配置您的节点](/cn/reference/node-configuration)以获得最佳性能
 - [设置监控](/cn/how-to/monitor-node)以跟踪同步进度
-- [查看故障排查](/cn/how-to/troubleshoot-node)了解常见问题
+- [查看故障排除](/cn/how-to/troubleshoot-node)以解决常见问题

@@ -12,7 +12,7 @@ In this tutorial, you will bridge USDT0 from Ethereum Sepolia to the Stable Test
 This tutorial uses the OFT Mesh path. The OFT Adapter on Sepolia locks your tokens, LayerZero's dual-DVN verification confirms the message, and USDT0 is minted on Stable. For a full explanation of how this works, see [Bridging USDT0 to Stable](/en/explanation/usdt0-bridging).
 
 :::note
-Want fewer lines of code? The [Stable SDK](/en/explanation/sdk-overview) exposes `quoteBridge` and `bridge` and picks the route (LayerZero or LI.FI) for you.
+Want fewer lines of code? The [Stable SDK](/en/explanation/sdk-overview) wraps this same OFT path in `quoteBridge` and `bridge`, handling the fee quote, approval, and `send` call for you. Pass `route: "usdt0"` to pin it to the OFT path instead of LI.FI.
 :::
 
 ## Prerequisites

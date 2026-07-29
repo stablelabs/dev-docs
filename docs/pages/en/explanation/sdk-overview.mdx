@@ -31,12 +31,45 @@ txHash: 0x8f3a...2d41
 ## What the SDK does
 
 - **`transfer`**: send native USDT0 or any ERC-20 on Stable. Gas is paid in USDT0 automatically.
-- **`quoteBridge` / `bridge`**: cross-chain transfers via LI.FI, which picks the bridge route for you. Approval and chain switching are handled internally.
+- **`quoteBridge` / `bridge`**: cross-chain transfers over the native USDT0 bridge or the LI.FI aggregator. The route is picked for you, or you force one. Approval and chain switching are handled internally.
 - **`quoteSwap` / `swap`**: same-chain token swaps via LI.FI, with ERC-20 approval handled internally.
 - **`earn`**: supply USDT0 into a Morpho V2 vault to earn yield, withdraw or redeem, and claim Merkl incentive rewards. Approvals and adapter deallocations are handled for you.
 - **`createStableReader`**: a read-only client for vault APY, your position, yield projections, and instant-withdrawability checks. No signer required.
 
 The SDK is published on npm as [`@stablechain/sdk`](https://www.npmjs.com/package/@stablechain/sdk) and requires `viem >= 2.0.0` as a peer dependency.
+
+## Two bridge routes
+
+:::note
+The native USDT0 route landed in version 1.0.4. Before that, every bridge went through LI.FI.
+:::
+
+`bridge` speaks the native USDT0 path directly. It calls LayerZero's OFT adapter on the source chain, which burns USDT0 there and mints it on the destination, so you receive the full amount 1:1 with no protocol fee. You pay source gas plus the LayerZero messaging fee, and you wait for DVN verification. The LI.FI route is the alternative: it handles any token pair and settles faster, but the aggregator takes a fee.
+
+By default the SDK picks for you. It uses the USDT0 route when both chains have an OFT adapter and the tokens on each side are that chain's USDT0, and falls back to LI.FI otherwise. Set `route` to override:
+
+```ts
+import { Chain } from "@stablechain/sdk";
+
+const { txHash } = await stable.bridge({
+  fromChain: Chain.Ethereum,
+  toChain: Chain.Stable,
+  fromToken: "0x6C96dE32CEa08842dcc4058c14d3aaAD7Fa41dee", // USDT0 on Ethereum
+  toToken: "0x779Ded0c9e1022225f8E0630b35a9b54bE713736", // USDT0 on Stable
+  amount: 100,
+  route: "usdt0",
+});
+```
+
+```text
+{ txHash: "0xabcd...7890", toAmount: 100 }
+```
+
+Forcing `"usdt0"` throws `StableValidationError` when the pair has no adapter, rather than quietly falling back to a route that charges a fee. Forcing `"lifi"` is the escape hatch when you need speed or a non-USDT0 token. For the per-chain support table and the fee fields a quote returns, see the [SDK reference](/en/reference/sdk#bridgeroute).
+
+:::note
+`Chain.Base` and `Chain.BSC` have no USDT0 OFT adapter, so they always route through LI.FI. The USDT0 route is also the only one that works on testnet, since LI.FI serves mainnet chains only.
+:::
 
 ## When to use it (and when not to)
 

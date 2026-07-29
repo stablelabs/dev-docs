@@ -20,6 +20,10 @@ added 2 packages, audited 3 packages in 2s
 
 `viem >= 2.0.0` is a peer dependency. The package is published as [`@stablechain/sdk`](https://www.npmjs.com/package/@stablechain/sdk).
 
+:::note
+The native USDT0 bridge route and the `route` param require version 1.0.4 or later. On earlier versions, `bridge` and `quoteBridge` always go through LI.FI and `route` is ignored. Run `npm ls @stablechain/sdk` to check what you have.
+:::
+
 ## `createStable(config)`
 
 Construct a `StableClient`. Returns an object with the methods listed under [`StableClient`](#stableclient).
@@ -94,15 +98,25 @@ const quote = await stable.quoteBridge({
 { toAmount: 99.73 }
 ```
 
-Returns `BridgeQuote`.
+Returns `BridgeQuote`. Which fields come back depends on the route that served the quote:
+
+| **Field** | **Type** | **Description** |
+| :--- | :--- | :--- |
+| `toAmount` | `number?` | Destination amount. Always equal to `amount` on the USDT0 route (1:1, no protocol fee). Net of the aggregator's fee and slippage on the LI.FI route. |
+| `nativeFee` | `bigint?` | LayerZero messaging fee, in wei of the source chain's gas token. USDT0 route only. |
+| `lzTokenFee` | `bigint?` | Fee payable in the LZ token, in wei. USDT0 route only. The SDK quotes with `payInLzToken: false`, so this is `0n`. |
+
+On the USDT0 route, `quoteBridge` calls `quoteSend` on the source OFT adapter. A failure throws `StableQuoteError` with `provider: "layerzero"`.
 
 :::note
-LI.FI serves quotes for the mainnet chains in the [`Chain`](#chain) enum only. `Chain.Sepolia` and `Chain.StableTestnet` are rejected with `StableQuoteError`, and some token addresses in `CHAIN_CONFIGS` (such as USDT0 on Ethereum) are on LI.FI's deny list for quoting. When in doubt, quote with the chain's canonical token.
+The example above quotes USDT to USDT0, which is a LI.FI route. LI.FI serves quotes for the mainnet chains in the [`Chain`](#chain) enum only. `Chain.Sepolia` and `Chain.StableTestnet` are rejected with `StableQuoteError`, and some token addresses in `CHAIN_CONFIGS` (such as USDT0 on Ethereum) are on LI.FI's deny list for quoting. When in doubt, quote with the chain's canonical token.
+
+The USDT0 route has no such limits. It quotes on-chain against the OFT adapter, so it works on `Chain.Sepolia` and `Chain.StableTestnet` too.
 :::
 
 ### `bridge(params)`
 
-Bridge tokens cross-chain via LI.FI, which picks the bridge route. The SDK handles the ERC-20 approval and switches the wallet to the source chain before sending. Pass a pre-fetched `quote` to skip the internal quote call.
+Bridge tokens cross-chain over the native USDT0 OFT path or the LI.FI aggregator. The SDK handles the ERC-20 approval and switches the wallet to the source chain before sending. Pass a pre-fetched `quote` to skip the internal quote call.
 
 ```ts
 const { txHash } = await stable.bridge({ ...bridgeParams, quote });
@@ -115,13 +129,16 @@ const { txHash } = await stable.bridge({ ...bridgeParams, quote });
 | **Param** | **Type** | **Description** |
 | :--- | :--- | :--- |
 | `fromChain` | `Chain` | Source chain. |
-| `toChain` | `Chain` | Destination chain. |
+| `toChain` | `Chain` | Destination chain. Must differ from `fromChain`. |
 | `fromToken` | `string` | Source token contract address. |
 | `toToken` | `string` | Destination token contract address. |
 | `amount` | `number` | Human-readable amount. |
-| `fromDecimals` | `number?` | Source token decimals. Defaults to `6`. |
+| `route` | `BridgeRoute?` | Which bridge to use. Defaults to `"auto"`. See [`BridgeRoute`](#bridgeroute). |
+| `fromDecimals` | `number?` | Source token decimals. Defaults to `6`. LI.FI route only. The USDT0 route reads decimals from `CHAIN_CONFIGS`. |
 | `recipient` | `string?` | Destination address. Defaults to signer. |
 | `quote` | `BridgeQuote?` | Pre-fetched quote. Skips internal quote call. |
+
+On the USDT0 route, `bridge` approves the source USDT0 for the OFT adapter when the current allowance is short, then calls `send` with the LayerZero fee attached as `msg.value`. The refund address is the signer.
 
 ### `quoteSwap(params)`
 
@@ -164,6 +181,67 @@ const { txHash, toAmount } = await stable.swap({ ...swapParams, quote });
 | `fromDecimals` | `number?` | `6` | Source token decimals. |
 | `toAddress` | `string?` | signer | Recipient address. |
 | `quote` | `SwapQuote?` |  | Pre-fetched quote. Skips LI.FI call. |
+
+## `BridgeRoute`
+
+`type BridgeRoute = "auto" | "usdt0" | "lifi"`. Set it on `bridge` and `quoteBridge` through the `route` param. Added in 1.0.4.
+
+| **Value** | **Behavior** |
+| :--- | :--- |
+| `"auto"` | Default. Uses the USDT0 route when both chains have an outbound OFT adapter and `fromToken` / `toToken` are each chain's USDT0. Falls back to LI.FI otherwise. |
+| `"usdt0"` | Forces the native USDT0 LayerZero OFT path. Throws `StableValidationError` when the pair has no adapter or the tokens aren't USDT0, instead of silently falling back to a route that charges a fee. |
+| `"lifi"` | Forces the LI.FI aggregator. Use it for non-USDT0 tokens, for chains with no adapter, or when you want the faster path and accept the fee. |
+
+The two routes trade cost against speed:
+
+| | **USDT0 (LayerZero OFT)** | **LI.FI** |
+| :--- | :--- | :--- |
+| Mechanism | Burn on source, mint on destination | Aggregated across bridges and DEXs |
+| Tokens | USDT0 to USDT0 only | Any pair LI.FI supports |
+| Amount received | 1:1, no protocol fee | Quoted, net of fee and slippage |
+| You pay | Source gas plus the LayerZero messaging fee (`nativeFee`) | Source gas plus the aggregator's fee |
+| Speed | Slower, waits for DVN verification | Faster |
+| Testnet | Works on Sepolia and Stable Testnet | Mainnet chains only |
+
+```ts
+const bridgeParams = {
+  fromChain: Chain.Ethereum,
+  toChain: Chain.Stable,
+  fromToken: "0x6C96dE32CEa08842dcc4058c14d3aaAD7Fa41dee", // USDT0 on Ethereum
+  toToken: "0x779Ded0c9e1022225f8E0630b35a9b54bE713736", // USDT0 on Stable
+  amount: 100,
+  route: "usdt0" as const,
+};
+
+const quote = await stable.quoteBridge(bridgeParams);
+const { txHash, toAmount } = await stable.bridge({ ...bridgeParams, quote });
+```
+
+```text
+{ txHash: "0xabcd...7890", toAmount: 100 }
+```
+
+### Chains on the USDT0 route
+
+`"auto"` picks the USDT0 route only on chains with an OFT adapter deployed. The rest fall through to LI.FI.
+
+| **Chain** | **USDT0 route** |
+| :--- | :--- |
+| `Chain.Stable` | Yes |
+| `Chain.Ethereum` | Yes |
+| `Chain.Arbitrum` | Yes |
+| `Chain.Ink` | Yes |
+| `Chain.Bera` | Yes |
+| `Chain.MegaETH` | Yes |
+| `Chain.HyperEVM` | Yes |
+| `Chain.StableTestnet` | Yes |
+| `Chain.Sepolia` | Yes |
+| `Chain.Base` | No, LI.FI only |
+| `Chain.BSC` | No, LI.FI only |
+
+:::note
+Read `BRIDGE_CHAIN_CONFIGS` rather than hard-coding this table. An entry with an `oftAdapter` and `lzOutbound !== false` can send over the USDT0 route.
+:::
 
 ## `stable.earn`
 
@@ -471,6 +549,27 @@ console.log(CHAIN_CONFIGS[Chain.Stable]);
 { id: 988, rpc: "https://rpc.stable.xyz", usdt: "0x779Ded0c9e1022225f8E0630b35a9b54bE713736", decimals: 6 }
 ```
 
+## `BRIDGE_CHAIN_CONFIGS`
+
+`Partial<Record<Chain, BridgeChainConfig>>`. Extends `ChainConfig` with the LayerZero fields the USDT0 route needs. Added in 1.0.4. Use it to check whether a chain can send over the USDT0 route before you call `bridge` with `route: "usdt0"`.
+
+| **Field** | **Type** | **Description** |
+| :--- | :--- | :--- |
+| `lzEid` | `number` | LayerZero V2 endpoint ID for the chain. |
+| `oftAdapter` | `Address?` | OFT adapter address. Absent on chains with no adapter deployed. |
+| `lzOutbound` | `boolean?` | `false` when the adapter exists but has no outbound send pathways configured. Absent means outbound works. |
+
+```ts
+import { BRIDGE_CHAIN_CONFIGS, Chain } from "@stablechain/sdk";
+
+const src = BRIDGE_CHAIN_CONFIGS[Chain.Arbitrum];
+console.log(Boolean(src?.oftAdapter) && src?.lzOutbound !== false);
+```
+
+```text
+true
+```
+
 ## Constants
 
 Canonical mainnet addresses, exported so you don't hard-code them.
@@ -495,8 +594,8 @@ All SDK errors extend `StableError`, which extends viem's `BaseError`. Errors ca
 
 | **Class** | **Thrown when** | **Useful fields** |
 | :--- | :--- | :--- |
-| `StableValidationError` | A parameter fails validation (bad address, non-finite amount, unsupported chain). | `field`, `value` |
-| `StableQuoteError` | A quote request to LI.FI fails. | `provider`, `httpStatus`, `providerCode`, `body` |
+| `StableValidationError` | A parameter fails validation (bad address, non-finite amount, unsupported chain, `route: "usdt0"` on a pair with no adapter or non-USDT0 tokens). | `field`, `value` |
+| `StableQuoteError` | A quote request fails. `provider` is `"lifi"` or `"layerzero"`. | `provider`, `httpStatus`, `providerCode`, `body` |
 | `StableTransactionError` | On-chain step fails: chain switch, approval, send, or revert. | `phase`, `txHash`, `chainId`, `revertReason` |
 | `StableNetworkError` | An underlying HTTP/RPC call fails (e.g. the Morpho or Merkl API). | `url` |
 | `StableBulkError` | A `bulkDeposit` or `bulkWithdraw` run with `stopOnError: true` hits its first failure. | `results`, `succeeded`, `failed` |

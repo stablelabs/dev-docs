@@ -91,7 +91,7 @@ Open the hash on the [testnet explorer](https://testnet.stablescan.xyz) to confi
 
 ## 4. Quote a bridge
 
-Bridge and swap routing goes through LI.FI, which supports Stable Mainnet but no testnets. `quoteBridge` is a read-only call (no signature, no gas, no funds needed), so you can preview a mainnet bridge with the same key. Append:
+`bridge` has two routes: the native USDT0 path over LayerZero, and LI.FI for everything else. The quote below is a USDT-to-USDT0 pair, so it goes through LI.FI, which supports Stable Mainnet but no testnets. `quoteBridge` is a read-only call (no signature, no gas, no funds needed), so you can preview a mainnet bridge with the same key. Append:
 
 ```ts
 import { Chain } from "@stablechain/sdk";
@@ -116,7 +116,9 @@ console.log("Bridge quote:", bridgeQuote);
 Bridge quote: { toAmount: 99.73 }
 ```
 
-Pass the quote into `stableMainnet.bridge({ ...params, quote })` to execute. Routing goes through LI.FI, which picks the bridge route; the SDK handles approval and chain switching.
+Pass the quote into `stableMainnet.bridge({ ...params, quote })` to execute. The SDK handles approval and chain switching.
+
+Had you quoted USDT0 to USDT0 instead, the SDK would have taken the native USDT0 route: 1:1 with no protocol fee, and the quote would carry `nativeFee` and `lzTokenFee` for the LayerZero message instead of a reduced `toAmount`. That route also works on Sepolia and Stable Testnet. Set `route: "usdt0"` or `route: "lifi"` to force one. See [`BridgeRoute`](/en/reference/sdk#bridgeroute) for the tradeoff and per-chain support.
 
 ## 5. Swaps
 

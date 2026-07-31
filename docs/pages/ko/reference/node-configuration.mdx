@@ -1,46 +1,46 @@
 ---
 source_path: reference/node-configuration.mdx
-source_sha: b8b008a5ecbc30001cc5c5e528092a14410f2763
+source_sha: 49a919754b40175fac45e1d6a2c5986a555e7dab
 title: 노드 구성 가이드
-description: "Stable 검증자 및 풀 노드의 config.toml과 app.toml 설정에 대한 구성 레퍼런스."
+description: "Stable 검증인 및 풀 노드에서 config.toml 및 app.toml 설정에 대한 구성 참조."
 diataxis: "reference"
 tag: "new"
 ---
 
-이 가이드는 다양한 사용 사례에 맞는 최적화를 포함하여 Stable 노드의 모든 구성 옵션을 다룹니다.
+이 가이드는 다양한 사용 사례에 대한 최적화를 포함하여 Stable 노드의 모든 구성 옵션을 다룹니다.
 
 ## 구성 파일 개요
 
-Stable 노드는 두 개의 주요 구성 파일을 사용합니다:
+Stable 노드는 두 가지 주요 구성 파일을 사용합니다.
 
-- **`config.toml`**: 핵심 StableBFT 구성
-- **`app.toml`**: 애플리케이션 전용 구성
+- **`config.toml`**: 코어 StableBFT 구성
+- **`app.toml`**: 애플리케이션별 구성
 
 두 파일 모두 `~/.stabled/config/`에 위치합니다.
 
-## 핵심 구성 (config.toml)
+## 코어 구성 (config.toml)
 
 ### 기본 설정
 
 :::code-group
 ```toml [Mainnet]
-# The ID of the chain to join
+# 참여할 체인의 ID
 chain_id = "stable_988-1"
 
-# A custom human-readable name for this node
+# 이 노드에 대한 사용자 지정의 사람이 읽을 수 있는 이름
 moniker = "your-node-name"
 
-# Database backend: goleveldb | cleveldb | boltdb | rocksdb | badgerdb
+# 데이터베이스 백엔드: goleveldb | cleveldb | boltdb | rocksdb | badgerdb
 db_backend = "goleveldb"
 ```
 ```toml [Testnet]
-# The ID of the chain to join
+# 참여할 체인의 ID
 chain_id = "stabletestnet_2201-1"
 
-# A custom human-readable name for this node
+# 이 노드에 대한 사용자 지정의 사람이 읽을 수 있는 이름
 moniker = "your-node-name"
 
-# Database backend: goleveldb | cleveldb | boltdb | rocksdb | badgerdb
+# 데이터베이스 백엔드: goleveldb | cleveldb | boltdb | rocksdb | badgerdb
 db_backend = "goleveldb"
 ```
 :::
@@ -50,64 +50,64 @@ db_backend = "goleveldb"
 :::code-group
 ```toml [Mainnet]
 [p2p]
-# Address to listen for incoming connections
+# 들어오는 연결을 수신할 주소
 laddr = "tcp://0.0.0.0:26656"
 
-# Address to advertise to peers for them to dial
+# 피어가 다이얼하도록 알릴 주소
 external_address = "YOUR_PUBLIC_IP:26656"
 
-# Comma separated list of seed nodes
-seeds = "17a539fda42863a99755547e1c9b3ec4c38a4439@seed1.stable.xyz:26656"
+# 쉼표로 구분된 시드 노드 목록
+seeds = "c21897d374c480a963edcda941ac94030895f6b4@seed1.stable.xyz:46656"
 
-# Comma separated list of persistent peers
+# 쉼표로 구분된 영구 피어 목록
 persistent_peers = "b896f6f8ca5a4d1cc40de09407df0c96e76df950@peer1.stable.xyz:26656"
 ```
 ```toml [Testnet]
 [p2p]
-# Address to listen for incoming connections
+# 들어오는 연결을 수신할 주소
 laddr = "tcp://0.0.0.0:26656"
 
-# Address to advertise to peers for them to dial
+# 피어가 다이얼하도록 알릴 주소
 external_address = "YOUR_PUBLIC_IP:26656"
 
-# Comma separated list of seed nodes
-seeds = "39e061b167162f6621ddadcf1be21d6fa585a468@seed1.testnet.stable.xyz:26656"
+# 쉼표로 구분된 시드 노드 목록
+seeds = "8c2ede57b763c2976253f880a27c6f85756e1f1b@seed1.testnet.stable.xyz:56656"
 
-# Comma separated list of persistent peers
+# 쉼표로 구분된 영구 피어 목록
 persistent_peers = "5ed0f977a26ccf290e184e364fb04e268ef16430@peer1.testnet.stable.xyz:26656"
 ```
 :::
 
-추가 P2P 설정 (두 네트워크에서 동일):
+추가 P2P 설정 (두 네트워크 모두 동일):
 
 ```toml
-# Maximum number of inbound peers
+# 인바운드 피어의 최대 수
 max_num_inbound_peers = 50
 
-# Maximum number of outbound peers
+# 아웃바운드 피어의 최대 수
 max_num_outbound_peers = 30
 
-# Toggle to disable guard against peers connecting from the same ip
+# 동일한 IP에서 연결하는 피어에 대한 보호를 비활성화하는 토글
 allow_duplicate_ip = false
 
-# Peer connection configuration
+# 피어 연결 구성
 handshake_timeout = "20s"
 dial_timeout = "3s"
 
-# Time to wait before flushing messages out on the connection
+# 연결에서 메시지를 플러시하기 전 대기 시간
 flush_throttle_timeout = "100ms"
 
-# Maximum size of a message packet payload
+# 메시지 패킷 페이로드의 최대 크기
 max_packet_msg_payload_size = 1024
 
-# Rate limiting
+# 속도 제한
 send_rate = 5120000  # 5 MB/s
 recv_rate = 5120000  # 5 MB/s
 
-# Seed mode (for seed nodes only)
+# 시드 모드 (시드 노드에만 해당)
 seed_mode = false
 
-# Enable peer exchange reactor
+# 피어 교환 리액터 활성화
 pex = true
 ```
 
@@ -115,75 +115,75 @@ pex = true
 
 ```toml
 [rpc]
-# TCP or UNIX socket address for the RPC server
+# RPC 서버의 TCP 또는 UNIX 소켓 주소
 laddr = "tcp://127.0.0.1:26657"
 
-# A list of origins a cross-domain request can be executed from
+# 교차 도메인 요청을 실행할 수 있는 원본 목록
 cors_allowed_origins = ["*"]
 
-# A list of methods the client is allowed to use with cross-domain requests
+# 클라이언트가 교차 도메인 요청에 사용할 수 있는 메서드 목록
 cors_allowed_methods = ["HEAD", "GET", "POST"]
 
-# A list of non simple headers the client is allowed to use with cross-domain requests
+# 클라이언트가 교차 도메인 요청에 사용할 수 있는 비단순 헤더 목록
 cors_allowed_headers = ["Origin", "Accept", "Content-Type", "X-Requested-With", "X-Server-Time"]
 
-# TCP or UNIX socket address for the gRPC server
+# gRPC 서버의 TCP 또는 UNIX 소켓 주소
 grpc_laddr = "tcp://127.0.0.1:9090"
 
-# Maximum number of simultaneous connections
+# 동시 연결의 최대 수
 grpc_max_open_connections = 900
 
-# Activate unsafe RPC commands like /dial_seeds and /unsafe_flush_mempool
+# /dial_seeds 및 /unsafe_flush_mempool과 같은 안전하지 않은 RPC 명령 활성화
 unsafe = false
 
-# Maximum number of simultaneous connections (including WebSocket)
+# 동시 연결의 최대 수 (WebSocket 포함)
 max_open_connections = 900
 
-# Maximum number of unique clientIDs that can connect
+# 연결할 수 있는 고유한 clientID의 최대 수
 max_subscription_clients = 100
 
-# Maximum number of unique queries a given client can subscribe to
+# 특정 클라이언트가 구독할 수 있는 고유 쿼리의 최대 수
 max_subscriptions_per_client = 5
 
-# How long to wait for a tx to be committed
+# 트랜잭션이 커밋될 때까지 기다리는 시간
 timeout_broadcast_tx_commit = "10s"
 
-# Maximum size of request body
+# 요청 본문의 최대 크기
 max_body_bytes = 1000000
 
-# Maximum size of request header
+# 요청 헤더의 최대 크기
 max_header_bytes = 1048576
 ```
 
-### Mempool 구성
+### 멤풀 구성
 
 ```toml
 [mempool]
-# Mempool version to use
+# 사용할 멤풀 버전
 version = "v1"
 
-# Recheck enabled
+# 재확인 활성화
 recheck = true
 
-# Broadcast enabled
+# 브로드캐스트 활성화
 broadcast = true
 
-# Maximum number of transactions in the mempool
+# 멤풀의 트랜잭션 최대 수
 size = 3000
 
-# Limit the total size of all txs in the mempool
+# 멤풀의 모든 트랜잭션의 총 크기 제한
 max_txs_bytes = 1073741824  # 1GB
 
-# Size of the cache
+# 캐시 크기
 cache_size = 10000
 
-# Do not remove invalid transactions from the cache
+# 캐시에서 유효하지 않은 트랜잭션을 제거하지 않음
 keep-invalid-txs-in-cache = false
 
-# Maximum size of a single transaction
+# 단일 트랜잭션의 최대 크기
 max_tx_bytes = 1048576  # 1MB
 
-# Maximum size of a batch of transactions to send to a peer
+# 피어에게 보낼 트랜잭션 배치 최대 크기
 max_batch_bytes = 0
 ```
 
@@ -191,35 +191,35 @@ max_batch_bytes = 0
 
 ```toml
 [consensus]
-# How long we wait for a proposal block before prevoting nil
+# 제안 블록을 기다리는 시간 (nil 프리보팅 전)
 timeout_propose = "5s"
 
-# How much timeout_propose increases with each round
+# 각 라운드에서 timeout_propose가 증가하는 시간
 timeout_propose_delta = "10ms"
 
-# How long we wait after receiving +2/3 prevotes
+# +2/3 프리보팅을 받은 후 기다리는 시간
 timeout_prevote = "150ms"
 
-# How much the timeout_prevote increases with each round
+# 각 라운드에서 timeout_prevote가 증가하는 시간
 timeout_prevote_delta = "10ms"
 
-# How long we wait after receiving +2/3 precommits
+# +2/3 프리커밋을 받은 후 기다리는 시간
 timeout_precommit = "150s"
 
-# How much the timeout_precommit increases with each round
+# 각 라운드에서 timeout_precommit이 증가하는 시간
 timeout_precommit_delta = "10ms"
 
-# Make progress as soon as we have all the precommits
+# 모든 프리커밋을 가지는 즉시 진행
 skip_timeout_commit = false
 
-# Enable/disable double sign check
+# 이중 서명 확인 활성화/비활성화
 double_sign_check_height = 2
 
-# EmptyBlocks mode
+# EmptyBlocks 모드
 create_empty_blocks = true
 create_empty_blocks_interval = "0s"
 
-# Reactor sleep duration
+# 리액터 슬립 시간
 peer_gossip_sleep_duration = "100ms"
 peer_query_maj23_sleep_duration = "2s"
 ```
@@ -229,25 +229,25 @@ peer_query_maj23_sleep_duration = "2s"
 ### 기본 애플리케이션 설정
 
 ```toml
-# Pruning strategy
+# 가지치기 전략 (Pruning strategy)
 pruning = "default"
 
-# HaltHeight contains a non-zero block height at which a node will halt
+# HaltHeight는 노드가 정지할 0이 아닌 블록 높이를 포함합니다.
 halt-height = 0
 
-# HaltTime contains a non-zero time at which a node will halt
+# HaltTime은 노드가 정지할 0이 아닌 시간을 포함합니다.
 halt-time = 0
 
-# MinRetainBlocks defines the number of blocks for which a node will retain
+# MinRetainBlocks는 노드가 유지할 블록의 수를 정의합니다.
 min-retain-blocks = 0
 
-# InterBlockCache enables inter-block caching
+# InterBlockCache는 블록 간 캐싱을 활성화합니다.
 inter-block-cache = true
 
-# IndexEvents defines the set of events in the form {eventType}.{attributeKey}
+# IndexEvents는 {eventType}.{attributeKey} 형식의 이벤트 세트를 정의합니다.
 index-events = []
 
-# IavlCacheSize set the size of the iavl tree cache
+# IavlCacheSize는 iavl 트리 캐시의 크기를 설정합니다.
 iavl-cache-size = 781250
 ```
 
@@ -255,19 +255,19 @@ iavl-cache-size = 781250
 
 ```toml
 [api]
-# Enable defines if the API server should be enabled
+# Enable은 API 서버를 활성화할지 여부를 정의합니다.
 enable = true
 
-# Swagger defines if swagger documentation should automatically be registered
+# Swagger는 swagger 문서가 자동으로 등록되어야 하는지 여부를 정의합니다.
 swagger = true
 
-# Address defines the API server to listen on
+# Address는 API 서버가 수신할 주소를 정의합니다.
 address = "tcp://0.0.0.0:1317"
 
-# MaxOpenConnections defines the number of maximum open connections
+# MaxOpenConnections는 최대 열린 연결 수를 정의합니다.
 max-open-connections = 1000
 
-# EnabledUnsafeCORS defines if CORS should be enabled
+# EnabledUnsafeCORS는 CORS가 활성화되어야 하는지 여부를 정의합니다.
 enabled-unsafe-cors = true
 ```
 
@@ -275,10 +275,10 @@ enabled-unsafe-cors = true
 
 ```toml
 [grpc]
-# Enable defines if the gRPC server should be enabled
+# Enable은 gRPC 서버를 활성화할지 여부를 정의합니다.
 enable = true
 
-# Address defines the gRPC server address to bind to
+# Address는 gRPC 서버가 바인딩할 주소를 정의합니다.
 address = "0.0.0.0:9090"
 
 ```
@@ -287,84 +287,84 @@ address = "0.0.0.0:9090"
 
 ```toml
 [json-rpc]
-# Enable the JSON-RPC server
+# JSON-RPC 서버 활성화
 enable = true
 
-# Address to bind the JSON-RPC server
+# JSON-RPC 서버를 바인딩할 주소
 address = "0.0.0.0:8545"
 
-# Address to bind the WebSocket server
+# WebSocket 서버를 바인딩할 주소
 ws-address = "0.0.0.0:8546"
 
-# APIs to enable
+# 활성화할 API
 api = "eth,net,web3,txpool,personal,debug"
 
-# Gas cap for eth_call/estimateGas
+# eth_call/estimateGas의 가스 한도
 gas-cap = 25000000
 
-# EVM timeout for eth_call/estimateGas
+# eth_call/estimateGas의 EVM 시간 초과
 evm-timeout = "5s"
 
-# Tx fee cap for transactions
+# 트랜잭션의 트랜잭션 수수료 한도
 txfee-cap = 1
 
-# Filter cap for eth_getLogs
+# eth_getLogs의 필터 한도
 filter-cap = 200
 
-# FeeHistory cap
+# FeeHistory 한도
 feehistory-cap = 100
 
-# Block range cap for eth_getLogs
+# eth_getLogs의 블록 범위 한도
 logs-cap = 10000
 
-# Block range cap
+# 블록 범위 한도
 block-range-cap = 10000
 
-# HTTP timeout
+# HTTP 시간 초과
 http-timeout = "30s"
 
-# HTTP idle timeout
+# HTTP 유휴 시간 초과
 http-idle-timeout = "120s"
 
-# Allow unprotected transactions
+# 보호되지 않은 트랜잭션 허용
 allow-unprotected-txs = true
 
-# Maximum number of transactions in the pool
+# 풀의 트랜잭션 최대 수
 max-tx-in-pool = 3000
 
-# Enable indexer
+# 인덱서 활성화
 enable-indexer = false
 
-# Enable metrics
+# 측정항목 활성화
 metrics = true
 ```
 
-## 구성 프로파일
+## 구성 프로필
 
-### 풀 노드 (기본값)
+### 풀 노드 (기본)
 
 풀 노드를 위한 균형 잡힌 구성:
 
 ```bash
-# config.toml adjustments
+# config.toml 조정
 sed -i 's/^indexer = ".*"/indexer = "kv"/' ~/.stabled/config/config.toml
 sed -i 's/^max_num_inbound_peers = .*/max_num_inbound_peers = 50/' ~/.stabled/config/config.toml
 sed -i 's/^max_num_outbound_peers = .*/max_num_outbound_peers = 30/' ~/.stabled/config/config.toml
 
-# app.toml adjustments
+# app.toml 조정
 sed -i 's/^pruning = ".*"/pruning = "default"/' ~/.stabled/config/app.toml
 sed -i 's/^snapshot-interval = .*/snapshot-interval = 1000/' ~/.stabled/config/app.toml
 ```
 
 ### 아카이브 노드
 
-프루닝 없음, 전체 이력:
+가지치기 없음, 전체 기록:
 
 ```bash
-# config.toml adjustments
+# config.toml 조정
 sed -i 's/^indexer = ".*"/indexer = "kv"/' ~/.stabled/config/config.toml
 
-# app.toml adjustments
+# app.toml 조정
 sed -i 's/^pruning = ".*"/pruning = "nothing"/' ~/.stabled/config/app.toml
 ```
 
@@ -373,12 +373,12 @@ sed -i 's/^pruning = ".*"/pruning = "nothing"/' ~/.stabled/config/app.toml
 공개 RPC 엔드포인트 구성:
 
 ```bash
-# config.toml adjustments
+# config.toml 조정
 sed -i 's/^max_num_inbound_peers = .*/max_num_inbound_peers = 30/' ~/.stabled/config/config.toml
 sed -i 's/^max_open_connections = .*/max_open_connections = 30/' ~/.stabled/config/config.toml
 sed -i 's/^cors_allowed_origins = .*/cors_allowed_origins = ["*"]/' ~/.stabled/config/config.toml
 
-# app.toml adjustments
+# app.toml 조정
 sed -i 's/^enable = .*/enable = true/' ~/.stabled/config/app.toml
 sed -i 's/^swagger = .*/swagger = true/' ~/.stabled/config/app.toml
 sed -i 's/^enabled-unsafe-cors = .*/enabled-unsafe-cors = true/' ~/.stabled/config/app.toml
@@ -392,13 +392,13 @@ sed -i 's/^enabled-unsafe-cors = .*/enabled-unsafe-cors = true/' ~/.stabled/conf
 ```toml
 # config.toml
 [instrumentation]
-# Enable Prometheus metrics
+# Prometheus 메트릭 활성화
 prometheus = true
 
-# Metrics listen address
+# 메트릭 수신 주소
 prometheus_listen_addr = ":26660"
 
-# Namespace for metrics
+# 메트릭 네임스페이스
 namespace = "stablebft"
 ```
 
@@ -407,29 +407,29 @@ namespace = "stablebft"
 ```toml
 # config.toml
 [log]
-# Log level (trace|debug|info|warn|error|fatal|panic)
+# 로그 레벨 (trace|debug|info|warn|error|fatal|panic)
 level = "info"
 
-# Log format (plain|json)
+# 로그 형식 (plain|json)
 format = "plain"
 ```
 
-## 구성 변경 사항 적용
+## 구성 변경 적용
 
-구성을 변경한 후:
+구성 변경 후:
 
 ```bash
-# Restart the node
+# 노드 재시작
 sudo systemctl restart ${SERVICE_NAME}
 
-# Check logs for errors
+# 오류 로그 확인
 sudo journalctl -u ${SERVICE_NAME} -f
 
-# Verify configuration loaded
+# 로드된 구성 확인
 curl localhost:26657/status | jq '.result.node_info'
 ```
 
 ## 다음 단계
 
 - 노드를 위한 [모니터링 설정](/ko/how-to/monitor-node)
-- 일반적인 문제에 대해 [문제 해결 가이드](/ko/how-to/troubleshoot-node) 검토
+- 일반적인 문제에 대한 [문제 해결 가이드](/ko/how-to/troubleshoot-node) 검토

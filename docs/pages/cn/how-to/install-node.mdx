@@ -1,53 +1,53 @@
 ---
 source_path: how-to/install-node.mdx
-source_sha: 9dfb0333d9152dfd5083da30d4c5e7c0597f091d
+source_sha: b3d203ef94d492fda0206e9c1f6797c50a09be8f
 title: 安装指南
-description: "在 Linux 上使用预编译版本安装 Stable 节点二进制文件的分步安装指南。"
+description: "使用预编译版本在 Linux 上安装 Stable 节点二进制文件的分步指南。"
 diataxis: "how-to"
 ---
 
-本指南提供在各种平台上安装和设置 Stable 节点的详细说明。
+本指南提供了在各种平台上安装和设置 Stable 节点的详细说明。
 
-## 前提条件
+## 先决条件
 
-在开始安装之前，请确保你已：
-- 满足所有[系统要求](/cn/reference/node-system-requirements)
-- 拥有服务器的 root 或 sudo 访问权限
-- 具备基本的 Linux 命令行知识
+开始安装前，请确保您已具备：
+- 满足所有 [系统要求](/cn/reference/node-system-requirements)
+- 服务器的 root 或 sudo 访问权限
+- Linux 命令行基础知识
 
 ## 安装方法
 
-使用适用于你的平台的预编译二进制文件。Stable 目前不支持从源码构建。
+请使用适用于您平台的预编译二进制文件。Stable 目前不支持从源代码构建。
 
 ### 主网
 
 #### Linux AMD64
 
 ```bash
-# Download the latest binary for AMD64 architecture
+# 下载适用于 AMD64 架构的最新二进制文件
 wget https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/binary/stabled-latest-linux-amd64-mainnet.tar.gz
 
-# Extract the archive
+# 解压文件
 tar -xvzf stabled-latest-linux-amd64-mainnet.tar.gz
 
-# Move binary to system path
+# 将二进制文件移动到系统路径
 sudo mv stabled /usr/bin/
 
-# Verify installation
+# 验证安装
 stabled version
 ```
 
 #### Linux ARM64
 
 ```bash
-# Download the binary for ARM64 architecture
+# 下载适用于 ARM64 架构的二进制文件
 wget https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/binary/stabled-latest-linux-arm64-mainnet.tar.gz
 
-# Extract and install
+# 解压并安装
 tar -xvzf stabled-latest-linux-arm64-mainnet.tar.gz
 sudo mv stabled /usr/bin/
 
-# Verify installation
+# 验证安装
 stabled version
 ```
 
@@ -56,41 +56,41 @@ stabled version
 #### Linux AMD64
 
 ```bash
-# Download the latest binary for AMD64 architecture
+# 下载适用于 AMD64 架构的最新二进制文件
 wget https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/binary/stabled-latest-linux-amd64-testnet.tar.gz
 
-# Extract the archive
+# 解压文件
 tar -xvzf stabled-latest-linux-amd64-testnet.tar.gz
 
-# Move binary to system path
+# 将二进制文件移动到系统路径
 sudo mv stabled /usr/bin/
 
-# Verify installation
+# 验证安装
 stabled version
 ```
 
 #### Linux ARM64
 
 ```bash
-# Download the binary for ARM64 architecture
+# 下载适用于 ARM64 架构的二进制文件
 wget https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/binary/stabled-latest-linux-arm64-testnet.tar.gz
 
-# Extract and install
+# 解压并安装
 tar -xvzf stabled-latest-linux-arm64-testnet.tar.gz
 sudo mv stabled /usr/bin/
 
-# Verify installation
+# 验证安装
 stabled version
 ```
 
 ## 节点初始化
 
-安装二进制文件后，初始化你的节点：
+安装二进制文件后，初始化您的节点：
 
 ### 步骤 1：设置节点名称
 
 ```bash
-# Set your node's moniker (choose a unique name)
+# 设置您的节点别名（选择一个唯一的名称）
 export MONIKER="your-node-name"
 ```
 
@@ -99,57 +99,57 @@ export MONIKER="your-node-name"
 ### 主网
 
 ```bash
-# Initialize with the mainnet chain ID
+# 使用主网链 ID 初始化
 stabled init $MONIKER --chain-id stable_988-1
 
-# This creates the configuration directory at ~/.stabled/
+# 这将在 ~/.stabled/ 创建配置目录
 ```
 
-> **注意**：有关包括 chain ID 在内的当前网络参数，请参阅[主网信息](/cn/reference/mainnet-information)
+> **注意**：有关当前网络参数（包括链 ID），请参阅 [主网信息](/cn/reference/mainnet-information)
 
 ### 测试网
 
 ```bash
-# Initialize with the testnet chain ID
+# 使用测试网链 ID 初始化
 stabled init $MONIKER --chain-id stabletestnet_2201-1
 
-# This creates the configuration directory at ~/.stabled/
+# 这将在 ~/.stabled/ 创建配置目录
 ```
 
-> **注意**：有关包括 chain ID 在内的当前网络参数，请参阅[测试网信息](/cn/reference/testnet-information)
+> **注意**：有关当前网络参数（包括链 ID），请参阅 [测试网信息](/cn/reference/testnet-information)
 
 ### 步骤 3：下载创世文件
 
 :::code-group
 ```bash [Mainnet]
-# Create backup of default genesis
+# 备份默认创世文件
 mv ~/.stabled/config/genesis.json ~/.stabled/config/genesis.json.backup
 
-# Download mainnet genesis
+# 下载主网创世文件
 wget https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/configuration/genesis.zip
 unzip genesis.zip
 
-# Move genesis to config directory
+# 将创世文件移动到配置目录
 cp genesis.json ~/.stabled/config/genesis.json
 
-# Verify genesis checksum
+# 验证创世文件校验和
 sha256sum ~/.stabled/config/genesis.json
-# Expected: e1ceda79a3cc48a1028ca8646a2e9e2d156f610637cfb8b428ca8354277921f1
+# 预期值: e1ceda79a3cc48a1028ca8646a2e9e2d156f610637cfb8b428ca8354277921f1
 ```
 ```bash [Testnet]
-# Create backup of default genesis
+# 备份默认创世文件
 mv ~/.stabled/config/genesis.json ~/.stabled/config/genesis.json.backup
 
-# Download testnet genesis
+# 下载测试网创世文件
 wget https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/configuration/genesis.zip
 unzip genesis.zip
 
-# Move genesis to config directory
+# 将创世文件移动到配置目录
 cp genesis.json ~/.stabled/config/genesis.json
 
-# Verify genesis checksum
+# 验证创世文件校验和
 sha256sum ~/.stabled/config/genesis.json
-# Expected: 66afbb6e57e6faf019b3021de299125cddab61d433f28894db751252f5b8eaf2
+# 预期值: 66afbb6e57e6faf019b3021de299125cddab61d433f28894db751252f5b8eaf2
 ```
 :::
 
@@ -159,46 +159,46 @@ sha256sum ~/.stabled/config/genesis.json
 
 :::code-group
 ```bash [Mainnet]
-# Download optimized configuration (choose one based on your node type)
-# For RPC/Full nodes:
+# 下载优化配置（根据您的节点类型选择一个）
+# 适用于 RPC/全节点：
 wget https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/configuration/rpc_node_config.zip
 unzip rpc_node_config.zip
 
-# For Archive nodes:
+# 适用于归档节点：
 # wget https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/configuration/archive_node_config.zip
 # unzip archive_node_config.zip
 
-# Backup original config
+# 备份原始配置
 cp ~/.stabled/config/config.toml ~/.stabled/config/config.toml.backup
 
-# Apply new configuration
+# 应用新配置
 cp config.toml ~/.stabled/config/config.toml
 
-# Update moniker in config
+# 更新配置中的别名
 sed -i "s/^moniker = \".*\"/moniker = \"$MONIKER\"/" ~/.stabled/config/config.toml
 ```
 ```bash [Testnet]
-# Download optimized configuration
+# 下载优化配置
 wget https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/configuration/rpc_node_config.zip
 unzip rpc_node_config.zip
 
-# Backup original config
+# 备份原始配置
 cp ~/.stabled/config/config.toml ~/.stabled/config/config.toml.backup
 
-# Apply new configuration
+# 应用新配置
 cp config.toml ~/.stabled/config/config.toml
 
-# Update moniker in config
+# 更新配置中的别名
 sed -i "s/^moniker = \".*\"/moniker = \"$MONIKER\"/" ~/.stabled/config/config.toml
 ```
 :::
 
-#### 必要的配置更新
+#### 基本配置更新
 
 编辑 `~/.stabled/config/app.toml`：
 
 ```toml
-# Enable JSON-RPC for EVM compatibility
+# 启用 JSON-RPC 以实现 EVM 兼容性
 [json-rpc]
 enable = true
 address = "0.0.0.0:8545"
@@ -210,64 +210,64 @@ allow-unprotected-txs = true
 
 :::code-group
 ```toml [Mainnet]
-# P2P Configuration
+# P2P 配置
 [p2p]
-# Maximum number of peers
+# 最大对等节点数
 max_num_inbound_peers = 50
 max_num_outbound_peers = 30
 
-# Seed nodes
-seeds = "9aa181b20248e948567cb47a15eae35d58cd549d@seed1.stable.xyz:46656"
+# 种子节点
+seeds = "c21897d374c480a963edcda941ac94030895f6b4@seed1.stable.xyz:46656"
 
-# Persistent peers (mainnet seed nodes)
+# 持久对等节点 (主网种子节点)
 persistent_peers = "b896f6f8ca5a4d1cc40de09407df0c96e76df950@peer1.stable.xyz:26656"
 
-# Enable peer exchange
+# 启用对等节点交换
 pex = true
 
-# RPC Configuration
+# RPC 配置
 [rpc]
-# Listen address
+# 监听地址
 laddr = "tcp://0.0.0.0:26657"
 
-# Maximum number of simultaneous connections
+# 同时连接的最大数量
 max_open_connections = 900
 
-# CORS settings (adjust for production)
+# CORS 设置 (生产环境请调整)
 cors_allowed_origins = ["*"]
 ```
 ```toml [Testnet]
-# P2P Configuration
+# P2P 配置
 [p2p]
-# Maximum number of peers
+# 最大对等节点数
 max_num_inbound_peers = 50
 max_num_outbound_peers = 30
 
-# Seed nodes
-seeds = "6f3195823f7e5ee6f911a0a0ceb9ea689e0dc5bd@seed1.testnet.stable.xyz:56656"
+# 种子节点
+seeds = "8c2ede57b763c2976253f880a27c6f85756e1f1b@seed1.testnet.stable.xyz:56656"
 
-# Persistent peers (testnet seed nodes)
+# 持久对等节点 (测试网种子节点)
 persistent_peers = "128accd3e8ee379bfdf54560c21345451c7048c7@peer1.testnet.stable.xyz:26656"
 
-# Enable peer exchange
+# 启用对等节点交换
 pex = true
 
-# RPC Configuration
+# RPC 配置
 [rpc]
-# Listen address
+# 监听地址
 laddr = "tcp://0.0.0.0:26657"
 
-# Maximum number of simultaneous connections
+# 同时连接的最大数量
 max_open_connections = 900
 
-# CORS settings (adjust for production)
+# CORS 设置 (生产环境请调整)
 cors_allowed_origins = ["*"]
 ```
 :::
 
 ## Systemd 服务设置
 
-创建一个 systemd 服务以实现自动管理：
+创建 systemd 服务以进行自动管理：
 
 ### 步骤 1：创建服务文件
 
@@ -317,45 +317,45 @@ EOF
 ### 步骤 2：启用并启动服务
 
 ```bash
-# Reload systemd configuration
+# 重新加载 systemd 配置
 sudo systemctl daemon-reload
 
-# Enable service to start on boot
+# 启用服务在启动时运行
 sudo systemctl enable stabled
 
-# Start the service
+# 启动服务
 sudo systemctl start stabled
 
-# Check service status
+# 检查服务状态
 sudo systemctl status stabled
 
-# View logs
+# 查看日志
 sudo journalctl -u stabled -f
 ```
 
 ## Cosmovisor 设置（推荐用于自动升级）
 
-Cosmovisor 是一个进程管理器，可自动处理链升级。这是生产节点的推荐设置。
+Cosmovisor 是一个进程管理器，可以自动处理链升级。这是生产节点的推荐设置。
 
 ### 步骤 1：安装 Cosmovisor
 
 ```bash
-# Install Cosmovisor
+# 安装 Cosmovisor
 go install cosmossdk.io/tools/cosmovisor/cmd/cosmovisor@latest
 
-# Or download pre-built binary
+# 或下载预编译二进制文件
 wget https://github.com/cosmos/cosmos-sdk/releases/download/cosmovisor%2Fv1.7.0/cosmovisor-v1.7.0-linux-amd64.tar.gz
 tar -xvzf cosmovisor-v1.7.0-linux-amd64.tar.gz
 sudo mv cosmovisor /usr/bin/
 
-# Verify installation
+# 验证安装
 cosmovisor version
 ```
 
 ### 步骤 2：设置环境变量
 
 ```bash
-# Add to ~/.bashrc or ~/.profile
+# 添加到 ~/.bashrc 或 ~/.profile
 echo "# Cosmovisor Configuration" >> ~/.bashrc
 echo "export DAEMON_NAME=stabled" >> ~/.bashrc
 echo "export DAEMON_HOME=$HOME/.stabled" >> ~/.bashrc
@@ -364,7 +364,7 @@ echo "export DAEMON_RESTART_AFTER_UPGRADE=true" >> ~/.bashrc
 echo "export DAEMON_LOG_BUFFER_SIZE=512" >> ~/.bashrc
 echo "export UNSAFE_SKIP_BACKUP=true" >> ~/.bashrc
 
-# Load variables
+# 加载变量
 source ~/.bashrc
 
 ```
@@ -372,17 +372,17 @@ source ~/.bashrc
 ### 步骤 3：设置 Cosmovisor 目录结构
 
 ```bash
-# Create cosmovisor directory structure
+# 创建 cosmovisor 目录结构
 mkdir -p ~/.stabled/cosmovisor/genesis/bin
 mkdir -p ~/.stabled/cosmovisor/upgrades
 
-# Copy current binary to genesis
+# 将当前二进制文件复制到 genesis
 cp /usr/bin/stabled ~/.stabled/cosmovisor/genesis/bin/
 
-# Create current symlink
+# 创建当前软链接
 ln -s ~/.stabled/cosmovisor/genesis ~/.stabled/cosmovisor/current
 
-# Verify setup
+# 验证设置
 ls -la ~/.stabled/cosmovisor/
 cosmovisor run version
 ```
@@ -390,7 +390,7 @@ cosmovisor run version
 ### 步骤 4：设置环境变量
 
 ```bash
-# Set service name (default: stable)
+# 设置服务名称（默认：stable）
 export SERVICE_NAME=stable
 ```
 
@@ -454,68 +454,68 @@ EOF
 ### 步骤 6：启用并启动服务
 
 ```bash
-# Reload systemd
+# 重新加载 systemd
 sudo systemctl daemon-reload
 
-# Enable service
+# 启用服务
 sudo systemctl enable ${SERVICE_NAME}
 
-# Start the service
+# 启动服务
 sudo systemctl start ${SERVICE_NAME}
 
-# Check status
+# 检查状态
 sudo systemctl status ${SERVICE_NAME}
 
-# View logs
+# 查看日志
 sudo journalctl -u ${SERVICE_NAME} -f
 ```
 
 ### 准备升级
 
-当链升级公布时：
+当链升级宣布时：
 
 ```bash
-# Example: Preparing for v0.8.0 upgrade
+# 示例：准备 v0.8.0 升级
 UPGRADE_NAME="v0.8.0"
 mkdir -p ~/.stabled/cosmovisor/upgrades/$UPGRADE_NAME/bin
 
-# Download new binary
+# 下载新二进制文件
 wget https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/binary/stabled-0.8.0-linux-amd64-testnet.tar.gz
 tar -xvzf stabled-0.8.0-linux-amd64-testnet.tar.gz
 
-# Place in upgrade directory
+# 放置在升级目录中
 mv stabled ~/.stabled/cosmovisor/upgrades/$UPGRADE_NAME/bin/
 
-# Verify the binary
+# 验证二进制文件
 ~/.stabled/cosmovisor/upgrades/$UPGRADE_NAME/bin/stabled version
 
-# Cosmovisor will automatically switch to this binary at the upgrade height
+# Cosmovisor 将在升级高度自动切换到此二进制文件
 ```
 
 ### 监控 Cosmovisor
 
 ```bash
-# Check current binary version
+# 检查当前二进制版本
 cosmovisor run version
 
-# View upgrade info
+# 查看升级信息
 ls -la ~/.stabled/cosmovisor/upgrades/
 
-# Check service logs for upgrade status
+# 检查服务日志以获取升级状态
 sudo journalctl -u ${SERVICE_NAME} | grep -i upgrade
 
-# Monitor real-time logs during upgrade
+# 在升级期间监控实时日志
 sudo journalctl -u ${SERVICE_NAME} -f
 ```
 
 ## 手动 Systemd 服务设置（替代方案）
 
-如果你不想使用 Cosmovisor，可以创建一个标准的 systemd 服务：
+如果您不想使用 Cosmovisor，可以创建一个标准的 systemd 服务：
 
 ### 步骤 1：设置环境变量
 
 ```bash
-# Set service name (default: stable)
+# 设置服务名称（默认：stable）
 export SERVICE_NAME=stable
 ```
 
@@ -567,85 +567,85 @@ EOF
 ### 步骤 3：启用并启动服务
 
 ```bash
-# Reload systemd configuration
+# 重新加载 systemd 配置
 sudo systemctl daemon-reload
 
-# Enable service to start on boot
+# 启用服务在启动时运行
 sudo systemctl enable ${SERVICE_NAME}
 
-# Start the service
+# 启动服务
 sudo systemctl start ${SERVICE_NAME}
 
-# Check service status
+# 检查服务状态
 sudo systemctl status ${SERVICE_NAME}
 
-# View logs
+# 查看日志
 sudo journalctl -u ${SERVICE_NAME} -f
 ```
 
 ## 快速同步选项
 
-如需更快的同步，请参阅[快照与同步指南](/cn/how-to/use-node-snapshots)，了解：
+为了更快地同步，请参阅 [快照和同步指南](/cn/how-to/use-node-snapshots)，了解：
 - 归档节点快照
-- 修剪节点快照
+- 剪枝节点快照
 
 ## 安装后验证
 
 ### 检查节点状态
 
 ```bash
-# Check if node is running
+# 检查节点是否正在运行
 sudo systemctl status stabled
 
-# Check sync status
+# 检查同步状态
 curl -s localhost:26657/status | jq '.result.sync_info'
 
-# Check connected peers
+# 检查连接的对等节点
 curl -s localhost:26657/net_info | jq '.result.n_peers'
 
-# Check latest block
+# 检查最新区块
 curl -s localhost:26657/status | jq '.result.sync_info.latest_block_height'
 ```
 
 ### 监控日志
 
 ```bash
-# Follow service logs
+# 跟踪服务日志
 sudo journalctl -u stabled -f
 
-# Check for errors
+# 检查错误
 sudo journalctl -u stabled --since "1 hour ago" | grep -i error
 
-# Check for peer connections
+# 检查对等节点连接
 sudo journalctl -u stabled --since "10 minutes ago" | grep -i "peer"
 ```
 
-## 安全加固
+## 安全强化
 
-安装后，保护你的节点：
+安装后，请保护您的节点：
 
 ### 防火墙配置
 
 ```bash
-# Configure UFW
+# 配置 UFW
 sudo ufw allow 22/tcp  # SSH
 sudo ufw allow 26656/tcp  # P2P
-sudo ufw allow 26657/tcp  # RPC (only if needed externally)
+sudo ufw allow 26657/tcp  # RPC (仅当外部需要时)
 sudo ufw enable
 ```
 
-## 后续步骤
+## 下一步
 
-1. **配置你的节点**：参阅[配置指南](/cn/reference/node-configuration)
-2. **加速同步**：查看[快照与同步](/cn/how-to/use-node-snapshots)
-3. **监控你的节点**：设置[监控](/cn/how-to/monitor-node)
-4. **加入社区**：在 [Discord](https://discord.gg/stablexyz) 获取支持
+1. **配置您的节点**：参阅 [配置指南](/cn/reference/node-configuration)
+2. **加速同步**：查看 [快照和同步](/cn/how-to/use-node-snapshots)
+3. **监控您的节点**：设置 [监控](/cn/how-to/monitor-node)
+4. **加入社区**：在 [Discord](https://discord.gg/stablexyz) 中获取支持
 
 ## 故障排除
 
-如果你在安装过程中遇到问题：
-- 查看[故障排除指南](/cn/how-to/troubleshoot-node)
+如果您在安装过程中遇到问题：
+- 查阅 [故障排除指南](/cn/how-to/troubleshoot-node)
 - 验证是否满足系统要求
 - 确保端口未被防火墙阻止
 - 检查磁盘空间和权限
-- 查看 systemd 日志中的错误
+- 检查 systemd 日志中的错误

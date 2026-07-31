@@ -1,20 +1,20 @@
 ---
 source_path: reference/node-configuration.mdx
-source_sha: b8b008a5ecbc30001cc5c5e528092a14410f2763
+source_sha: 49a919754b40175fac45e1d6a2c5986a555e7dab
 title: 节点配置指南
-description: "Stable 验证者节点和全节点上 config.toml 和 app.toml 设置的配置参考。"
+description: "Stable 验证器节点和全节点的 config.toml 和 app.toml 配置设置参考。"
 diataxis: "reference"
 tag: "new"
 ---
 
-本指南涵盖 Stable 节点的所有配置选项，包括针对不同使用场景的优化。
+本指南涵盖 Stable 节点的所有配置选项，包括针对不同用例的优化。
 
 ## 配置文件概述
 
-Stable 节点使用两个主要配置文件：
+Stable 节点使用两个主要的配置文件：
 
-- **`config.toml`**：核心 StableBFT 配置
-- **`app.toml`**：应用程序专属配置
+- **`config.toml`**: 核心 StableBFT 配置
+- **`app.toml`**: 应用程序特定配置
 
 这两个文件都位于 `~/.stabled/config/`
 
@@ -24,23 +24,23 @@ Stable 节点使用两个主要配置文件：
 
 :::code-group
 ```toml [Mainnet]
-# The ID of the chain to join
+# 要加入的链 ID
 chain_id = "stable_988-1"
 
-# A custom human-readable name for this node
+# 此节点的自定义可读名称
 moniker = "your-node-name"
 
-# Database backend: goleveldb | cleveldb | boltdb | rocksdb | badgerdb
+# 数据库后端: goleveldb | cleveldb | boltdb | rocksdb | badgerdb
 db_backend = "goleveldb"
 ```
 ```toml [Testnet]
-# The ID of the chain to join
+# 要加入的链 ID
 chain_id = "stabletestnet_2201-1"
 
-# A custom human-readable name for this node
+# 此节点的自定义可读名称
 moniker = "your-node-name"
 
-# Database backend: goleveldb | cleveldb | boltdb | rocksdb | badgerdb
+# 数据库后端: goleveldb | cleveldb | boltdb | rocksdb | badgerdb
 db_backend = "goleveldb"
 ```
 :::
@@ -50,64 +50,64 @@ db_backend = "goleveldb"
 :::code-group
 ```toml [Mainnet]
 [p2p]
-# Address to listen for incoming connections
+# 监听传入连接的地址
 laddr = "tcp://0.0.0.0:26656"
 
-# Address to advertise to peers for them to dial
+# 向对等节点广播的地址，以便它们拨号
 external_address = "YOUR_PUBLIC_IP:26656"
 
-# Comma separated list of seed nodes
-seeds = "17a539fda42863a99755547e1c9b3ec4c38a4439@seed1.stable.xyz:26656"
+# 种子节点列表，逗号分隔
+seeds = "c21897d374c480a963edcda941ac94030895f6b4@seed1.stable.xyz:46656"
 
-# Comma separated list of persistent peers
+# 持久对等节点列表，逗号分隔
 persistent_peers = "b896f6f8ca5a4d1cc40de09407df0c96e76df950@peer1.stable.xyz:26656"
 ```
 ```toml [Testnet]
 [p2p]
-# Address to listen for incoming connections
+# 监听传入连接的地址
 laddr = "tcp://0.0.0.0:26656"
 
-# Address to advertise to peers for them to dial
+# 向对等节点广播的地址，以便它们拨号
 external_address = "YOUR_PUBLIC_IP:26656"
 
-# Comma separated list of seed nodes
-seeds = "39e061b167162f6621ddadcf1be21d6fa585a468@seed1.testnet.stable.xyz:26656"
+# 种子节点列表，逗号分隔
+seeds = "8c2ede57b763c2976253f880a27c6f85756e1f1b@seed1.testnet.stable.xyz:56656"
 
-# Comma separated list of persistent peers
+# 持久对等节点列表，逗号分隔
 persistent_peers = "5ed0f977a26ccf290e184e364fb04e268ef16430@peer1.testnet.stable.xyz:26656"
 ```
 :::
 
-其他 P2P 设置（两个网络相同）：
+附加 P2P 设置（两个网络相同）：
 
 ```toml
-# Maximum number of inbound peers
+# 入站对等节点的最大数量
 max_num_inbound_peers = 50
 
-# Maximum number of outbound peers
+# 出站对等节点的最大数量
 max_num_outbound_peers = 30
 
-# Toggle to disable guard against peers connecting from the same ip
+# 切换以禁用防止对等节点从相同 IP 连接的保护
 allow_duplicate_ip = false
 
-# Peer connection configuration
+# 对等节点连接配置
 handshake_timeout = "20s"
 dial_timeout = "3s"
 
-# Time to wait before flushing messages out on the connection
+# 在连接上刷新消息之前的等待时间
 flush_throttle_timeout = "100ms"
 
-# Maximum size of a message packet payload
+# 消息包载荷的最大大小
 max_packet_msg_payload_size = 1024
 
-# Rate limiting
+# 速率限制
 send_rate = 5120000  # 5 MB/s
 recv_rate = 5120000  # 5 MB/s
 
-# Seed mode (for seed nodes only)
+# 种子模式（仅适用于种子节点）
 seed_mode = false
 
-# Enable peer exchange reactor
+# 启用对等节点交换反应器
 pex = true
 ```
 
@@ -115,43 +115,43 @@ pex = true
 
 ```toml
 [rpc]
-# TCP or UNIX socket address for the RPC server
+# RPC 服务器的 TCP 或 UNIX 套接字地址
 laddr = "tcp://127.0.0.1:26657"
 
-# A list of origins a cross-domain request can be executed from
+# 允许执行跨域请求的来源列表
 cors_allowed_origins = ["*"]
 
-# A list of methods the client is allowed to use with cross-domain requests
+# 客户端允许与跨域请求一起使用的方法列表
 cors_allowed_methods = ["HEAD", "GET", "POST"]
 
-# A list of non simple headers the client is allowed to use with cross-domain requests
+# 客户端允许与跨域请求一起使用的非简单头列表
 cors_allowed_headers = ["Origin", "Accept", "Content-Type", "X-Requested-With", "X-Server-Time"]
 
-# TCP or UNIX socket address for the gRPC server
+# gRPC 服务器的 TCP 或 UNIX 套接字地址
 grpc_laddr = "tcp://127.0.0.1:9090"
 
-# Maximum number of simultaneous connections
+# 同时连接的最大数量
 grpc_max_open_connections = 900
 
-# Activate unsafe RPC commands like /dial_seeds and /unsafe_flush_mempool
+# 激活不安全的 RPC 命令，如 /dial_seeds 和 /unsafe_flush_mempool
 unsafe = false
 
-# Maximum number of simultaneous connections (including WebSocket)
+# 同时连接的最大数量（包括 WebSocket）
 max_open_connections = 900
 
-# Maximum number of unique clientIDs that can connect
+# 可以连接的唯一 clientID 的最大数量
 max_subscription_clients = 100
 
-# Maximum number of unique queries a given client can subscribe to
+# 给定客户端可以订阅的唯一查询的最大数量
 max_subscriptions_per_client = 5
 
-# How long to wait for a tx to be committed
+# 等待 tx 提交的时间
 timeout_broadcast_tx_commit = "10s"
 
-# Maximum size of request body
+# 请求正文的最大大小
 max_body_bytes = 1000000
 
-# Maximum size of request header
+# 请求头的最大大小
 max_header_bytes = 1048576
 ```
 
@@ -159,31 +159,31 @@ max_header_bytes = 1048576
 
 ```toml
 [mempool]
-# Mempool version to use
+# 要使用的内存池版本
 version = "v1"
 
-# Recheck enabled
+# 重新检查已启用
 recheck = true
 
-# Broadcast enabled
+# 广播已启用
 broadcast = true
 
-# Maximum number of transactions in the mempool
+# 内存池中的最大交易数量
 size = 3000
 
-# Limit the total size of all txs in the mempool
+# 限制内存池中所有 tx 的总大小
 max_txs_bytes = 1073741824  # 1GB
 
-# Size of the cache
+# 缓存大小
 cache_size = 10000
 
-# Do not remove invalid transactions from the cache
+# 不要从缓存中删除无效交易
 keep-invalid-txs-in-cache = false
 
-# Maximum size of a single transaction
+# 单笔交易的最大大小
 max_tx_bytes = 1048576  # 1MB
 
-# Maximum size of a batch of transactions to send to a peer
+# 发送给对等节点的交易批次的最大大小
 max_batch_bytes = 0
 ```
 
@@ -191,35 +191,35 @@ max_batch_bytes = 0
 
 ```toml
 [consensus]
-# How long we wait for a proposal block before prevoting nil
+# 在预投票空之前，我们等待提议区块的时间
 timeout_propose = "5s"
 
-# How much timeout_propose increases with each round
+# 每个回合 timeout_propose 增加的量
 timeout_propose_delta = "10ms"
 
-# How long we wait after receiving +2/3 prevotes
+# 收到 +2/3 预投票后等待的时间
 timeout_prevote = "150ms"
 
-# How much the timeout_prevote increases with each round
+# 每个回合 timeout_prevote 增加的量
 timeout_prevote_delta = "10ms"
 
-# How long we wait after receiving +2/3 precommits
+# 收到 +2/3 预提交后等待的时间
 timeout_precommit = "150s"
 
-# How much the timeout_precommit increases with each round
+# 每个回合 timeout_precommit 增加的量
 timeout_precommit_delta = "10ms"
 
-# Make progress as soon as we have all the precommits
+# 一旦我们收到所有预提交，就立即取得进展
 skip_timeout_commit = false
 
-# Enable/disable double sign check
+# 启用/禁用双重签名检查
 double_sign_check_height = 2
 
-# EmptyBlocks mode
+# 空区块模式
 create_empty_blocks = true
 create_empty_blocks_interval = "0s"
 
-# Reactor sleep duration
+# Reactor 睡眠时长
 peer_gossip_sleep_duration = "100ms"
 peer_query_maj23_sleep_duration = "2s"
 ```
@@ -229,25 +229,25 @@ peer_query_maj23_sleep_duration = "2s"
 ### 基本应用程序设置
 
 ```toml
-# Pruning strategy
+# 修剪策略
 pruning = "default"
 
-# HaltHeight contains a non-zero block height at which a node will halt
+# HaltHeight 包含一个非零区块高度，在该高度节点将停止
 halt-height = 0
 
-# HaltTime contains a non-zero time at which a node will halt
+# HaltTime 包含一个非零时间，在该时间节点将停止
 halt-time = 0
 
-# MinRetainBlocks defines the number of blocks for which a node will retain
+# MinRetainBlocks 定义了节点将保留的区块数量
 min-retain-blocks = 0
 
-# InterBlockCache enables inter-block caching
+# InterBlockCache 启用区块间缓存
 inter-block-cache = true
 
-# IndexEvents defines the set of events in the form {eventType}.{attributeKey}
+# IndexEvents 定义了以 {eventType}.{attributeKey} 形式的事件集
 index-events = []
 
-# IavlCacheSize set the size of the iavl tree cache
+# IavlCacheSize 设置 iavl 树缓存的大小
 iavl-cache-size = 781250
 ```
 
@@ -255,19 +255,19 @@ iavl-cache-size = 781250
 
 ```toml
 [api]
-# Enable defines if the API server should be enabled
+# Enable 定义是否应启用 API 服务器
 enable = true
 
-# Swagger defines if swagger documentation should automatically be registered
+# Swagger 定义是否应自动注册 swagger 文档
 swagger = true
 
-# Address defines the API server to listen on
+# Address 定义 API 服务器监听的地址
 address = "tcp://0.0.0.0:1317"
 
-# MaxOpenConnections defines the number of maximum open connections
+# MaxOpenConnections 定义最大打开连接数
 max-open-connections = 1000
 
-# EnabledUnsafeCORS defines if CORS should be enabled
+# EnabledUnsafeCORS 定义是否应启用 CORS
 enabled-unsafe-cors = true
 ```
 
@@ -275,10 +275,10 @@ enabled-unsafe-cors = true
 
 ```toml
 [grpc]
-# Enable defines if the gRPC server should be enabled
+# Enable 定义是否应启用 gRPC 服务器
 enable = true
 
-# Address defines the gRPC server address to bind to
+# Address 定义 gRPC 服务器绑定的地址
 address = "0.0.0.0:9090"
 
 ```
@@ -287,84 +287,84 @@ address = "0.0.0.0:9090"
 
 ```toml
 [json-rpc]
-# Enable the JSON-RPC server
+# 启用 JSON-RPC 服务器
 enable = true
 
-# Address to bind the JSON-RPC server
+# 绑定 JSON-RPC 服务器的地址
 address = "0.0.0.0:8545"
 
-# Address to bind the WebSocket server
+# 绑定 WebSocket 服务器的地址
 ws-address = "0.0.0.0:8546"
 
-# APIs to enable
+# 启用的 API
 api = "eth,net,web3,txpool,personal,debug"
 
-# Gas cap for eth_call/estimateGas
+# eth_call/estimateGas 的 gas 上限
 gas-cap = 25000000
 
-# EVM timeout for eth_call/estimateGas
+# eth_call/estimateGas 的 EVM 超时
 evm-timeout = "5s"
 
-# Tx fee cap for transactions
+# 交易的 Tx 费用上限
 txfee-cap = 1
 
-# Filter cap for eth_getLogs
+# eth_getLogs 的过滤器上限
 filter-cap = 200
 
-# FeeHistory cap
+# FeeHistory 上限
 feehistory-cap = 100
 
-# Block range cap for eth_getLogs
+# eth_getLogs 的区块范围上限
 logs-cap = 10000
 
-# Block range cap
+# 区块范围上限
 block-range-cap = 10000
 
-# HTTP timeout
+# HTTP 超时
 http-timeout = "30s"
 
-# HTTP idle timeout
+# HTTP 空闲超时
 http-idle-timeout = "120s"
 
-# Allow unprotected transactions
+# 允许未受保护的交易
 allow-unprotected-txs = true
 
-# Maximum number of transactions in the pool
+# 内存池中交易的最大数量
 max-tx-in-pool = 3000
 
-# Enable indexer
+# 启用索引器
 enable-indexer = false
 
-# Enable metrics
+# 启用指标
 metrics = true
 ```
 
-## 配置方案
+## 配置配置文件
 
 ### 全节点（默认）
 
-适用于全节点的均衡配置：
+全节点的平衡配置：
 
 ```bash
-# config.toml adjustments
+# config.toml 调整
 sed -i 's/^indexer = ".*"/indexer = "kv"/' ~/.stabled/config/config.toml
 sed -i 's/^max_num_inbound_peers = .*/max_num_inbound_peers = 50/' ~/.stabled/config/config.toml
 sed -i 's/^max_num_outbound_peers = .*/max_num_outbound_peers = 30/' ~/.stabled/config/config.toml
 
-# app.toml adjustments
+# app.toml 调整
 sed -i 's/^pruning = ".*"/pruning = "default"/' ~/.stabled/config/app.toml
 sed -i 's/^snapshot-interval = .*/snapshot-interval = 1000/' ~/.stabled/config/app.toml
 ```
 
 ### 归档节点
 
-不进行修剪，保留完整历史记录：
+不修剪，完整历史记录：
 
 ```bash
-# config.toml adjustments
+# config.toml 调整
 sed -i 's/^indexer = ".*"/indexer = "kv"/' ~/.stabled/config/config.toml
 
-# app.toml adjustments
+# app.toml 调整
 sed -i 's/^pruning = ".*"/pruning = "nothing"/' ~/.stabled/config/app.toml
 ```
 
@@ -373,12 +373,12 @@ sed -i 's/^pruning = ".*"/pruning = "nothing"/' ~/.stabled/config/app.toml
 公共 RPC 端点配置：
 
 ```bash
-# config.toml adjustments
+# config.toml 调整
 sed -i 's/^max_num_inbound_peers = .*/max_num_inbound_peers = 30/' ~/.stabled/config/config.toml
 sed -i 's/^max_open_connections = .*/max_open_connections = 30/' ~/.stabled/config/config.toml
 sed -i 's/^cors_allowed_origins = .*/cors_allowed_origins = ["*"]/' ~/.stabled/config/config.toml
 
-# app.toml adjustments
+# app.toml 调整
 sed -i 's/^enable = .*/enable = true/' ~/.stabled/config/app.toml
 sed -i 's/^swagger = .*/swagger = true/' ~/.stabled/config/app.toml
 sed -i 's/^enabled-unsafe-cors = .*/enabled-unsafe-cors = true/' ~/.stabled/config/app.toml
@@ -392,13 +392,13 @@ sed -i 's/^enabled-unsafe-cors = .*/enabled-unsafe-cors = true/' ~/.stabled/conf
 ```toml
 # config.toml
 [instrumentation]
-# Enable Prometheus metrics
+# 启用 Prometheus 指标
 prometheus = true
 
-# Metrics listen address
+# 指标监听地址
 prometheus_listen_addr = ":26660"
 
-# Namespace for metrics
+# 指标命名空间
 namespace = "stablebft"
 ```
 
@@ -407,10 +407,10 @@ namespace = "stablebft"
 ```toml
 # config.toml
 [log]
-# Log level (trace|debug|info|warn|error|fatal|panic)
+# 日志级别 (trace|debug|info|warn|error|fatal|panic)
 level = "info"
 
-# Log format (plain|json)
+# 日志格式 (plain|json)
 format = "plain"
 ```
 
@@ -419,17 +419,17 @@ format = "plain"
 进行配置更改后：
 
 ```bash
-# Restart the node
+# 重启节点
 sudo systemctl restart ${SERVICE_NAME}
 
-# Check logs for errors
+# 检查日志中的错误
 sudo journalctl -u ${SERVICE_NAME} -f
 
-# Verify configuration loaded
+# 验证加载的配置
 curl localhost:26657/status | jq '.result.node_info'
 ```
 
 ## 后续步骤
 
 - 为您的节点[设置监控](/cn/how-to/monitor-node)
-- 查阅[故障排除指南](/cn/how-to/troubleshoot-node)以了解常见问题
+- 查看[故障排除指南](/cn/how-to/troubleshoot-node)以解决常见问题

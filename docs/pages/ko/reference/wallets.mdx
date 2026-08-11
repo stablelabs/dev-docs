@@ -1,8 +1,8 @@
 ---
 source_path: reference/wallets.mdx
-source_sha: bfb1388deff7a1cfb367d4b6747f41f19615b60f
+source_sha: f6b766620e0e8b74b0184ce813b9cf5c3027b3f5
 title: "지갑"
-description: "Stable에서 USDT를 보관하고 보내고 받기 위한 지갑 제공업체 및 SDK."
+description: "Stable에서 USDT를 보유, 전송 및 수신하기 위한 지갑 공급자 및 SDK."
 diataxis: "reference"
 ---
 
@@ -10,129 +10,132 @@ diataxis: "reference"
 
 ## 지갑 개요 표
 
-| **제공업체**                                                                                                                                                                                                                                                | **카테고리**                              | **보안 방식**                                                                                                        | **문서 / 시작하기**                                                                                                                                                                            | **참고**                                                                                  |
+| **제공자** | **카테고리** | **보안 방법** | **문서 / 시작하기** | **참고** |
 | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------- | :------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :----------------------------------------------------------------------------------------- |
-| Stable Pay                                                                                                                                                                                                                                                   | 사용자 지갑                               | TSS-MPC 기반 자기수탁                                                                                                 | [https://blog.stable.xyz/introducing-stable-pay-the-stablecoin-payment-wallet-on-stablechain](https://blog.stable.xyz/introducing-stable-pay-the-stablecoin-payment-wallet-on-stablechain) | Stable 위에 구축된 USDT 네이티브 결제 지갑; 즉시 전송에 최적화           |
-| [Wallet Development Kit by Tether (WDK)](https://wallet.tether.io)                                                                                                                                                                                          | 지갑 SDK                               | 자기수탁                | [https://docs.wallet.tether.io](https://docs.wallet.tether.io)                                                       | 멀티체인에서 자기수탁 지갑을 구축하기 위한 Tether의 오픈소스 SDK                                               |
-| [Binance Wallet](https://www.binance.com/en/web3wallet)                                                                                                                                                                                              | 사용자 지갑                               | MPC 기반 자기수탁 / 반수탁 지갑           | [https://developers.binance.com/docs/binance-spot-api-docs/README](https://developers.binance.com/docs/binance-spot-api-docs/README)                                                       | 멀티체인 지갑, Stable USDT 지원                                              |
-| [Reown](https://reown.com/) (구 WalletConnect / WalletKit)                                                                                                                                                                                     | 연결 / 지갑 인프라               | 프로토콜 수준 서명 및 보안 릴레이 | [https://docs.reown.com/appkit/overview](https://docs.reown.com/appkit/overview)                                                                                                           | 600개 이상의 지갑 지원, 멀티체인, SDK 기반 통합, 임베디드 지갑 흐름에 이상적 |
-| [Bitget Wallet](https://web3.bitget.com/en)                                                                                                                                                                                                          | 사용자 지갑                               | 비수탁 지갑 (개인 키는 사용자가 관리)             | [https://web3.bitget.com/en/docs/](https://web3.bitget.com/en/docs/)                                                                                                                       | 내장 dApp 브라우저; 멀티 자산 및 멀티체인 지원                                   |
-| [Gate Wallet](https://www.gate.com/) (Gate Onchain)                                                                                                                                                   | 사용자 지갑                               | 거래소 연동 지갑                                                                                                     | [https://www.gate.com/](https://www.gate.com/)                                                                                                                                             | 거래소 연동 지갑; CEX ↔ 지갑 흐름에 적합                                    |
-| [OKX Wallet](https://web3.okx.com/) (OKX Onchain) | 사용자 지갑                               | 비수탁 / 복구를 위한 MPC                                                                                           | [https://www.okx.com/earn/onchain-earn](https://www.okx.com/earn/onchain-earn)                                                                                                             | 거래소 통합이 가능한 멀티체인 지갑                                               |
-| [Anchorage](https://www.anchorage.com/)                                                                                                                                                                                                              | 수탁 / 기관 지갑          | 은행급 규제 수탁 (연방 인가 은행)                                                                    | [https://www.anchorage.com/who-we-serve](https://www.anchorage.com/who-we-serve)                                                                                                           | stable 자산을 위한 기관급 수탁                                              |
-| [Dynamic](https://www.dynamic.xyz/)                                                                                                                                                                                                                  | 임베디드 / 인앱 지갑 인프라            | SDK 또는 백엔드를 통한 관리형 키 / 수탁 인프라                                                                             | [https://www.dynamic.xyz/docs/introduction/welcome](https://www.dynamic.xyz/docs/introduction/welcome)                                                                                     | 외부 지갑 없이 앱에 지갑 흐름을 임베드할 수 있게 함                                |
-| [Alchemy](https://www.alchemy.com/)                                                                                                                                                                                                                  | 스마트 지갑 및 계정 추상화 인프라 | Bundler + Paymaster 인프라 (ERC-4337)                                                                              | [https://docs.alchemy.com](https://docs.alchemy.com)                                                                                                                                       | AA 지갑을 구동; 스폰서드 가스, 스마트 계정 지원                                  |
-| [Atomic Wallet](https://atomicwallet.io/)                                                                                                                                                                                                            | 사용자 지갑                               | 비수탁 (키가 사용자 기기에 저장)                                                                                 | [https://atomicwallet.io/assets-status](https://atomicwallet.io/assets-status)                                                                                                             | 멀티 자산 모바일, 데스크톱, 브라우저 확장 지갑; 내장 [Simplex](/ko/reference/ramps#simplex-by-nuvei) 온램프를 통해 Stable에서 USDT 구매 |
+| Stable Pay | 사용자 지갑 | TSS-MPC 기반 자체 보관 | [https://blog.stable.xyz/introducing-stable-pay-the-stablecoin-payment-wallet-on-stablechain](https://blog.stable.xyz/introducing-stable-pay-the-stablecoin-payment-wallet-on-stablechain) | Stable에서 구축된 USDT 기본 결제 지갑; 즉시 이체에 최적화 |
+| [Tether의 지갑 개발 키트 (WDK)](https://wallet.tether.io) | 지갑 SDK | 자체 보관 | [https://docs.wallet.tether.io](https://docs.wallet.tether.io) | 멀티체인에서 자체 보관 지갑을 구축하기 위한 Tether의 오픈소스 SDK |
+| [바이낸스 지갑](https://www.binance.com/en/web3wallet) | 사용자 지갑 | MPC 기반 자체 보관 / 세미 보관 지갑 | [https://developers.binance.com/docs/binance-spot-api-docs/README](https://developers.binance.com/docs/binance-spot-api-docs/README) | 멀티체인 지갑, Stable USDT 지원 |
+| [Reown](https://reown.com/) (이전 WalletConnect / WalletKit) | 연결성 / 지갑 인프라 | 프로토콜 수준 서명 및 보안 중계 | [https://docs.reown.com/appkit/overview](https://docs.reown.com/appkit/overview) | 600개 이상의 지갑 지원, 멀티체인, SDK 기반 통합, 임베디드 지갑 흐름에 이상적 |
+| [Bitget 지갑](https://web3.bitget.com/en) | 사용자 지갑 | 비 보관 지갑 (사용자가 개인 키 관리) | [https://web3.bitget.com/en/docs/](https://web3.bitget.com/en/docs/) | 내장 dApp 브라우저; 멀티 자산 및 멀티체인 지원 |
+| [Gate 지갑](https://www.gate.com/) (Gate Onchain) | 사용자 지갑 | 거래소 연동 지갑 | [https://www.gate.com/](https://www.gate.com/) | 거래소 연동 지갑; CEX ↔ 지갑 흐름에 적합 |
+| [OKX 지갑](https://web3.okx.com/) (OKX Onchain) | 사용자 지갑 | 비 보관 / 복구를 위한 MPC | [https://www.okx.com/earn/onchain-earn](https://www.okx.com/earn/onchain-earn) | 거래소 통합이 가능한 멀티체인 지갑 |
+| [Anchorage](https://www.anchorage.com/) | 보관 / 기관 지갑 | 은행 등급 규제 보관 (연방 인가 은행) | [https://www.anchorage.com/who-we-serve](https://www.anchorage.com/who-we-serve) | 스테이블 자산에 대한 기관 등급 보관 |
+| [Dynamic](https://www.dynamic.xyz/) | 임베디드 / 인앱 지갑 인프라 | SDK 또는 백엔드를 통한 관리 키 / 보관 인프라 | [https://www.dynamic.xyz/docs/introduction/welcome](https://www.dynamic.xyz/docs/introduction/welcome) | 앱이 외부 지갑 없이 지갑 흐름을 임베드할 수 있도록 지원 |
+| [Privy](https://www.privy.io/) | 임베디드 / 인앱 지갑 인프라 | 키 분할을 통한 보안 격리 (TEE) | [https://docs.privy.io/wallets/overview/embedded](https://docs.privy.io/wallets/overview/embedded) | 구성 가능한 보관, 인증 및 정책 제어 기능이 있는 임베디드 지갑 |
+| [Portal](https://www.portalhq.io/) | 임베디드 / 인앱 지갑 인프라 | MPC 키 공유 | [https://docs.portalhq.io/sdks/quickstart](https://docs.portalhq.io/sdks/quickstart) | 모바일, 웹 및 API 통합 기능이 있는 임베디드 EVM 지갑 |
+| [Turnkey](https://www.turnkey.com/) | 임베디드 / 인앱 지갑 인프라 | 신뢰할 수 있는 실행 환경 (TEE) | [https://docs.turnkey.com/solutions/embedded-wallets/overview](https://docs.turnkey.com/solutions/embedded-wallets/overview) | 구성 가능한 보관 및 프로그래밍 가능한 서명 정책이 있는 임베디드 지갑 |
+| [Alchemy](https://www.alchemy.com/) | 스마트 지갑 및 계정 추상화 인프라 | 번들러 + 페이마스터 인프라 (ERC-4337) | [https://docs.alchemy.com](https://docs.alchemy.com) | AA 지갑에 전력을 공급; 스폰서 가스, 스마트 계정 지원 |
+| [Atomic Wallet](https://atomicwallet.io/) | 사용자 지갑 | 비 보관 (사용자 장치에 키 저장) | [https://atomicwallet.io/assets-status](https://atomicwallet.io/assets-status) | 멀티 자산 모바일, 데스크톱, 브라우저 확장 지갑; 내장된 [Simplex](/ko/reference/ramps#simplex-by-nuvei) 온램프를 통해 Stable에서 USDT 구매 |
 
 ## 카테고리 가이드
 
-- **사용자 지갑:** 모바일 앱, 브라우저 확장 프로그램, 거래소 연동 지갑과 같은 전통적인 소비자용 지갑입니다. 사용자가 USDT를 보관하고, 전송하고, dApp에 연결하며, Stable과 직접 상호작용할 수 있게 합니다.
-- **지갑 SDK:** 개발자에게 사전 구축된 도구, API, 인프라를 제공하여 지갑 생성, 키 관리, 트랜잭션 서명, 블록체인 상호작용을 애플리케이션에 직접 통합할 수 있게 하는 소프트웨어 개발 키트입니다.
-- **수탁 / 기관 지갑:** 기관을 위한 규제되고 엔터프라이즈급 자산 수탁을 제공하는 플랫폼입니다. 이러한 솔루션은 최종 사용자 흐름보다는 컴플라이언스, 거버넌스 통제, 보안 키 관리, 자금 운용에 중점을 둡니다.
-- **임베디드 / 인앱 지갑:** SDK 또는 백엔드 시스템을 통해 애플리케이션 내부에서 생성되는 지갑입니다. 외부 암호화폐 지갑을 설치하거나 이해할 필요 없이 일반 사용자에게 매끄러운 온보딩을 가능하게 합니다.
-- **스마트 지갑 / 계정 추상화:** 가스리스 트랜잭션, 묶음 작업, 자동화된 실행과 같은 사용자 정의 로직을 지원하는 프로그래밍 가능한 지갑입니다. 개발자가 정의한 동작으로 기본 지갑 기능을 확장합니다.
-- **MPC 지갑 제공업체:** 멀티파티 연산(MPC)을 사용하여 개인 키 제어를 여러 당사자 또는 기기에 분산하는 키 관리 시스템입니다. 전통적인 시드 문구 없이 높은 보안 수탁이 필요한 앱이나 기업에 이상적입니다.
-- **연결 제공업체:** 지갑과 dApp을 연결하는 WalletConnect(Reown)와 같은 프로토콜입니다. 이들은 자산을 저장하거나 지갑 자체로 작동하지 않으며, 대신 트랜잭션 서명 및 상호작용을 위한 보안 통신 채널을 제공합니다.
+- **사용자 지갑:** 모바일 앱, 브라우저 확장 프로그램 또는 거래소 연동 지갑과 같은 기존의 소비자용 지갑입니다. 사용자는 USDT를 보유하고, 이체를 하고, dApp에 연결하고, Stable과 직접 상호 작용할 수 있습니다.
+- **지갑 SDK:** 개발자에게 지갑 생성, 키 관리, 트랜잭션 서명 및 블록체인 상호 작용을 애플리케이션에 직접 통합하기 위한 미리 빌드된 도구, API 및 인프라를 제공하는 소프트웨어 개발 키트입니다.
+- **보관 / 기관 지갑:** 기관을 위한 규제된 엔터프라이즈급 자산 보관을 제공하는 플랫폼입니다. 이러한 솔루션은 최종 사용자 흐름보다는 규정 준수, 거버넌스 제어, 보안 키 관리 및 재무 운영에 중점을 둡니다.
+- **임베디드 / 인앱 지갑:** SDK 또는 백엔드 시스템을 통해 애플리케이션 내에서 생성되는 지갑입니다. 이들은 주류 사용자가 외부 암호화폐 지갑을 설치하거나 이해할 필요 없이 원활한 온보딩을 가능하게 합니다.
+- **스마트 지갑 / 계정 추상화:** 가스 없는 트랜잭션, 번들 작업 또는 자동 실행과 같은 사용자 지정 로직을 지원하는 프로그래밍 가능한 지갑입니다. 이들은 개발자가 정의한 동작으로 기본 지갑 기능을 확장합니다.
+- **MPC 지갑 제공자:** 여러 당사자 또는 장치에 개인 키 제어를 분산하기 위해 다자간 컴퓨팅(MPC)을 사용하는 키 관리 시스템입니다. 기존 시드 문구 없이 높은 보안 보관이 필요한 앱 또는 기업에 이상적입니다.
+- **연결성 제공자:** WalletConnect(Reown)와 같이 지갑과 dApp을 연결하는 프로토콜입니다. 이들은 자산을 저장하거나 지갑 역할을 하지 않으며, 대신 트랜잭션 서명 및 상호 작용을 위한 보안 통신 채널을 제공합니다.
 
 ## 1. 사용자 지갑
 
-이들은 주요 글로벌 거래소가 제공하는 최종 사용자 지갑입니다. 사용자가 USDT를 보관하고, 자금을 전송하며, Stable의 애플리케이션에 연결할 수 있게 합니다.
+이들은 주요 글로벌 거래소에서 제공하는 최종 사용자 지갑입니다. 사용자는 USDT를 보유하고, 자금을 이체하고, Stable의 애플리케이션에 연결할 수 있습니다.
 
 ### Stable Pay
 
-빠르고 스테이블코인 네이티브 트랜잭션을 위해 설계된, Stable 위에 구축된 비수탁 결제 지갑입니다. Stable Pay는 즉시 USDT 결제, 예측 가능한 수수료, 일상적인 전송 및 상거래에 최적화된 간단한 사용자 경험을 제공합니다.
+빠르고 스테이블코인 기본 트랜잭션을 위해 설계된 Stable에 구축된 비 보관 결제 지갑입니다. Stable Pay는 즉각적인 USDT 결제, 예측 가능한 수수료, 일상적인 이체 및 상거래에 최적화된 간단한 사용자 경험을 제공합니다.
 
 **기능**
 
-- Stable을 위한 비수탁 지갑
-- 즉시 USDT 결제
+- Stable을 위한 비 보관 지갑
+- 즉각적인 USDT 결제
 - 예측 가능하고 일관된 트랜잭션 비용
-- Stable의 USDT 네이티브 정산 계층 위에 직접 구축
-- 결제 및 상거래를 위해 설계된 소비자 친화적 UI
+- Stable의 USDT 기본 결제 계층에 직접 구축됨
+- 결제 및 상거래를 위해 설계된 소비자 친화적인 UI
 
-### Binance Wallet
+### 바이낸스 지갑
 
-거래량 기준 세계 최대 거래소와 통합된 널리 사용되는 멀티체인 지갑입니다.
+거래량 기준으로 세계 최대 거래소와 통합된 널리 사용되는 멀티체인 지갑입니다.
 
 **기능**
 
 - Stable USDT 지원
-- Binance 생태계와 직접 통합
+- 바이낸스 생태계와 직접 통합
 - 모바일 및 확장 지갑 옵션
 
-### Bitget Wallet
+### Bitget 지갑
 
-암호화폐, 주식, ETF를 지원하며 Bitget 거래소 생태계에 연결된 멀티 자산 지갑입니다.
+암호화폐, 주식 및 ETF를 지원하는 Bitget 거래소 생태계에 연결된 멀티 자산 지갑입니다.
 
 **기능**
 
 - Stable USDT 지원
 - 내장 dApp 브라우저
-- Bitget 거래 계정과의 매끄러운 통합
+- Bitget 거래 계정과 원활한 통합
 
-### Gate Wallet (Gate Onchain)
+### Gate 지갑 (Gate Onchain)
 
 세계 최대 현물 거래소 중 하나가 지원하는 지갑 제품입니다.
 
 **기능**
 
 - Stable USDT 지원
-- Gate 거래소와 지갑 간의 간편한 전송
-- dApp 및 웹앱 연결성
+- Gate 거래소와 지갑 간의 쉬운 이체
+- dApp 및 웹 앱 연결
 
-### OKX Wallet (OKX Onchain)
+### OKX 지갑 (OKX Onchain)
 
 전 세계적으로 사용되는 강력한 멀티체인 지갑입니다.
 
 **기능**
 
 - Stable USDT 지원
-- 깊은 OKX 생태계 통합
-- 웹, 모바일, 확장 지갑 옵션
+- 심도 있는 OKX 생태계 통합
+- 웹, 모바일 및 확장 지갑 옵션
 
 ### Atomic Wallet
 
-데스크톱, 모바일, 브라우저 확장 프로그램으로 제공되는 비수탁 멀티 자산 지갑입니다. Atomic Wallet은 [Simplex by Nuvei](/ko/reference/ramps#simplex-by-nuvei) 온램프를 통합하여, 사용자가 카드, Apple Pay, Google Pay 또는 은행 송금으로 앱 내에서 직접 Stable에서 USDT를 구매할 수 있습니다.
+데스크톱, 모바일 및 브라우저 확장으로 사용할 수 있는 비 보관 멀티 자산 지갑입니다. Atomic Wallet은 [Simplex by Nuvei](/ko/reference/ramps#simplex-by-nuvei) 온램프를 통합하여 사용자가 앱 내에서 카드, Apple Pay, Google Pay 또는 은행 송금으로 Stable에서 USDT를 직접 구매할 수 있습니다.
 
 **기능**
 
-- Stable에서 USDT 보관, 전송, 수신
-- 개인 키는 사용자 기기에 로컬로 저장
-- Simplex를 통한 Stable에서의 USDT 인앱 구매 흐름
-- Windows, macOS, Linux, iOS, Android, Chrome에서 사용 가능
+- Stable에서 USDT를 보유, 전송 및 수신
+- 사용자 장치에 로컬로 저장된 개인 키
+- Simplex를 통한 Stable에서 USDT 구매를 위한 인앱 구매 흐름
+- Windows, macOS, Linux, iOS, Android 및 Chrome에서 사용 가능
 
-**시작하기**: [atomicwallet.io](https://atomicwallet.io/downloads)에서 Atomic Wallet을 다운로드하고, Stable을 네트워크로 추가한 다음, 인앱 구매 흐름을 사용하여 Simplex를 통해 Stable에서 USDT를 구매하세요.
+**시작하기**: [atomicwallet.io](https://atomicwallet.io/downloads)에서 Atomic Wallet을 다운로드하고, Stable을 네트워크로 추가한 다음, 인앱 구매 흐름을 사용하여 Simplex를 통해 Stable에서 USDT를 구매하십시오.
 
 ## 2. 지갑 SDK
 
-### Development Kit by Tether (WDK)
+### Tether의 개발 키트 (WDK)
 
-모든 플랫폼과 블록체인에서 자기수탁 지갑을 구축하기 위한 Tether의 오픈소스 SDK입니다.
+모든 플랫폼 및 블록체인에서 자체 보관 지갑을 구축하기 위한 Tether의 오픈소스 SDK입니다.
 
 **기능**
 
 - 멀티체인 지원: Bitcoin, Ethereum, TON, TRON, Solana, Spark 등
-- 에이전트 지갑: Stable에서 AI 에이전트 지갑 및 x402 결제에 대한 네이티브 지원
-- DeFi 통합: 스왑, 브리지, 대출 프로토콜을 위한 플러그인 지원
-- 확장 가능한 설계: 새로운 블록체인이나 프로토콜을 위한 사용자 정의 모듈 추가
+- Agentic Wallets: AI 에이전트 지갑 및 Stable의 x402 결제를 기본 지원
+- DeFi 통합: 스왑, 브릿지 및 대출 프로토콜을 위한 플러그인 지원
+- 확장 가능한 설계: 새로운 블록체인 또는 프로토콜을 위한 사용자 지정 모듈 추가
 
-**시작하기**: [`@tetherto/wdk`](https://www.npmjs.com/package/@tetherto/wdk)와 [`@tetherto/wdk-wallet-evm`](https://www.npmjs.com/package/@tetherto/wdk-wallet-evm)를 설치한 다음, [WDK 문서](https://docs.wallet.tether.io)를 따라 Stable을 대상 체인으로 구성하세요.
+**시작하기**: [`@tetherto/wdk`](https://www.npmjs.com/package/@tetherto/wdk) 및 [`@tetherto/wdk-wallet-evm`](https://www.npmjs.com/package/@tetherto/wdk-wallet-evm)을 설치한 다음, [WDK 문서](https://docs.wallet.tether.io)를 따라 Stable을 대상 체인으로 구성합니다.
 
-## 3. 수탁 및 기관 지갑
+## 3. 보관 및 기관 지갑
 
 ### Anchorage
 
-디지털 자산을 위한 기관급 수탁을 제공하는 연방 인가 국립 은행입니다.
+디지털 자산을 위한 기관 등급 보관을 제공하는 연방 인가 국립 은행입니다.
 
 **기능**
 
-- Stable USDT를 위한 보안 수탁
-- 완전한 컴플라이언스 및 규제 감독
-- 엔터프라이즈급 키 관리 및 접근 제어
+- Stable USDT의 보안 보관
+- 완전한 규정 준수 및 규제 감독
+- 엔터프라이즈급 키 관리 및 액세스 제어
 
 ## 4. 임베디드 / 인앱 지갑
 
-SDK를 통해 애플리케이션에 직접 임베드된 지갑으로, 매끄러운 사용자 온보딩 및 결제 흐름을 가능하게 합니다.
+SDK를 통해 애플리케이션에 직접 임베드된 지갑으로, 원활한 사용자 온보딩 및 결제 흐름을 가능하게 합니다.
 
 ### Dynamic
 
@@ -144,101 +147,140 @@ SDK를 통해 애플리케이션에 직접 임베드된 지갑으로, 매끄러�
 - 임베디드 지갑 흐름
 - 앱 및 핀테크를 위한 사용자 온보딩
 
-**시작하기**: [Dynamic SDK 설정 문서](https://docs.dynamic.xyz/introduction/welcome)를 따라 SDK를 설치하고 Stable을 앱에서 지원되는 네트워크로 구성하세요.
+**시작하기**: [Dynamic SDK 설정 문서](https://docs.dynamic.xyz/introduction/welcome)를 따라 SDK를 설치하고 앱에서 Stable을 지원되는 네트워크로 구성합니다.
 
-### Reown (구 WalletConnect)
+### Privy
+
+Privy는 사용자, 조직, 재무 및 에이전트를 위한 임베디드 지갑을 제공합니다. 지갑은 비 보관 또는 보관 구성을 사용할 수 있습니다.
+
+**기능**
+
+- 이메일, 소셜 로그인, 패스키 또는 외부 지갑으로 인증
+- 임베디드 EVM 지갑 생성 및 트랜잭션 서명
+- 서명자, 수신자, 계약 및 이체 금액에 대한 정책 제어
+- 비 보관 지갑을 위한 사용자 제어 키 내보내기
+
+**시작하기**: [Privy 임베디드 지갑 문서](https://docs.privy.io/wallets/overview/embedded)를 따라 지갑을 생성한 다음, 앱에서 Stable을 EVM 네트워크로 구성합니다.
+
+### Portal
+
+Portal은 웹, iOS, Android 및 React Native용 SDK와 서버 측 통합을 위한 API를 통해 MPC 지갑을 제공합니다. MPC, 즉 다자간 컴퓨팅은 서명 권한을 별도의 키 공유에 분할합니다.
+
+**기능**
+
+- 임베디드 EVM 지갑 생성, 백업 및 복구
+- 메시지 및 트랜잭션 서명
+- EVM 네트워크를 위한 사용자 지정 RPC 구성
+- 웹, 모바일 및 API 통합 옵션
+
+**시작하기**: [Portal SDK 퀵스타트](https://docs.portalhq.io/sdks/quickstart)를 따른 다음, `rpcConfig`에서 Stable의 CAIP-2 체인 ID(`eip155:988`)를 `https://rpc.stable.xyz`에 매핑합니다.
+
+### Turnkey
+
+Turnkey는 신뢰할 수 있는 실행 환경(TEE) 내에서 서명 및 정책 평가가 가능한 임베디드 지갑을 제공합니다. TEE는 서명 중 키를 보호하는 격리된 하드웨어 지원 환경입니다.
+
+**기능**
+
+- 이메일, 전화, 소셜 로그인, 패스키 또는 생체 인식으로 인증
+- EVM 호환 네트워크 전반에 걸친 임베디드 지갑
+- 비 보관, 보관 및 하이브리드 보관 모델
+- 프로그래밍 가능한 서명 정책 및 사용자별 격리
+
+**시작하기**: [Turnkey 임베디드 지갑 개요](https://docs.turnkey.com/solutions/embedded-wallets/overview)를 따른 다음, SDK를 선택하고 Stable을 EVM 네트워크로 구성합니다.
+
+### Reown (이전 WalletConnect)
 
 지갑을 애플리케이션에 연결하기 위한 널리 채택된 표준입니다.
 
 **기능**
 
 - 보안 지갑-dApp 연결
-- 모바일, 데스크톱, 확장 지갑 지원
-- 폭넓은 생태계 호환성
+- 모바일, 데스크톱 및 확장 지갑 지원
+- 광범위한 생태계 호환성
 
 **지갑 온보딩을 위한 Reown SDK**
 
-Stable은 개발자가 사용자에게 매끄러운 지갑 및 온보딩 경험을 제공할 수 있도록 **Reown SDK**와의 통합을 지원합니다.
+Stable은 **Reown SDK**와의 통합을 지원하여 개발자가 사용자에게 원활한 지갑 및 온보딩 경험을 제공할 수 있도록 돕습니다.
 
-Reown은 WalletConnect 네트워크의 공식 게이트웨이 역할을 하는 오픈소스 올인원 SDK를 제공합니다. 이를 통해 애플리케이션 내에서 매끄러운 지갑 연결, 트랜잭션, 로그인, 임베디드 지갑(이메일 및 소셜 로그인), 온체인 결제, 인앱 스왑 등을 가능하게 합니다.
+Reown은 WalletConnect 네트워크의 공식 게이트웨이 역할을 하는 오픈소스 올인원 SDK를 제공합니다. 이를 통해 애플리케이션 내에서 원활한 지갑 연결, 트랜잭션, 로그인, 임베디드 지갑(이메일 및 소셜 로그인), 온체인 결제, 인앱 스왑 등을 가능하게 합니다.
 
 **시작하기**
 
-- Reown 문서를 방문하세요: [https://docs.reown.com/overview](https://docs.reown.com/overview)
+- Reown 문서 방문: [https://docs.reown.com/overview](https://docs.reown.com/overview)
 
 ## 5. 스마트 지갑 및 계정 추상화
 
-프로그래밍 가능한 지갑, 가스리스 트랜잭션, 지출 규칙, 고급 UX를 가능하게 하는 인프라입니다.
+프로그래밍 가능한 지갑, 가스 없는 트랜잭션, 지출 규칙 및 고급 UX를 가능하게 하는 인프라입니다.
 
 ### 개요 표
 
-| **제공업체**                                       | **카테고리**                          | **보안 방식**                    | **문서 / 시작하기**                                                                        | **참고**                                  |
+| **제공자** | **카테고리** | **보안 방법** | **문서 / 시작하기** | **참고** |
 | :------------------------------------------------- | :------------------------------------ | :------------------------------------- | :-------------------------------------------------------------------------------------------- | :----------------------------------------- |
-| [**Holdstation**](https://holdstation.com/) | 스마트 지갑 (AA)                     | 스마트 컨트랙트 지갑 + 생체 인증 | [https://docs.holdstation.com/holdstation/](https://docs.holdstation.com/holdstation/) | 가스리스 흐름, DeFi 네이티브 지갑          |
-| [**Daimo**](https://pay.daimo.com/)         | AA 결제 지갑                    | 스마트 계정, 시드 문구 없음          | [https://paydocs.daimo.com/](https://paydocs.daimo.com/)                               | 원클릭 결제, 스테이블코인 우선       |
-| [**Alchemy**](https://alchemy.com)                                        | AA 인프라 (Bundler/Paymaster) | Bundler + paymaster 인프라 (ERC-4337)   | [https://docs.alchemy.com](https://docs.alchemy.com)                                   | AA 지갑이 Stable에서 구축할 수 있게 함 |
+| [**Holdstation**](https://holdstation.com/) | 스마트 지갑 (AA) | 스마트 계약 지갑 + 생체 인식 인증 | [https://docs.holdstation.com/holdstation/](https://docs.holdstation.com/holdstation/) | 가스 없는 흐름, DeFi 기본 지갑 |
+| [**Daimo**](https://pay.daimo.com/) | AA 결제 지갑 | 스마트 계정, 시드 문구 없음 | [https://paydocs.daimo.com/](https://paydocs.daimo.com/) | 원클릭 결제, 스테이블코인 우선 |
+| [**Alchemy**](https://alchemy.com) | AA 인프라 (번들러/페이마스터) | 번들러 + 페이마스터 인프라 (ERC-4337) | [https://docs.alchemy.com](https://docs.alchemy.com) | Stable에서 AA 지갑을 구축할 수 있도록 지원 |
 
 ### Alchemy
 
-Alchemy는 스마트 계정을 배포하고, 가스를 스폰서하며, 소비자급 지갑을 구축하는 데 필요한 핵심 AA 인프라와 API를 제공합니다.
+Alchemy는 스마트 계정을 배포하고, 가스를 후원하고, 소비자 등급 지갑을 구축하는 데 필요한 핵심 AA 인프라 및 API를 제공합니다.
 
 **기능**
 
 - 스마트 계정 SDK 및 API
-- 가스리스 작업을 위한 Paymaster 지원
+- 가스 없는 작업을 위한 페이마스터 지원
 - 가스 추상화 도구
 - 스마트 지갑 개발자를 위한 확장 가능한 인프라
 
-**시작하기**: [Alchemy 스마트 계정 SDK](https://docs.alchemy.com)를 사용하여 ERC-4337 스마트 계정을 배포하고 Stable에서 스폰서드 가스를 위한 paymaster를 구성하세요.
+**시작하기**: [Alchemy 스마트 계정 SDK](https://docs.alchemy.com)를 사용하여 ERC-4337 스마트 계정을 배포하고 Stable에서 스폰서 가스를 위한 페이마스터를 구성합니다.
 
 **문서**\
 [https://docs.alchemy.com](https://docs.alchemy.com)
 
 ### Holdstation
 
-계정 추상화 및 생체 보안 상호작용을 제공하는 스마트 컨트랙트 지갑입니다.\
+계정 추상화 및 생체 인식 보안 상호 작용을 제공하는 스마트 계약 지갑입니다.
 **기능**
 
-- 완전한 AA 지원 스마트 지갑
-- 가스리스 트랜잭션 및 스폰서드 수수료
-- 생체 인증 및 세션 키
+- AA 지원 스마트 지갑
+- 가스 없는 트랜잭션 및 스폰서 수수료
+- 생체 인식 인증 및 세션 키
 - 통합 거래 및 DeFi 실행 계층
 
-**시작하기**: [Holdstation 개발자 문서](https://docs.holdstation.com/holdstation/)를 탐색하여 스마트 지갑 흐름과 스폰서드 트랜잭션을 애플리케이션에 통합하세요.
+**시작하기**: [Holdstation 개발자 문서](https://docs.holdstation.com/holdstation/)를 탐색하여 스마트 지갑 흐름 및 스폰서 트랜잭션을 애플리케이션에 통합하십시오.
 
 ### Daimo
 
-즉시 스테이블코인 지출 및 결제를 위해 설계된 소비자급 계정 추상화 지갑입니다.\
+즉각적인 스테이블코인 지출 및 결제를 위해 설계된 소비자 등급 계정 추상화 지갑입니다.
 **기능**
 
-- 스마트 지갑 실행이 가능한 AA 기반 UX
+- 스마트 지갑 실행 기능이 있는 AA 기반 UX
 - 모든 체인에서 원클릭 결제
 - 시드 문구 없음; 보안 키 복구
 - 결제 앱 및 스테이블코인 유틸리티에 이상적
 
-**시작하기**: [Daimo Pay 문서](https://paydocs.daimo.com/)를 방문하여 Stable에서 애플리케이션에 원클릭 스테이블코인 결제 흐름을 추가하세요.
+**시작하기**: [Daimo Pay 문서](https://paydocs.daimo.com/)를 방문하여 Stable에서 애플리케이션에 원클릭 스테이블코인 결제 흐름을 추가하십시오.
 
 ## Stable 네트워크 설정
 
-### 지갑에 Stable 추가하기
+### 지갑에 Stable 추가
 
-**네트워크 파라미터:**
+**네트워크 매개변수:**
 
-- **Network Name:** Stable
-- **Chain ID:** 988
-- **Currency:** USDT0
+- **네트워크 이름:** Stable
+- **체인 ID:** 988
+- **통화:** USDT0
 - **RPC URL:** https://rpc.stable.xyz
-- **Block Explorer:** https://stablescan.xyz
+- **블록 익스플로러:** https://stablescan.xyz
 
-### 지갑 통합 구축하기
+### 지갑 통합 구축
 
-다음을 통해 Stable 지원을 추가할 수 있습니다:
+다음 방법으로 Stable 지원을 추가할 수 있습니다.
 
 - Stable RPC를 통한 서명 및 가스 추정 활성화
-- USDT 네이티브 전송 지원
+- USDT 기본 전송 지원
 - dApp을 위한 WalletConnect 통합
 - 체인 목록 또는 메타데이터 레지스트리에 Stable 추가
 
-## Stable을 통합하는 지갑이 있나요?
+## Stable을 통합하는 지갑이 있습니까?
 
-이 섹션에 등재되려면 [bizdev@stable.xyz](mailto:bizdev@stable.xyz)로 팀에 연락하실 수 있습니다.
+이 섹션에 나열되려면 [bizdev@stable.xyz](mailto:bizdev@stable.xyz)로 팀에 연락하십시오.

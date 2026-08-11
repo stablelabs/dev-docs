@@ -19,6 +19,9 @@ diataxis: "reference"
 | [OKX Wallet](https://web3.okx.com/) (OKX Onchain) | User Wallet                               | Non-custodial / MPC for recovery                                                                                           | [https://www.okx.com/earn/onchain-earn](https://www.okx.com/earn/onchain-earn)                                                                                                             | Multi-chain wallet with exchange integration                                               |
 | [Anchorage](https://www.anchorage.com/)                                                                                                                                                                                                              | Custodial / Institutional Wallet          | Bank-grade regulated custody (federally chartered bank)                                                                    | [https://www.anchorage.com/who-we-serve](https://www.anchorage.com/who-we-serve)                                                                                                           | Institutional-grade custody for stable assets                                              |
 | [Dynamic](https://www.dynamic.xyz/)                                                                                                                                                                                                                  | Embedded / In-App Wallet Infra            | Managed-key / custody-infra via SDK or backend                                                                             | [https://www.dynamic.xyz/docs/introduction/welcome](https://www.dynamic.xyz/docs/introduction/welcome)                                                                                     | Enables apps to embed wallet flows without external wallets                                |
+| [Privy](https://www.privy.io/)                                                                                                                                                                                                                       | Embedded / In-App Wallet Infra            | Secure enclaves (TEEs) with key splitting                                                                                  | [https://docs.privy.io/wallets/overview/embedded](https://docs.privy.io/wallets/overview/embedded)                                                                                           | Embedded wallets with configurable custody, authentication, and policy controls            |
+| [Portal](https://www.portalhq.io/)                                                                                                                                                                                                                    | Embedded / In-App Wallet Infra            | MPC key shares                                                                                                             | [https://docs.portalhq.io/sdks/quickstart](https://docs.portalhq.io/sdks/quickstart)                                                                                                         | Embedded EVM wallets with mobile, web, and API integrations                                 |
+| [Turnkey](https://www.turnkey.com/)                                                                                                                                                                                                                  | Embedded / In-App Wallet Infra            | Trusted execution environments (TEEs)                                                                                      | [https://docs.turnkey.com/solutions/embedded-wallets/overview](https://docs.turnkey.com/solutions/embedded-wallets/overview)                                                                 | Embedded wallets with configurable custody and programmable signing policies               |
 | [Alchemy](https://www.alchemy.com/)                                                                                                                                                                                                                  | Smart Wallets & Account Abstraction Infra | Bundler + Paymaster infrastructure (ERC-4337)                                                                              | [https://docs.alchemy.com](https://docs.alchemy.com)                                                                                                                                       | Powers AA wallets; supports sponsored gas, smart accounts                                  |
 | [Atomic Wallet](https://atomicwallet.io/)                                                                                                                                                                                                            | User Wallet                               | Non-custodial (keys stored on user device)                                                                                 | [https://atomicwallet.io/assets-status](https://atomicwallet.io/assets-status)                                                                                                             | Multi-asset mobile, desktop, and browser-extension wallet; buy USDT on Stable via the built-in [Simplex](/en/reference/ramps#simplex-by-nuvei) on-ramp |
 
@@ -143,6 +146,45 @@ Enterprise-grade wallet infrastructure serving thousands of applications and ove
 - User onboarding for apps and fintechs
 
 **Get started**: Follow the [Dynamic SDK setup docs](https://docs.dynamic.xyz/introduction/welcome) to install the SDK and configure Stable as a supported network in your app.
+
+### Privy
+
+Privy provides embedded wallets for users, organizations, treasuries, and agents. Wallets can use non-custodial or custodial configurations.
+
+**Capabilities**
+
+- Authentication with email, social login, passkeys, or external wallets
+- Embedded EVM wallet creation and transaction signing
+- Policy controls for signers, recipients, contracts, and transfer amounts
+- User-controlled key export for non-custodial wallets
+
+**Get started**: Follow the [Privy embedded wallet docs](https://docs.privy.io/wallets/overview/embedded) to create a wallet, then configure Stable as an EVM network in your app.
+
+### Portal
+
+Portal provides MPC wallets through SDKs for web, iOS, Android, and React Native, plus an API for server-side integrations. MPC, or multi-party computation, splits signing authority across separate key shares.
+
+**Capabilities**
+
+- Embedded EVM wallet creation, backup, and recovery
+- Message and transaction signing
+- Custom RPC configuration for EVM networks
+- Web, mobile, and API integration options
+
+**Get started**: Follow the [Portal SDK quickstart](https://docs.portalhq.io/sdks/quickstart), then map Stable's CAIP-2 chain ID (`eip155:988`) to `https://rpc.stable.xyz` in `rpcConfig`.
+
+### Turnkey
+
+Turnkey provides embedded wallets with signing and policy evaluation inside trusted execution environments (TEEs). A TEE is an isolated hardware-backed environment that protects keys during signing.
+
+**Capabilities**
+
+- Authentication with email, phone, social login, passkeys, or biometrics
+- Embedded wallets across EVM-compatible networks
+- Non-custodial, custodial, and hybrid custody models
+- Programmable signing policies and per-user isolation
+
+**Get started**: Follow the [Turnkey embedded wallet overview](https://docs.turnkey.com/solutions/embedded-wallets/overview), choose an SDK, and configure Stable as an EVM network.
 
 ### Reown (formerly WalletConnect)
 

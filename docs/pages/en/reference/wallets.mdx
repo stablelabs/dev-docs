@@ -18,6 +18,7 @@ diataxis: "reference"
 | [Gate Wallet](https://www.gate.com/) (Gate Onchain)                                                                                                                                                   | User Wallet                               | Exchange-linked wallet                                                                                                     | [https://www.gate.com/](https://www.gate.com/)                                                                                                                                             | Exchange-linked wallet; suitable for CEX ↔ wallet flows                                    |
 | [OKX Wallet](https://web3.okx.com/) (OKX Onchain) | User Wallet                               | Non-custodial / MPC for recovery                                                                                           | [https://www.okx.com/earn/onchain-earn](https://www.okx.com/earn/onchain-earn)                                                                                                             | Multi-chain wallet with exchange integration                                               |
 | [Anchorage](https://www.anchorage.com/)                                                                                                                                                                                                              | Custodial / Institutional Wallet          | Bank-grade regulated custody (federally chartered bank)                                                                    | [https://www.anchorage.com/who-we-serve](https://www.anchorage.com/who-we-serve)                                                                                                           | Institutional-grade custody for stable assets                                              |
+| Coinbase Developer Platform (CDP)                                                                                                                                                                                                                     | Embedded / In-App Wallet Infra            | Non-custodial; keys secured in a trusted execution environment                                                             | [https://docs.cdp.coinbase.com/wallets/non-custodial-wallets/overview](https://docs.cdp.coinbase.com/wallets/non-custodial-wallets/overview)                                               | Wallet API supports Stable as an EVM network; Coinbase Onramp does not support Stable       |
 | [Dynamic](https://www.dynamic.xyz/)                                                                                                                                                                                                                  | Embedded / In-App Wallet Infra            | Managed-key / custody-infra via SDK or backend                                                                             | [https://www.dynamic.xyz/docs/introduction/welcome](https://www.dynamic.xyz/docs/introduction/welcome)                                                                                     | Enables apps to embed wallet flows without external wallets                                |
 | [Privy](https://www.privy.io/)                                                                                                                                                                                                                       | Embedded / In-App Wallet Infra            | Secure enclaves (TEEs) with key splitting                                                                                  | [https://docs.privy.io/wallets/overview/embedded](https://docs.privy.io/wallets/overview/embedded)                                                                                           | Embedded wallets with configurable custody, authentication, and policy controls            |
 | [Portal](https://www.portalhq.io/)                                                                                                                                                                                                                    | Embedded / In-App Wallet Infra            | MPC key shares                                                                                                             | [https://docs.portalhq.io/sdks/quickstart](https://docs.portalhq.io/sdks/quickstart)                                                                                                         | Embedded EVM wallets with mobile, web, and API integrations                                 |
@@ -134,6 +135,25 @@ A federally chartered national bank providing institutional-grade custody for di
 ## 4. Embedded / in-app wallets
 
 Wallets embedded directly into applications via SDKs, enabling seamless user onboarding and payment flows.
+
+### Coinbase Developer Platform (CDP)
+
+CDP provides non-custodial wallets for user-facing apps and backend systems. User-auth wallets use email, SMS, or social sign-in. API-key wallets let servers manage accounts while CDP protects private keys inside a trusted execution environment.
+
+**Capabilities**
+
+- Embedded wallets with no seed phrase
+- API-key wallets for automated workflows and backend services
+- EVM account creation and transaction signing
+- Key export for user-controlled wallets
+
+**Stable integration**
+
+Coinbase Wallet API supports Stable because it supports all EVM-compatible networks. Configure Stable with chain ID `988` and `https://rpc.stable.xyz`, or sign with CDP and broadcast through Stable's RPC.
+
+Coinbase Onramp is a separate product for fiat-to-crypto conversions and does not support Stable.
+
+**Get started**: Follow the [CDP non-custodial wallet documentation](https://docs.cdp.coinbase.com/wallets/non-custodial-wallets/overview) and choose the user-auth or API-key quickstart.
 
 ### Dynamic
 

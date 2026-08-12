@@ -1,8 +1,8 @@
 ---
 source_path: reference/rpc-providers.mdx
-source_sha: 6e79fc918dd39c8f5a9128c71ee62cf54ecaffde
+source_sha: 0bcb154cad29129ccf97fd8624447b0801fb8f95
 title: "RPC 提供商"
-description: "Stable 上可用的 RPC 提供商、模拟平台和开发者基础设施。"
+description: "支持 Stable 的 RPC 提供商、模拟平台和开发者基础设施。"
 diataxis: "reference"
 ---
 
@@ -10,16 +10,17 @@ diataxis: "reference"
 
 支持 Stable 的 RPC 和开发者基础设施提供商。
 
-## 概览表
+## 概述表
 
-| **提供商** | **类别** | **文档 / 开始使用** | **说明** |
+| **提供商** | **类别** | **文档/入门** | **备注** |
 | :--- | :--- | :--- | :--- |
-| [**Alchemy**](https://dashboard.alchemy.com/?utm_source=chain_partner&utm_medium=referral&utm_campaign=stable) | RPC + 开发者平台 | [开始使用 Alchemy](https://dashboard.alchemy.com/?utm_source=chain_partner&utm_medium=referral&utm_campaign=stable) | RPC、WebSocket、监控、SDK |
+| [**Alchemy**](https://dashboard.alchemy.com/?utm_source=chain_partner&utm_medium=referral&utm_campaign=stable) | RPC + 开发者平台 | [Alchemy 入门](https://dashboard.alchemy.com/?utm_source=chain_partner&utm_medium=referral&utm_campaign=stable) | RPC、WebSocket、监控、SDK |
+| [**Chainstack**](https://chainstack.com/) | RPC + 节点基础设施 | [Chainstack 入门](https://console.chainstack.com/) | 托管 RPC、WebSocket、全节点和归档节点 |
 | [**Tenderly**](https://tenderly.co/) | 模拟 + 调试 | [tenderly.co](https://tenderly.co/) | 实时模拟、追踪、交易工作流 |
 
 ## Alchemy
 
-一个受到全球信赖的完整区块链开发平台。[开始使用 Alchemy](https://dashboard.alchemy.com/?utm_source=chain_partner&utm_medium=referral&utm_campaign=stable)
+一个全球信赖的完整区块链开发平台。[Alchemy 入门](https://dashboard.alchemy.com/?utm_source=chain_partner&utm_medium=referral&utm_campaign=stable)
 
 **功能**
 
@@ -27,7 +28,19 @@ diataxis: "reference"
 - 监控仪表盘
 - 开发者 API 和 SDK
 
-**开始使用**：在 [Alchemy 仪表盘](https://dashboard.alchemy.com/?utm_source=chain_partner&utm_medium=referral&utm_campaign=stable) 中创建一个 Stable 应用以获取 RPC URL，然后将其用作你的 JSON-RPC 端点。
+**入门**：在 [Alchemy 控制面板](https://dashboard.alchemy.com/?utm_source=chain_partner&utm_medium=referral&utm_campaign=stable)中创建一个 Stable 应用以获取 RPC URL，然后将其用作您的 JSON-RPC 端点。
+
+## Chainstack
+
+Chainstack 为 Stable 提供托管 RPC 节点。您可以通过 HTTPS 或 WebSocket 连接到已部署的节点。
+
+**功能**
+
+- 托管 RPC 节点
+- HTTPS 和 WebSocket 端点
+- 全节点和归档节点访问
+
+**入门**：在 [Chainstack 控制台](https://console.chainstack.com/)中创建一个项目，选择 Stable，然后部署一个节点。将其 HTTPS 或 WebSocket 端点复制到您的应用程序中。
 
 ## Tenderly
 
@@ -37,10 +50,16 @@ diataxis: "reference"
 
 - 实时合约模拟
 - 调试和追踪
-- 面向开发者的交易工作流
+- 开发者交易工作流
 
-**开始使用**：在 [Tenderly 仪表盘](https://tenderly.co/) 中设置一个 Stable 项目，以便为你的合约使用模拟、调试和交易追踪功能。
+**入门**：在 [Tenderly 控制面板](https://tenderly.co/)中设置一个 Stable 项目，以访问您的合约的模拟、调试和交易追踪功能。
 
 ---
 
-与 Stable 有 RPC 或基础设施集成吗？请通过 [bizdev@stable.xyz](mailto:bizdev@stable.xyz) 联系我们。
+有与 Stable 的 RPC 或基础设施集成吗？请通过 [bizdev@stable.xyz](mailto:bizdev@stable.xyz) 联系我们。
+
+## 接下来去哪里
+
+- [**连接到 Stable**](/cn/reference/connect)：将 Stable 主网或测试网添加到您的应用程序。
+- [**使用 JSON-RPC API**](/cn/reference/json-rpc-api)：查找 Stable 上可用的 RPC 方法。
+- [**为生产环境做准备**](/cn/how-to/production-readiness)：在发布前添加 RPC 冗余和操作检查。

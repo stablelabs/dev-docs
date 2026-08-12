@@ -1,6 +1,6 @@
 ---
 source_path: reference/wallets.mdx
-source_sha: f6b766620e0e8b74b0184ce813b9cf5c3027b3f5
+source_sha: e8851e6b4d6c98f0cca8a6f6ca5b3a6a50918f5a
 title: "钱包"
 description: "用于在 Stable 上持有、发送和接收 USDT 的钱包提供商和 SDK。"
 diataxis: "reference"
@@ -8,34 +8,35 @@ diataxis: "reference"
 
 # 钱包
 
-## 钱包概述表
+## 钱包概览表
 
 | **提供商** | **类别** | **安全方法** | **文档 / 入门** | **备注** |
 | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :---------------------------------------- | :------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :----------------------------------------------------------------------------------------- |
-| Stable Pay | 用户钱包 | 基于 TSS-MPC 的自托管 | [https://blog.stable.xyz/introducing-stable-pay-the-stablecoin-payment-wallet-on-stablechain](https://blog.stable.xyz/introducing-stable-pay-the-stablecoin-payment-wallet-on-stablechain) | 在 Stable 上构建的 USDT 原生支付钱包；针对即时转账进行了优化 |
+| Stable Pay | 用户钱包 | 基于 TSS-MPC 的自托管 | [https://blog.stable.xyz/introducing-stable-pay-the-stablecoin-payment-wallet-on-stablechain](https://blog.stable.xyz/introducing-stable-pay-the-stablecoin-payment-wallet-on-stablechain) | 在 Stable 上构建的 USDT 原生支付钱包；针对即时转账进行优化 |
 | [Tether 钱包开发套件 (WDK)](https://wallet.tether.io) | 钱包 SDK | 自托管 | [https://docs.wallet.tether.io](https://docs.wallet.tether.io) | Tether 的开源 SDK，用于构建跨多链的自托管钱包 |
 | [币安钱包](https://www.binance.com/en/web3wallet) | 用户钱包 | 基于 MPC 的自托管 / 半托管钱包 | [https://developers.binance.com/docs/binance-spot-api-docs/README](https://developers.binance.com/docs/binance-spot-api-docs/README) | 多链钱包，支持 Stable USDT |
-| [Reown](https://reown.com/)（前身为 WalletConnect / WalletKit） | 连接性 / 钱包基础设施 | 协议级签名和安全中继 | [https://docs.reown.com/appkit/overview](https://docs.reown.com/appkit/overview) | 支持 600 多个钱包，多链，基于 SDK 的集成，适用于嵌入式钱包流程 |
+| [Reown](https://reown.com/)（前身为 WalletConnect / WalletKit） | 连接 / 钱包基础设施 | 协议级签名和安全中继 | [https://docs.reown.com/appkit/overview](https://docs.reown.com/appkit/overview) | 支持 600 多个钱包，多链，基于 SDK 的集成，适用于嵌入式钱包流程 |
 | [Bitget 钱包](https://web3.bitget.com/en) | 用户钱包 | 非托管钱包（私钥由用户管理） | [https://web3.bitget.com/en/docs/](https://web3.bitget.com/en/docs/) | 内置 dApp 浏览器；多资产和多链支持 |
 | [Gate 钱包](https://www.gate.com/) (Gate Onchain) | 用户钱包 | 交易所关联钱包 | [https://www.gate.com/](https://www.gate.com/) | 交易所关联钱包；适用于 CEX ↔ 钱包流程 |
-| [OKX 钱包](https://web3.okx.com/) (OKX Onchain) | 用户钱包 | 非托管 / MPC 用于恢复 | [https://www.okx.com/earn/onchain-earn](https://www.okx.com/earn/onchain-earn) | 具有交易所集成的多链钱包 |
-| [Anchorage](https://www.anchorage.com/) | 托管 / 机构钱包 | 银行级监管托管（联邦特许银行） | [https://www.anchorage.com/who-we-serve](https://www.anchorage.com/who-we-serve) | 稳定资产的机构级托管 |
-| [Dynamic](https://www.dynamic.xyz/) | 嵌入式 / 应用内钱包基础设施 | 通过 SDK 或后端进行的托管密钥 / 托管基础设施 | [https://www.dynamic.xyz/docs/introduction/welcome](https://www.dynamic.xyz/docs/introduction/welcome) | 允许应用嵌入钱包流程而无需外部钱包 |
-| [Privy](https://www.privy.io/) | 嵌入式 / 应用内钱包基础设施 | 带有密钥分割的安全区域 (TEE) | [https://docs.privy.io/wallets/overview/embedded](https://docs.privy.io/wallets/overview/embedded) | 带有可配置托管、认证和策略控制的嵌入式钱包 |
-| [Portal](https://www.portalhq.io/) | 嵌入式 / 应用内钱包基础设施 | MPC 密钥共享 | [https://docs.portalhq.io/sdks/quickstart](https://docs.portalhq.io/sdks/quickstart) | 具有移动、Web 和 API 集成的嵌入式 EVM 钱包 |
-| [Turnkey](https://www.turnkey.com/) | 嵌入式 / 应用内钱包基础设施 | 可信执行环境 (TEE) | [https://docs.turnkey.com/solutions/embedded-wallets/overview](https://docs.turnkey.com/solutions/embedded-wallets/overview) | 具有可配置托管和可编程签名策略的嵌入式钱包 |
-| [Alchemy](https://www.alchemy.com/) | 智能钱包和账户抽象基础设施 | 打包器 + 支付器基础设施 (ERC-4337) | [https://docs.alchemy.com](https://docs.alchemy.com) | 支持 AA 钱包；支持赞助 Gas、智能账户 |
+| [OKX 钱包](https://web3.okx.com/) (OKX Onchain) | 用户钱包 | 非托管 / 用于恢复的 MPC | [https://www.okx.com/earn/onchain-earn](https://www.okx.com/earn/onchain-earn) | 具有交易所集成的多链钱包 |
+| [Anchorage](https://www.anchorage.com/) | 托管 / 机构钱包 | 银行级受监管托管（联邦特许银行） | [https://www.anchorage.com/who-we-serve](https://www.anchorage.com/who-we-serve) | 稳定资产的机构级托管 |
+| Coinbase 开发者平台 (CDP) | 嵌入式 / 应用内钱包基础设施 | 非托管；密钥在受信任执行环境中保护 | [https://docs.cdp.coinbase.com/wallets/non-custodial-wallets/overview](https://docs.cdp.coinbase.com/wallets/non-custodial-wallets/overview) | 钱包 API 支持 Stable 作为 EVM 网络；Coinbase Onramp 不支持 Stable |
+| [Dynamic](https://www.dynamic.xyz/) | 嵌入式 / 应用内钱包基础设施 | 通过 SDK 或后端托管密钥 / 托管基础设施 | [https://www.dynamic.xyz/docs/introduction/welcome](https://www.dynamic.xyz/docs/introduction/welcome) | 允许应用程序嵌入钱包流程而无需外部钱包 |
+| [Privy](https://www.privy.io/) | 嵌入式 / 应用内钱包基础设施 | 带有密钥分割的安全飞地 (TEEs) | [https://docs.privy.io/wallets/overview/embedded](https://docs.privy.io/wallets/overview/embedded) | 具有可配置的托管、身份验证和策略控制的嵌入式钱包 |
+| [Portal](https://www.portalhq.io/) | 嵌入式 / 应用内钱包基础设施 | MPC 密钥共享 | [https://docs.portalhq.io/sdks/quickstart](https://docs.portalhq.io/sdks/quickstart) | 具有移动、网页和 API 集成的嵌入式 EVM 钱包 |
+| [Turnkey](https://www.turnkey.com/) | 嵌入式 / 应用内钱包基础设施 | 受信任执行环境 (TEEs) | [https://docs.turnkey.com/solutions/embedded-wallets/overview](https://docs.turnkey.com/solutions/embedded-wallets/overview) | 具有可配置托管和可编程签名策略的嵌入式钱包 |
+| [Alchemy](https://www.alchemy.com/) | 智能钱包和账户抽象基础设施 | Bundler + Paymaster 基础设施 (ERC-4337) | [https://docs.alchemy.com](https://docs.alchemy.com) | 为 AA 钱包提供动力；支持赞助 Gas、智能账户 |
 | [Atomic Wallet](https://atomicwallet.io/) | 用户钱包 | 非托管（密钥存储在用户设备上） | [https://atomicwallet.io/assets-status](https://atomicwallet.io/assets-status) | 多资产移动、桌面和浏览器扩展钱包；通过内置的 [Simplex](/cn/reference/ramps#simplex-by-nuvei) 入口在 Stable 上购买 USDT |
 
 ## 类别指南
 
-- **用户钱包：** 这些是传统的面向消费者的钱包，例如移动应用程序、浏览器扩展或交易所关联钱包。它们允许用户持有 USDT、进行转账、连接 dApp 并直接与 Stable 交互。
-- **钱包 SDK：** 一种软件开发工具包，为开发人员提供预构建的工具、API 和基础设施，用于将钱包创建、密钥管理、交易签名和区块链交互直接集成到他们的应用程序中。
-- **托管 / 机构钱包：** 为机构提供受监管的企业级资产托管的平台。这些解决方案侧重于合规性、治理控制、安全密钥管理和资金操作，而非最终用户流程。
-- **嵌入式 / 应用内钱包：** 通过 SDK 或后端系统在应用程序内生成的钱包。这些使主流用户能够无缝入职，而无需他们安装或理解外部加密钱包。
-- **智能钱包 / 账户抽象：** 支持自定义逻辑（例如无 Gas 交易、捆绑操作或自动化执行）的可编程钱包。这些通过开发人员定义的行为扩展了基本钱包功能。
-- **MPC 钱包提供商：** 使用多方计算 (MPC) 将私钥控制权分配给多个方或设备的密钥管理系统。非常适用于需要高安全性托管而无需传统助记词的应用程序或企业。
-- **连接提供商：** 诸如 WalletConnect (Reown) 等连接钱包和 dApp 的协议。它们不存储资产，也不作为钱包本身；相反，它们提供安全的通信通道，用于交易签名和交互。
+- **用户钱包：** 这些是传统的面向消费者的钱包，例如移动应用程序、浏览器扩展程序或交易所关联钱包。它们允许用户持有 USDT、进行转账、连接到 dApp 并直接与 Stable 交互。
+- **钱包 SDK：** 一种软件开发工具包，为开发者提供预构建的工具、API 和基础设施，以便将钱包创建、密钥管理、交易签名和区块链交互直接集成到他们的应用程序中。
+- **托管 / 机构钱包：** 为机构提供受监管的企业级数字资产托管的平台。这些解决方案侧重于合规性、治理控制、安全密钥管理和资金操作，而不是最终用户流程。
+- **嵌入式 / 应用内钱包：** 通过 SDK 或后端系统在应用程序内生成的钱包。这使得主流用户能够无缝入职，而无需安装或理解外部加密钱包。
+- **智能钱包 / 账户抽象：** 支持自定义逻辑（例如无 Gas 交易、捆绑操作或自动执行）的可编程钱包。这些扩展了基本钱包功能，具有开发者定义的行为。
+- **MPC 钱包提供商：** 使用多方计算 (MPC) 将私钥控制权分配给多个方或设备的密钥管理系统。非常适合需要高安全性托管而无需传统助记词的应用程序或企业。
+- **连接提供商：** 连接钱包和 dApp 的协议，例如 WalletConnect (Reown)。它们不存储资产或充当钱包本身；相反，它们提供安全的通信通道用于交易签名和交互。
 
 ## 1. 用户钱包
 
@@ -43,7 +44,7 @@ diataxis: "reference"
 
 ### Stable Pay
 
-一个在 Stable 上构建的非托管支付钱包，专为快速、稳定币原生交易而设计。Stable Pay 提供即时 USDT 支付、可预测的费用以及针对日常转账和商业优化的简单用户体验。
+一个构建在 Stable 上的非托管支付钱包，专为快速、原生稳定币交易而设计。Stable Pay 提供即时 USDT 支付、可预测的费用和针对日常转账和商业优化的简单用户体验。
 
 **功能**
 
@@ -55,7 +56,7 @@ diataxis: "reference"
 
 ### 币安钱包
 
-一个广泛使用的多链钱包，集成了全球交易量最大的交易所。
+一个广泛使用的多链钱包，与全球最大的交易量交易所集成。
 
 **功能**
 
@@ -65,7 +66,7 @@ diataxis: "reference"
 
 ### Bitget 钱包
 
-连接到 Bitget 交易所生态系统的多资产钱包，支持加密货币、股票和 ETF。
+一个与 Bitget 交易所生态系统连接的多资产钱包，支持加密货币、股票和 ETF。
 
 **功能**
 
@@ -75,51 +76,51 @@ diataxis: "reference"
 
 ### Gate 钱包 (Gate Onchain)
 
-一个由全球最大的现货交易所之一支持的钱包产品。
+由全球最大的现货交易所之一支持的钱包产品。
 
 **功能**
 
 - 支持 Stable USDT
-- 易于在 Gate 交易所和钱包之间进行转账
+- Gate 交易所与钱包之间的轻松转账
 - dApp 和 Web 应用程序连接
 
 ### OKX 钱包 (OKX Onchain)
 
-一个功能强大的多链钱包，在全球范围内使用。
+一个功能强大的全球多链钱包。
 
 **功能**
 
 - 支持 Stable USDT
-- 深度集成 OKX 生态系统
+- 深度 OKX 生态系统集成
 - Web、移动和扩展钱包选项
 
 ### Atomic Wallet
 
-一款非托管多资产钱包，可在桌面、移动和浏览器扩展上使用。Atomic Wallet 集成了 [Simplex by Nuvei](/cn/reference/ramps#simplex-by-nuvei) 入口，因此用户可以使用卡片、Apple Pay、Google Pay 或银行转账直接在应用程序内购买 Stable 上的 USDT。
+一款非托管多资产钱包，可在桌面、移动设备和作为浏览器扩展使用。Atomic Wallet 集成了 [Simplex by Nuvei](/cn/reference/ramps#simplex-by-nuvei) 入口，因此用户可以通过应用程序内的 Simplex 使用银行卡、Apple Pay、Google Pay 或银行转账直接在 Stable 上购买 USDT。
 
 **功能**
 
 - 在 Stable 上持有、发送和接收 USDT
-- 私钥存储在用户设备本地
-- 通过 Simplex 在应用程序内购买 Stable 上的 USDT
+- 私钥本地存储在用户设备上
+- 通过 Simplex 在应用程序内购买 Stable 上的 USDT 流程
 - 适用于 Windows、macOS、Linux、iOS、Android 和 Chrome
 
-**开始使用**：从 [atomicwallet.io](https://atomicwallet.io/downloads) 下载 Atomic Wallet，将 Stable 添加为网络，然后使用应用程序内的购买流程通过 Simplex 购买 Stable 上的 USDT。
+**入门**：从 [atomicwallet.io](https://atomicwallet.io/downloads) 下载 Atomic Wallet，添加 Stable 作为网络，然后使用应用程序内的购买流程通过 Simplex 购买 Stable 上的 USDT。
 
 ## 2. 钱包 SDK
 
-### Tether 开发套件 (WDK)
+### Tether 钱包开发套件 (WDK)
 
-Tether 推出的一个开源 SDK，用于在任何平台和区块链上构建自托管钱包。
+Tether 的开源 SDK，用于在任何平台和区块链上构建自托管钱包。
 
 **功能**
 
 - 多链支持：比特币、以太坊、TON、TRON、Solana、Spark 等
-- 智能体钱包：原生支持 AI 智能体钱包和 Stable 上的 x402 支付
-- DeFi 集成：支持交换、桥接和借贷协议的插件
+- 代理钱包：原生支持 Stable 上的 AI 代理钱包和 x402 支付
+- DeFi 集成：支持掉期、桥接和借贷协议的插件
 - 可扩展设计：为新的区块链或协议添加自定义模块
 
-**开始使用**：安装 [`@tetherto/wdk`](https://www.npmjs.com/package/@tetherto/wdk) 和 [`@tetherto/wdk-wallet-evm`](https://www.npmjs.com/package/@tetherto/wdk-wallet-evm)，然后按照 [WDK 文档](https://docs.wallet.tether.io) 将 Stable 配置为您的目标链。
+**入门**：安装 [`@tetherto/wdk`](https://www.npmjs.com/package/@tetherto/wdk) 和 [`@tetherto/wdk-wallet-evm`](https://www.npmjs.com/package/@tetherto/wdk-wallet-evm)，然后按照 [WDK 文档](https://docs.wallet.tether.io) 将 Stable 配置为您的目标链。
 
 ## 3. 托管和机构钱包
 
@@ -129,25 +130,44 @@ Tether 推出的一个开源 SDK，用于在任何平台和区块链上构建自
 
 **功能**
 
-- 安全托管 Stable USDT
-- 全面合规和监管监督
+- Stable USDT 的安全托管
+- 完全合规和监管监督
 - 企业级密钥管理和访问控制
 
 ## 4. 嵌入式 / 应用内钱包
 
-通过 SDK 直接嵌入到应用程序中的钱包，实现无缝的用户引导和支付流程。
+通过 SDK 直接嵌入到应用程序中的钱包，实现无缝的用户入职和支付流程。
 
-### Dynamic
+### Coinbase 开发者平台 (CDP)
 
-企业级钱包基础设施，为数千个应用程序和超过 4000 万用户提供服务。
+CDP 为面向用户的应用程序和后端系统提供非托管钱包。用户身份验证钱包使用电子邮件、短信或社交登录。API 密钥钱包允许服务器管理账户，而 CDP 在受信任的执行环境中保护私钥。
 
 **功能**
 
-- 钱包创建和认证
-- 嵌入式钱包流程
-- 应用程序和金融科技的用户引导
+- 无助记词的嵌入式钱包
+- 用于自动化工作流和后端服务的 API 密钥钱包
+- EVM 账户创建和交易签名
+- 用户控制钱包的密钥导出
 
-**开始使用**：按照 [Dynamic SDK 设置文档](https://docs.dynamic.xyz/introduction/welcome) 安装 SDK 并在您的应用程序中将 Stable 配置为受支持的网络。
+**Stable 集成**
+
+Coinbase 钱包 API 支持 Stable，因为它支持所有 EVM 兼容网络。将 Stable 配置为链 ID `988` 和 `https://rpc.stable.xyz`，或使用 CDP 签名并通过 Stable 的 RPC 广播。
+
+Coinbase Onramp 是一款用于法币兑换加密货币的独立产品，不支持 Stable。
+
+**入门**：按照 [CDP 非托管钱包文档](https://docs.cdp.coinbase.com/wallets/non-custodial-wallets/overview) 并选择用户身份验证或 API 密钥快速入门。
+
+### Dynamic
+
+企业级钱包基础设施，服务于数千个应用程序和超过 4000 万用户。
+
+**功能**
+
+- 钱包创建和身份验证
+- 嵌入式钱包流程
+- 应用程序和金融科技的用户入职
+
+**入门**：按照 [Dynamic SDK 设置文档](https://docs.dynamic.xyz/introduction/welcome) 安装 SDK，并将 Stable 配置为应用程序中支持的网络。
 
 ### Privy
 
@@ -155,16 +175,16 @@ Privy 为用户、组织、资金库和代理提供嵌入式钱包。钱包可�
 
 **功能**
 
-- 使用电子邮件、社交登录、通行密钥或外部钱包进行身份验证
+- 通过电子邮件、社交登录、Passkey 或外部钱包进行身份验证
 - 嵌入式 EVM 钱包创建和交易签名
-- 签名者、接收者、合约和转账金额的策略控制
-- 用户控制的非托管钱包密钥导出
+- 签名者、接收者、合同和转账金额的策略控制
+- 用户控制非托管钱包的密钥导出
 
-**开始使用**：按照 [Privy 嵌入式钱包文档](https://docs.privy.io/wallets/overview/embedded) 创建钱包，然后在您的应用程序中将 Stable 配置为 EVM 网络。
+**入门**：按照 [Privy 嵌入式钱包文档](https://docs.privy.io/wallets/overview/embedded) 创建钱包，然后在应用程序中将 Stable 配置为 EVM 网络。
 
 ### Portal
 
-Portal 通过 SDK 为 Web、iOS、Android 和 React Native 提供 MPC 钱包，并提供用于服务器端集成的 API。MPC（多方计算）将签名权限分配给单独的密钥共享。
+Portal 通过适用于 Web、iOS、Android 和 React Native 的 SDK 提供 MPC 钱包，以及用于服务器端集成的 API。MPC（多方计算）将签名权限拆分到独立的密钥共享中。
 
 **功能**
 
@@ -173,24 +193,24 @@ Portal 通过 SDK 为 Web、iOS、Android 和 React Native 提供 MPC 钱包，�
 - EVM 网络的自定义 RPC 配置
 - Web、移动和 API 集成选项
 
-**开始使用**：按照 [Portal SDK 快速入门](https://docs.portalhq.io/sdks/quickstart)，然后将 Stable 的 CAIP-2 链 ID (`eip155:988`) 映射到 `rpcConfig` 中的 `https://rpc.stable.xyz`。
+**入门**：按照 [Portal SDK 快速入门](https://docs.portalhq.io/sdks/quickstart)，然后将 Stable 的 CAIP-2 链 ID (`eip155:988`) 映射到 `rpcConfig` 中的 `https://rpc.stable.xyz`。
 
 ### Turnkey
 
-Turnkey 提供嵌入式钱包，在可信执行环境 (TEE) 中进行签名和策略评估。TEE 是一种隔离的、由硬件支持的环境，可在签名期间保护密钥。
+Turnkey 提供嵌入式钱包，其签名和策略评估在受信任的执行环境 (TEEs) 中进行。TEE 是一个隔离的、硬件支持的环境，用于在签名期间保护密钥。
 
 **功能**
 
-- 通过电子邮件、电话、社交登录、通行密钥或生物识别技术进行身份验证
+- 通过电子邮件、电话、社交登录、Passkey 或生物识别进行身份验证
 - 跨 EVM 兼容网络的嵌入式钱包
 - 非托管、托管和混合托管模型
 - 可编程签名策略和每用户隔离
 
-**开始使用**：按照 [Turnkey 嵌入式钱包概述](https://docs.turnkey.com/solutions/embedded-wallets/overview)，选择一个 SDK，并将 Stable 配置为 EVM 网络。
+**入门**：按照 [Turnkey 嵌入式钱包概述](https://docs.turnkey.com/solutions/embedded-wallets/overview)，选择一个 SDK，并将 Stable 配置为 EVM 网络。
 
 ### Reown（前身为 WalletConnect）
 
-连接钱包到应用程序的广泛采用标准。
+连接钱包和应用程序的广泛采用标准。
 
 **功能**
 
@@ -198,67 +218,67 @@ Turnkey 提供嵌入式钱包，在可信执行环境 (TEE) 中进行签名和�
 - 支持移动、桌面和扩展钱包
 - 广泛的生态系统兼容性
 
-**Reown SDK 用于钱包引导**
+**用于钱包入职的 Reown SDK**
 
-Stable 支持与 **Reown SDK** 集成，帮助开发人员为用户提供无缝的钱包和引导体验。
+Stable 支持与 **Reown SDK** 集成，以帮助开发者为用户提供无缝的钱包和入职体验。
 
-Reown 提供了一个开源的一体化 SDK，作为 WalletConnect 网络的官方网关。它可以在您的应用程序中实现流畅的钱包连接、交易、登录、嵌入式钱包（电子邮件和社交登录）、链上支付、应用内交换等。
+Reown 提供了一个开源的、一体化的 SDK，作为 WalletConnect 网络的官方网关。它支持在您的应用程序中实现流畅的钱包连接、交易、登录、嵌入式钱包（电子邮件和社交登录）、链上支付、应用内兑换等功能。
 
-**开始使用**
+**入门**
 
 - 访问 Reown 的文档：[https://docs.reown.com/overview](https://docs.reown.com/overview)
 
 ## 5. 智能钱包和账户抽象
 
-实现可编程钱包、无 Gas 交易、消费规则和高级用户体验的基础设施。
+实现可编程钱包、无 Gas 交易、消费规则和高级 UX 的基础设施。
 
-### 概述表
+### 概览表
 
 | **提供商** | **类别** | **安全方法** | **文档 / 入门** | **备注** |
 | :------------------------------------------------- | :------------------------------------ | :------------------------------------- | :-------------------------------------------------------------------------------------------- | :----------------------------------------- |
 | [**Holdstation**](https://holdstation.com/) | 智能钱包 (AA) | 智能合约钱包 + 生物识别认证 | [https://docs.holdstation.com/holdstation/](https://docs.holdstation.com/holdstation/) | 无 Gas 流程，DeFi 原生钱包 |
 | [**Daimo**](https://pay.daimo.com/) | AA 支付钱包 | 智能账户，无助记词 | [https://paydocs.daimo.com/](https://paydocs.daimo.com/) | 一键支付，稳定币优先 |
-| [**Alchemy**](https://alchemy.com) | AA 基础设施（打包器/支付器） | 打包器 + 支付器基础设施 (ERC-4337) | [https://docs.alchemy.com](https://docs.alchemy.com) | 使 AA 钱包能够在 Stable 上构建 |
+| [**Alchemy**](https://alchemy.com) | AA 基础设施 (Bundler/Paymaster) | Bundler + Paymaster 基础设施 (ERC-4337) | [https://docs.alchemy.com](https://docs.alchemy.com) | 使 AA 钱包能够在 Stable 上构建 |
 
 ### Alchemy
 
-Alchemy 提供部署智能账户、赞助 Gas 和构建消费者级钱包所需的核心 AA 基础设施和 API。
+Alchemy 提供部署智能账户、赞助 Gas 和构建消费级钱包所需的核心 AA 基础设施和 API。
 
 **功能**
 
 - 智能账户 SDK 和 API
-- 支付器支持无 Gas 操作
+- Paymaster 支持无 Gas 操作
 - Gas 抽象工具
 - 智能钱包开发者的可扩展基础设施
 
-**开始使用**：使用 [Alchemy 智能账户 SDK](https://docs.alchemy.com) 部署 ERC-4337 智能账户，并配置支付器以在 Stable 上赞助 Gas。
+**入门**：使用 [Alchemy 智能账户 SDK](https://docs.alchemy.com) 部署 ERC-4337 智能账户，并为 Stable 上的赞助 Gas 配置 Paymaster。
 
 **文档**\
 [https://docs.alchemy.com](https://docs.alchemy.com)
 
 ### Holdstation
 
-一款提供账户抽象和生物识别安全交互的智能合约钱包。\
+一款提供账户抽象和生物识别安全交互的智能合约钱包。
 **功能**
 
-- 全功能 AA 智能钱包
+- 完全支持 AA 的智能钱包
 - 无 Gas 交易和赞助费用
 - 生物识别授权和会话密钥
 - 集成交易和 DeFi 执行层
 
-**开始使用**：探索 [Holdstation 开发者文档](https://docs.holdstation.com/holdstation/)，将智能钱包流程和赞助交易集成到您的应用程序中。
+**入门**：探索 [Holdstation 开发者文档](https://docs.holdstation.com/holdstation/)，将智能钱包流程和赞助交易集成到您的应用程序中。
 
 ### Daimo
 
-一款消费者级、账户抽象钱包，专为即时稳定币消费和支付而设计。\
+一款消费者级的账户抽象钱包，专为即时稳定币消费和支付而设计。
 **功能**
 
-- 基于 AA 的用户体验，智能钱包执行
+- 基于 AA 的 UX，具有智能钱包执行
 - 跨任何链的一键支付
 - 无助记词；安全密钥恢复
-- 适用于支付应用程序和稳定币工具
+- 适用于支付应用程序和稳定币实用程序
 
-**开始使用**：访问 [Daimo Pay 文档](https://paydocs.daimo.com/)，为您的 Stable 应用程序添加一键式稳定币支付流程。
+**入门**：访问 [Daimo Pay 文档](https://paydocs.daimo.com/)，将一键稳定币支付流程添加到您在 Stable 上的应用程序。
 
 ## Stable 网络设置
 
@@ -278,9 +298,9 @@ Alchemy 提供部署智能账户、赞助 Gas 和构建消费者级钱包所需�
 
 - 通过 Stable RPC 启用签名和 Gas 估算
 - 支持 USDT 原生转账
-- 为 dApps 集成 WalletConnect
+- 为 dApp 集成 WalletConnect
 - 将 Stable 添加到链列表或元数据注册表
 
 ## 您的钱包是否集成了 Stable？
 
-您可以联系团队 [bizdev@stable.xyz](mailto:bizdev@stable.xyz)，以便在此部分列出。
+您可以联系团队 [bizdev@stable.xyz](mailto:bizdev@stable.xyz) 以在此部分列出。

@@ -1,6 +1,6 @@
 ---
 source_path: how-to/install-node.mdx
-source_sha: b3d203ef94d492fda0206e9c1f6797c50a09be8f
+source_sha: dcc53024598ac323cfe971fd1599f51647055726
 title: 安装指南
 description: "使用预编译版本在 Linux 上安装 Stable 节点二进制文件的分步指南。"
 diataxis: "how-to"
@@ -10,14 +10,14 @@ diataxis: "how-to"
 
 ## 先决条件
 
-开始安装前，请确保您已具备：
-- 满足所有 [系统要求](/cn/reference/node-system-requirements)
+在开始安装之前，请确保您已具备：
+- 满足所有[系统要求](/cn/reference/node-system-requirements)
 - 服务器的 root 或 sudo 访问权限
 - Linux 命令行基础知识
 
 ## 安装方法
 
-请使用适用于您平台的预编译二进制文件。Stable 目前不支持从源代码构建。
+为您的平台使用预编译的二进制文件。Stable 目前不支持从源代码构建。
 
 ### 主网
 
@@ -27,7 +27,7 @@ diataxis: "how-to"
 # 下载适用于 AMD64 架构的最新二进制文件
 wget https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/binary/stabled-latest-linux-amd64-mainnet.tar.gz
 
-# 解压文件
+# 解压存档
 tar -xvzf stabled-latest-linux-amd64-mainnet.tar.gz
 
 # 将二进制文件移动到系统路径
@@ -59,7 +59,7 @@ stabled version
 # 下载适用于 AMD64 架构的最新二进制文件
 wget https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/binary/stabled-latest-linux-amd64-testnet.tar.gz
 
-# 解压文件
+# 解压存档
 tar -xvzf stabled-latest-linux-amd64-testnet.tar.gz
 
 # 将二进制文件移动到系统路径
@@ -105,7 +105,7 @@ stabled init $MONIKER --chain-id stable_988-1
 # 这将在 ~/.stabled/ 创建配置目录
 ```
 
-> **注意**：有关当前网络参数（包括链 ID），请参阅 [主网信息](/cn/reference/mainnet-information)
+> **注意**：有关包括链 ID 在内的当前网络参数，请参阅[主网信息](/cn/reference/mainnet-information)
 
 ### 测试网
 
@@ -116,7 +116,7 @@ stabled init $MONIKER --chain-id stabletestnet_2201-1
 # 这将在 ~/.stabled/ 创建配置目录
 ```
 
-> **注意**：有关当前网络参数（包括链 ID），请参阅 [测试网信息](/cn/reference/testnet-information)
+> **注意**：有关包括链 ID 在内的当前网络参数，请参阅[测试网信息](/cn/reference/testnet-information)
 
 ### 步骤 3：下载创世文件
 
@@ -132,7 +132,7 @@ unzip genesis.zip
 # 将创世文件移动到配置目录
 cp genesis.json ~/.stabled/config/genesis.json
 
-# 验证创世文件校验和
+# 验证创世文件的校验和
 sha256sum ~/.stabled/config/genesis.json
 # 预期值: e1ceda79a3cc48a1028ca8646a2e9e2d156f610637cfb8b428ca8354277921f1
 ```
@@ -147,7 +147,7 @@ unzip genesis.zip
 # 将创世文件移动到配置目录
 cp genesis.json ~/.stabled/config/genesis.json
 
-# 验证创世文件校验和
+# 验证创世文件的校验和
 sha256sum ~/.stabled/config/genesis.json
 # 预期值: 66afbb6e57e6faf019b3021de299125cddab61d433f28894db751252f5b8eaf2
 ```
@@ -160,11 +160,11 @@ sha256sum ~/.stabled/config/genesis.json
 :::code-group
 ```bash [Mainnet]
 # 下载优化配置（根据您的节点类型选择一个）
-# 适用于 RPC/全节点：
+# 对于 RPC/全节点：
 wget https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/configuration/rpc_node_config.zip
 unzip rpc_node_config.zip
 
-# 适用于归档节点：
+# 对于存档节点：
 # wget https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/configuration/archive_node_config.zip
 # unzip archive_node_config.zip
 
@@ -174,7 +174,7 @@ cp ~/.stabled/config/config.toml ~/.stabled/config/config.toml.backup
 # 应用新配置
 cp config.toml ~/.stabled/config/config.toml
 
-# 更新配置中的别名
+# 在配置中更新别名
 sed -i "s/^moniker = \".*\"/moniker = \"$MONIKER\"/" ~/.stabled/config/config.toml
 ```
 ```bash [Testnet]
@@ -188,7 +188,7 @@ cp ~/.stabled/config/config.toml ~/.stabled/config/config.toml.backup
 # 应用新配置
 cp config.toml ~/.stabled/config/config.toml
 
-# 更新配置中的别名
+# 在配置中更新别名
 sed -i "s/^moniker = \".*\"/moniker = \"$MONIKER\"/" ~/.stabled/config/config.toml
 ```
 :::
@@ -217,9 +217,9 @@ max_num_inbound_peers = 50
 max_num_outbound_peers = 30
 
 # 种子节点
-seeds = "c21897d374c480a963edcda941ac94030895f6b4@seed1.stable.xyz:46656"
+seeds = "c21897d374c480a963edcda941ac94030895f6b4@seed1.stable.xyz:26656"
 
-# 持久对等节点 (主网种子节点)
+# 持久对等节点（主网种子节点）
 persistent_peers = "b896f6f8ca5a4d1cc40de09407df0c96e76df950@peer1.stable.xyz:26656"
 
 # 启用对等节点交换
@@ -230,10 +230,10 @@ pex = true
 # 监听地址
 laddr = "tcp://0.0.0.0:26657"
 
-# 同时连接的最大数量
+# 最大并发连接数
 max_open_connections = 900
 
-# CORS 设置 (生产环境请调整)
+# CORS 设置（生产环境请调整）
 cors_allowed_origins = ["*"]
 ```
 ```toml [Testnet]
@@ -244,9 +244,9 @@ max_num_inbound_peers = 50
 max_num_outbound_peers = 30
 
 # 种子节点
-seeds = "8c2ede57b763c2976253f880a27c6f85756e1f1b@seed1.testnet.stable.xyz:56656"
+seeds = "8c2ede57b763c2976253f880a27c6f85756e1f1b@seed1.testnet.stable.xyz:26656"
 
-# 持久对等节点 (测试网种子节点)
+# 持久对等节点（测试网种子节点）
 persistent_peers = "128accd3e8ee379bfdf54560c21345451c7048c7@peer1.testnet.stable.xyz:26656"
 
 # 启用对等节点交换
@@ -257,17 +257,17 @@ pex = true
 # 监听地址
 laddr = "tcp://0.0.0.0:26657"
 
-# 同时连接的最大数量
+# 最大并发连接数
 max_open_connections = 900
 
-# CORS 设置 (生产环境请调整)
+# CORS 设置（生产环境请调整）
 cors_allowed_origins = ["*"]
 ```
 :::
 
 ## Systemd 服务设置
 
-创建 systemd 服务以进行自动管理：
+创建一个 systemd 服务以进行自动管理：
 
 ### 步骤 1：创建服务文件
 
@@ -320,7 +320,7 @@ EOF
 # 重新加载 systemd 配置
 sudo systemctl daemon-reload
 
-# 启用服务在启动时运行
+# 启用服务在启动时自动运行
 sudo systemctl enable stabled
 
 # 启动服务
@@ -335,7 +335,7 @@ sudo journalctl -u stabled -f
 
 ## Cosmovisor 设置（推荐用于自动升级）
 
-Cosmovisor 是一个进程管理器，可以自动处理链升级。这是生产节点的推荐设置。
+Cosmovisor 是一个进程管理器，可以自动处理链升级。这是生产节点推荐的设置。
 
 ### 步骤 1：安装 Cosmovisor
 
@@ -343,7 +343,7 @@ Cosmovisor 是一个进程管理器，可以自动处理链升级。这是生产
 # 安装 Cosmovisor
 go install cosmossdk.io/tools/cosmovisor/cmd/cosmovisor@latest
 
-# 或下载预编译二进制文件
+# 或下载预构建二进制文件
 wget https://github.com/cosmos/cosmos-sdk/releases/download/cosmovisor%2Fv1.7.0/cosmovisor-v1.7.0-linux-amd64.tar.gz
 tar -xvzf cosmovisor-v1.7.0-linux-amd64.tar.gz
 sudo mv cosmovisor /usr/bin/
@@ -372,14 +372,14 @@ source ~/.bashrc
 ### 步骤 3：设置 Cosmovisor 目录结构
 
 ```bash
-# 创建 cosmovisor 目录结构
+# 创建 Cosmovisor 目录结构
 mkdir -p ~/.stabled/cosmovisor/genesis/bin
 mkdir -p ~/.stabled/cosmovisor/upgrades
 
 # 将当前二进制文件复制到 genesis
 cp /usr/bin/stabled ~/.stabled/cosmovisor/genesis/bin/
 
-# 创建当前软链接
+# 创建当前符号链接
 ln -s ~/.stabled/cosmovisor/genesis ~/.stabled/cosmovisor/current
 
 # 验证设置
@@ -472,10 +472,10 @@ sudo journalctl -u ${SERVICE_NAME} -f
 
 ### 准备升级
 
-当链升级宣布时：
+当宣布链升级时：
 
 ```bash
-# 示例：准备 v0.8.0 升级
+# 示例：为 v0.8.0 升级做准备
 UPGRADE_NAME="v0.8.0"
 mkdir -p ~/.stabled/cosmovisor/upgrades/$UPGRADE_NAME/bin
 
@@ -570,7 +570,7 @@ EOF
 # 重新加载 systemd 配置
 sudo systemctl daemon-reload
 
-# 启用服务在启动时运行
+# 启用服务在启动时自动运行
 sudo systemctl enable ${SERVICE_NAME}
 
 # 启动服务
@@ -585,9 +585,9 @@ sudo journalctl -u ${SERVICE_NAME} -f
 
 ## 快速同步选项
 
-为了更快地同步，请参阅 [快照和同步指南](/cn/how-to/use-node-snapshots)，了解：
+如需更快的同步，请参阅[快照和同步指南](/cn/how-to/use-node-snapshots)，其中包含：
 - 归档节点快照
-- 剪枝节点快照
+- 裁剪节点快照
 
 ## 安装后验证
 
@@ -622,7 +622,7 @@ sudo journalctl -u stabled --since "10 minutes ago" | grep -i "peer"
 
 ## 安全强化
 
-安装后，请保护您的节点：
+安装后，保护您的节点：
 
 ### 防火墙配置
 
@@ -630,22 +630,22 @@ sudo journalctl -u stabled --since "10 minutes ago" | grep -i "peer"
 # 配置 UFW
 sudo ufw allow 22/tcp  # SSH
 sudo ufw allow 26656/tcp  # P2P
-sudo ufw allow 26657/tcp  # RPC (仅当外部需要时)
+sudo ufw allow 26657/tcp  # RPC（仅在外部需要时）
 sudo ufw enable
 ```
 
 ## 下一步
 
-1. **配置您的节点**：参阅 [配置指南](/cn/reference/node-configuration)
-2. **加速同步**：查看 [快照和同步](/cn/how-to/use-node-snapshots)
-3. **监控您的节点**：设置 [监控](/cn/how-to/monitor-node)
-4. **加入社区**：在 [Discord](https://discord.gg/stablexyz) 中获取支持
+1. **配置您的节点**：参阅[配置指南](/cn/reference/node-configuration)
+2. **加速同步**：查阅[快照和同步](/cn/how-to/use-node-snapshots)
+3. **监控您的节点**：设置[监控](/cn/how-to/monitor-node)
+4. **加入社区**：在 [Discord](https://discord.gg/stablexyz) 获取支持
 
 ## 故障排除
 
 如果您在安装过程中遇到问题：
-- 查阅 [故障排除指南](/cn/how-to/troubleshoot-node)
-- 验证是否满足系统要求
+- 查阅[故障排除指南](/cn/how-to/troubleshoot-node)
+- 验证系统要求是否满足
 - 确保端口未被防火墙阻止
 - 检查磁盘空间和权限
-- 检查 systemd 日志中的错误
+- 查阅 systemd 日志以查找错误

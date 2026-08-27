@@ -1,23 +1,23 @@
 ---
 source_path: how-to/install-node.mdx
-source_sha: b3d203ef94d492fda0206e9c1f6797c50a09be8f
+source_sha: dcc53024598ac323cfe971fd1599f51647055726
 title: 설치 가이드
-description: "사전 컴파일된 릴리스를 사용하여 Linux에 Stable 노드 바이너리를 설치하기 위한 단계별 가이드입니다."
+description: "사전 컴파일된 릴리스를 사용하여 Linux에 Stable 노드 바이너리를 설치하는 단계별 가이드입니다."
 diataxis: "how-to"
 ---
 
-이 가이드에서는 다양한 플랫폼에 Stable 노드를 설치하고 설정하는 방법에 대한 자세한 지침을 제공합니다.
+이 가이드는 다양한 플랫폼에 Stable 노드를 설치하고 설정하는 방법에 대한 자세한 지침을 제공합니다.
 
 ## 전제 조건
 
 설치를 시작하기 전에 다음 사항을 확인하십시오.
-- 모든 [시스템 요구 사항](/ko/reference/node-system-requirements) 충족
-- 서버에 대한 루트 또는 sudo 접근 권한
-- Linux 명령줄에 대한 기본 지식
+- 모든 [시스템 요구 사항](/ko/reference/node-system-requirements)을 충족했습니다.
+- 서버에 대한 루트 또는 sudo 액세스 권한이 있습니다.
+- Linux 명령줄에 대한 기본 지식이 있습니다.
 
 ## 설치 방법
 
-플랫폼에 맞는 사전 컴파일된 바이너리를 사용하십시오. Stable은 현재 소스 빌드를 지원하지 않습니다.
+플랫폼에 맞는 사전 컴파일된 바이너리를 사용하세요. Stable은 현재 소스에서 빌드를 지원하지 않습니다.
 
 ### 메인넷
 
@@ -90,7 +90,7 @@ stabled version
 ### 1단계: 노드 이름 설정
 
 ```bash
-# 노드의 모니커 설정 (고유한 이름 선택)
+# 노드의 별명 설정 (고유한 이름을 선택하세요)
 export MONIKER="your-node-name"
 ```
 
@@ -102,7 +102,7 @@ export MONIKER="your-node-name"
 # 메인넷 체인 ID로 초기화
 stabled init $MONIKER --chain-id stable_988-1
 
-# 이렇게 하면 ~/.stabled/에 구성 디렉토리가 생성됩니다.
+# 이렇게 하면 ~/.stabled/ 에 구성 디렉터리가 생성됩니다.
 ```
 
 > **참고**: 체인 ID를 포함한 현재 네트워크 매개변수는 [메인넷 정보](/ko/reference/mainnet-information)를 참조하십시오.
@@ -113,7 +113,7 @@ stabled init $MONIKER --chain-id stable_988-1
 # 테스트넷 체인 ID로 초기화
 stabled init $MONIKER --chain-id stabletestnet_2201-1
 
-# 이렇게 하면 ~/.stabled/에 구성 디렉토리가 생성됩니다.
+# 이렇게 하면 ~/.stabled/ 에 구성 디렉터리가 생성됩니다.
 ```
 
 > **참고**: 체인 ID를 포함한 현재 네트워크 매개변수는 [테스트넷 정보](/ko/reference/testnet-information)를 참조하십시오.
@@ -121,7 +121,7 @@ stabled init $MONIKER --chain-id stabletestnet_2201-1
 ### 3단계: 제네시스 파일 다운로드
 
 :::code-group
-```bash [메인넷]
+```bash [Mainnet]
 # 기본 제네시스 백업 생성
 mv ~/.stabled/config/genesis.json ~/.stabled/config/genesis.json.backup
 
@@ -129,14 +129,14 @@ mv ~/.stabled/config/genesis.json ~/.stabled/config/genesis.json.backup
 wget https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/configuration/genesis.zip
 unzip genesis.zip
 
-# 제네시스를 구성 디렉토리로 이동
+# 제네시스를 config 디렉토리로 이동
 cp genesis.json ~/.stabled/config/genesis.json
 
 # 제네시스 체크섬 확인
 sha256sum ~/.stabled/config/genesis.json
 # 예상: e1ceda79a3cc48a1028ca8646a2e9e2d156f610637cfb8b428ca8354277921f1
 ```
-```bash [테스트넷]
+```bash [Testnet]
 # 기본 제네시스 백업 생성
 mv ~/.stabled/config/genesis.json ~/.stabled/config/genesis.json.backup
 
@@ -144,7 +144,7 @@ mv ~/.stabled/config/genesis.json ~/.stabled/config/genesis.json.backup
 wget https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/configuration/genesis.zip
 unzip genesis.zip
 
-# 제네시스를 구성 디렉토리로 이동
+# 제네시스를 config 디렉토리로 이동
 cp genesis.json ~/.stabled/config/genesis.json
 
 # 제네시스 체크섬 확인
@@ -158,7 +158,7 @@ sha256sum ~/.stabled/config/genesis.json
 #### 구성 파일 다운로드
 
 :::code-group
-```bash [메인넷]
+```bash [Mainnet]
 # 최적화된 구성 다운로드 (노드 유형에 따라 하나 선택)
 # RPC/풀 노드의 경우:
 wget https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/configuration/rpc_node_config.zip
@@ -168,34 +168,34 @@ unzip rpc_node_config.zip
 # wget https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/configuration/archive_node_config.zip
 # unzip archive_node_config.zip
 
-# 원래 구성 백업
+# 원본 구성 백업
 cp ~/.stabled/config/config.toml ~/.stabled/config/config.toml.backup
 
 # 새 구성 적용
 cp config.toml ~/.stabled/config/config.toml
 
-# 구성에서 모니커 업데이트
+# 구성에서 별명 업데이트
 sed -i "s/^moniker = \".*\"/moniker = \"$MONIKER\"/" ~/.stabled/config/config.toml
 ```
-```bash [테스트넷]
+```bash [Testnet]
 # 최적화된 구성 다운로드
 wget https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/configuration/rpc_node_config.zip
 unzip rpc_node_config.zip
 
-# 원래 구성 백업
+# 원본 구성 백업
 cp ~/.stabled/config/config.toml ~/.stabled/config/config.toml.backup
 
 # 새 구성 적용
 cp config.toml ~/.stabled/config/config.toml
 
-# 구성에서 모니커 업데이트
+# 구성에서 별명 업데이트
 sed -i "s/^moniker = \".*\"/moniker = \"$MONIKER\"/" ~/.stabled/config/config.toml
 ```
 :::
 
 #### 필수 구성 업데이트
 
-`~/.stabled/config/app.toml`을 편집합니다.
+`~/.stabled/config/app.toml` 파일 편집:
 
 ```toml
 # EVM 호환성을 위한 JSON-RPC 활성화
@@ -206,10 +206,10 @@ ws-address = "0.0.0.0:8546"
 allow-unprotected-txs = true
 ```
 
-`~/.stabled/config/config.toml`을 편집합니다.
+`~/.stabled/config/config.toml` 파일 편집:
 
 :::code-group
-```toml [메인넷]
+```toml [Mainnet]
 # P2P 구성
 [p2p]
 # 최대 피어 수
@@ -217,9 +217,9 @@ max_num_inbound_peers = 50
 max_num_outbound_peers = 30
 
 # 시드 노드
-seeds = "c21897d374c480a963edcda941ac94030895f6b4@seed1.stable.xyz:46656"
+seeds = "c21897d374c480a963edcda941ac94030895f6b4@seed1.stable.xyz:26656"
 
-# 영구 피어 (메인넷 시드 노드)
+# 지속적인 피어 (메인넷 시드 노드)
 persistent_peers = "b896f6f8ca5a4d1cc40de09407df0c96e76df950@peer1.stable.xyz:26656"
 
 # 피어 교환 활성화
@@ -230,13 +230,13 @@ pex = true
 # 수신 주소
 laddr = "tcp://0.0.0.0:26657"
 
-# 동시에 열 수 있는 최대 연결 수
+# 동시 연결 최대 수
 max_open_connections = 900
 
-# CORS 설정 (프로덕션에 맞게 조정)
+# CORS 설정 (운영 환경에 맞게 조정)
 cors_allowed_origins = ["*"]
 ```
-```toml [테스트넷]
+```toml [Testnet]
 # P2P 구성
 [p2p]
 # 최대 피어 수
@@ -244,9 +244,9 @@ max_num_inbound_peers = 50
 max_num_outbound_peers = 30
 
 # 시드 노드
-seeds = "8c2ede57b763c2976253f880a27c6f85756e1f1b@seed1.testnet.stable.xyz:56656"
+seeds = "8c2ede57b763c2976253f880a27c6f85756e1f1b@seed1.testnet.stable.xyz:26656"
 
-# 영구 피어 (테스트넷 시드 노드)
+# 지속적인 피어 (테스트넷 시드 노드)
 persistent_peers = "128accd3e8ee379bfdf54560c21345451c7048c7@peer1.testnet.stable.xyz:26656"
 
 # 피어 교환 활성화
@@ -257,10 +257,10 @@ pex = true
 # 수신 주소
 laddr = "tcp://0.0.0.0:26657"
 
-# 동시에 열 수 있는 최대 연결 수
+# 동시 연결 최대 수
 max_open_connections = 900
 
-# CORS 설정 (프로덕션에 맞게 조정)
+# CORS 설정 (운영 환경에 맞게 조정)
 cors_allowed_origins = ["*"]
 ```
 :::
@@ -272,7 +272,7 @@ cors_allowed_origins = ["*"]
 ### 1단계: 서비스 파일 생성
 
 :::code-group
-```bash [메인넷]
+```bash [Mainnet]
 sudo tee /etc/systemd/system/stabled.service > /dev/null <<EOF
 [Unit]
 Description=Stable 데몬 서비스
@@ -292,7 +292,7 @@ SyslogIdentifier=stabled
 WantedBy=multi-user.target
 EOF
 ```
-```bash [테스트넷]
+```bash [Testnet]
 sudo tee /etc/systemd/system/stabled.service > /dev/null <<EOF
 [Unit]
 Description=Stable 데몬 서비스
@@ -317,7 +317,7 @@ EOF
 ### 2단계: 서비스 활성화 및 시작
 
 ```bash
-# systemd 구성 재로드
+# systemd 구성 다시 로드
 sudo systemctl daemon-reload
 
 # 부팅 시 서비스 시작 활성화
@@ -333,14 +333,14 @@ sudo systemctl status stabled
 sudo journalctl -u stabled -f
 ```
 
-## 코스모바이저 설정 (자동 업그레이드에 권장)
+## Cosmovisor 설정 (자동 업그레이드에 권장)
 
-코스모바이저는 체인 업그레이드를 자동으로 처리하는 프로세스 관리자입니다. 이는 프로덕션 노드에 권장되는 설정입니다.
+Cosmovisor는 체인 업그레이드를 자동으로 처리하는 프로세스 관리자입니다. 이는 프로덕션 노드에 권장되는 설정입니다.
 
-### 1단계: 코스모바이저 설치
+### 1단계: Cosmovisor 설치
 
 ```bash
-# 코스모바이저 설치
+# Cosmovisor 설치
 go install cosmossdk.io/tools/cosmovisor/cmd/cosmovisor@latest
 
 # 또는 사전 빌드된 바이너리 다운로드
@@ -355,8 +355,8 @@ cosmovisor version
 ### 2단계: 환경 변수 설정
 
 ```bash
-# ~/.bashrc 또는 ~/.profile에 추가
-echo "# 코스모바이저 구성" >> ~/.bashrc
+# ~/.bashrc 또는 ~/.profile 에 추가
+echo "# Cosmovisor 설정" >> ~/.bashrc
 echo "export DAEMON_NAME=stabled" >> ~/.bashrc
 echo "export DAEMON_HOME=$HOME/.stabled" >> ~/.bashrc
 echo "export DAEMON_ALLOW_DOWNLOAD_BINARIES=true" >> ~/.bashrc
@@ -369,10 +369,10 @@ source ~/.bashrc
 
 ```
 
-### 3단계: 코스모바이저 디렉토리 구조 설정
+### 3단계: Cosmovisor 디렉토리 구조 설정
 
 ```bash
-# 코스모바이저 디렉토리 구조 생성
+# cosmovisor 디렉토리 구조 생성
 mkdir -p ~/.stabled/cosmovisor/genesis/bin
 mkdir -p ~/.stabled/cosmovisor/upgrades
 
@@ -397,7 +397,7 @@ export SERVICE_NAME=stable
 ### 5단계: 서비스 파일 생성
 
 :::code-group
-```bash [메인넷]
+```bash [Mainnet]
 sudo tee /etc/systemd/system/${SERVICE_NAME}.service > /dev/null <<EOF
 [Unit]
 Description=Cosmovisor 데몬
@@ -423,7 +423,7 @@ SyslogIdentifier=${SERVICE_NAME}
 WantedBy=multi-user.target
 EOF
 ```
-```bash [테스트넷]
+```bash [Testnet]
 sudo tee /etc/systemd/system/${SERVICE_NAME}.service > /dev/null <<EOF
 [Unit]
 Description=Cosmovisor 데몬
@@ -454,7 +454,7 @@ EOF
 ### 6단계: 서비스 활성화 및 시작
 
 ```bash
-# systemd 재로드
+# systemd 다시 로드
 sudo systemctl daemon-reload
 
 # 서비스 활성화
@@ -472,7 +472,7 @@ sudo journalctl -u ${SERVICE_NAME} -f
 
 ### 업그레이드 준비
 
-체인 업그레이드 발표 시:
+체인 업그레이드가 발표되면:
 
 ```bash
 # 예시: v0.8.0 업그레이드 준비
@@ -489,10 +489,10 @@ mv stabled ~/.stabled/cosmovisor/upgrades/$UPGRADE_NAME/bin/
 # 바이너리 확인
 ~/.stabled/cosmovisor/upgrades/$UPGRADE_NAME/bin/stabled version
 
-# Cosmovisor는 업그레이드 높이에서 자동으로 이 바이너리로 전환됩니다.
+# Cosmovisor는 업그레이드 높이에서 이 바이너리로 자동 전환됩니다.
 ```
 
-### 코스모바이저 모니터링
+### Cosmovisor 모니터링
 
 ```bash
 # 현재 바이너리 버전 확인
@@ -508,9 +508,9 @@ sudo journalctl -u ${SERVICE_NAME} | grep -i upgrade
 sudo journalctl -u ${SERVICE_NAME} -f
 ```
 
-## Systemd 서비스 수동 설정 (대안)
+## 수동 Systemd 서비스 설정 (대안)
 
-코스모바이저를 사용하지 않으려면 표준 systemd 서비스를 생성할 수 있습니다.
+Cosmovisor를 사용하지 않으려면 표준 systemd 서비스를 만들 수 있습니다.
 
 ### 1단계: 환경 변수 설정
 
@@ -522,7 +522,7 @@ export SERVICE_NAME=stable
 ### 2단계: 서비스 파일 생성
 
 :::code-group
-```bash [메인넷]
+```bash [Mainnet]
 sudo tee /etc/systemd/system/${SERVICE_NAME}.service > /dev/null <<EOF
 [Unit]
 Description=Stable 데몬 서비스
@@ -542,7 +542,7 @@ SyslogIdentifier=${SERVICE_NAME}
 WantedBy=multi-user.target
 EOF
 ```
-```bash [테스트넷]
+```bash [Testnet]
 sudo tee /etc/systemd/system/${SERVICE_NAME}.service > /dev/null <<EOF
 [Unit]
 Description=Stable 데몬 서비스
@@ -567,7 +567,7 @@ EOF
 ### 3단계: 서비스 활성화 및 시작
 
 ```bash
-# systemd 구성 재로드
+# systemd 구성 다시 로드
 sudo systemctl daemon-reload
 
 # 부팅 시 서비스 시작 활성화
@@ -585,9 +585,9 @@ sudo journalctl -u ${SERVICE_NAME} -f
 
 ## 빠른 동기화 옵션
 
-더 빠른 동기화를 위해 [스냅샷 및 동기화 가이드](/ko/how-to/use-node-snapshots)를 참조하십시오.
+더 빠른 동기화를 위해 [스냅샷 및 동기화 가이드](/ko/how-to/use-node-snapshots)를 참조하세요.
 - 아카이브 노드 스냅샷
-- 정리(Pruned) 노드 스냅샷
+- 가지치기된 노드 스냅샷
 
 ## 설치 후 확인
 
@@ -610,7 +610,7 @@ curl -s localhost:26657/status | jq '.result.sync_info.latest_block_height'
 ### 로그 모니터링
 
 ```bash
-# 서비스 로그 따라가기
+# 서비스 로그 팔로우
 sudo journalctl -u stabled -f
 
 # 오류 확인
@@ -643,9 +643,9 @@ sudo ufw enable
 
 ## 문제 해결
 
-설치 중 문제가 발생하면 다음을 수행합니다.
+설치 중 문제가 발생하면:
 - [문제 해결 가이드](/ko/how-to/troubleshoot-node) 확인
 - 시스템 요구 사항이 충족되었는지 확인
 - 방화벽에 의해 포트가 차단되지 않았는지 확인
 - 디스크 공간 및 권한 확인
-- systemd 로그에서 오류 검토
+- 오류에 대한 systemd 로그 검토

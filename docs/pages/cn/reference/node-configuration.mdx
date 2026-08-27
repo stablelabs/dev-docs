@@ -1,22 +1,22 @@
 ---
 source_path: reference/node-configuration.mdx
-source_sha: 49a919754b40175fac45e1d6a2c5986a555e7dab
+source_sha: 918f3b94c5f334a9db5764a9f5cb0b85bb619fa9
 title: 节点配置指南
-description: "Stable 验证器节点和全节点的 config.toml 和 app.toml 配置设置参考。"
+description: "Stable 验证器和全节点 config.toml 和 app.toml 配置的参考指南。"
 diataxis: "reference"
 tag: "new"
 ---
 
-本指南涵盖 Stable 节点的所有配置选项，包括针对不同用例的优化。
+本指南涵盖了 Stable 节点的所有配置选项，包括针对不同用例的优化。
 
 ## 配置文件概述
 
 Stable 节点使用两个主要的配置文件：
 
-- **`config.toml`**: 核心 StableBFT 配置
-- **`app.toml`**: 应用程序特定配置
+- **`config.toml`**：核心 StableBFT 配置
+- **`app.toml`**：应用程序特定配置
 
-这两个文件都位于 `~/.stabled/config/`
+这两个文件都位于 `~/.stabled/config/`。
 
 ## 核心配置 (config.toml)
 
@@ -24,7 +24,7 @@ Stable 节点使用两个主要的配置文件：
 
 :::code-group
 ```toml [Mainnet]
-# 要加入的链 ID
+# 要加入的链的 ID
 chain_id = "stable_988-1"
 
 # 此节点的自定义可读名称
@@ -34,7 +34,7 @@ moniker = "your-node-name"
 db_backend = "goleveldb"
 ```
 ```toml [Testnet]
-# 要加入的链 ID
+# 要加入的链的 ID
 chain_id = "stabletestnet_2201-1"
 
 # 此节点的自定义可读名称
@@ -56,10 +56,10 @@ laddr = "tcp://0.0.0.0:26656"
 # 向对等节点广播的地址，以便它们拨号
 external_address = "YOUR_PUBLIC_IP:26656"
 
-# 种子节点列表，逗号分隔
-seeds = "c21897d374c480a963edcda941ac94030895f6b4@seed1.stable.xyz:46656"
+# 种子节点的逗号分隔列表
+seeds = "c21897d374c480a963edcda941ac94030895f6b4@seed1.stable.xyz:26656"
 
-# 持久对等节点列表，逗号分隔
+# 持久对等节点的逗号分隔列表
 persistent_peers = "b896f6f8ca5a4d1cc40de09407df0c96e76df950@peer1.stable.xyz:26656"
 ```
 ```toml [Testnet]
@@ -70,15 +70,15 @@ laddr = "tcp://0.0.0.0:26656"
 # 向对等节点广播的地址，以便它们拨号
 external_address = "YOUR_PUBLIC_IP:26656"
 
-# 种子节点列表，逗号分隔
-seeds = "8c2ede57b763c2976253f880a27c6f85756e1f1b@seed1.testnet.stable.xyz:56656"
+# 种子节点的逗号分隔列表
+seeds = "8c2ede57b763c2976253f880a27c6f85756e1f1b@seed1.testnet.stable.xyz:26656"
 
-# 持久对等节点列表，逗号分隔
+# 持久对等节点的逗号分隔列表
 persistent_peers = "5ed0f977a26ccf290e184e364fb04e268ef16430@peer1.testnet.stable.xyz:26656"
 ```
 :::
 
-附加 P2P 设置（两个网络相同）：
+额外的 P2P 设置（两个网络相同）：
 
 ```toml
 # 入站对等节点的最大数量
@@ -87,7 +87,7 @@ max_num_inbound_peers = 50
 # 出站对等节点的最大数量
 max_num_outbound_peers = 30
 
-# 切换以禁用防止对等节点从相同 IP 连接的保护
+# 禁用防止对等节点从同一 IP 连接的保护的开关
 allow_duplicate_ip = false
 
 # 对等节点连接配置
@@ -97,7 +97,7 @@ dial_timeout = "3s"
 # 在连接上刷新消息之前的等待时间
 flush_throttle_timeout = "100ms"
 
-# 消息包载荷的最大大小
+# 消息包有效负载的最大大小
 max_packet_msg_payload_size = 1024
 
 # 速率限制
@@ -121,31 +121,31 @@ laddr = "tcp://127.0.0.1:26657"
 # 允许执行跨域请求的来源列表
 cors_allowed_origins = ["*"]
 
-# 客户端允许与跨域请求一起使用的方法列表
+# 客户端允许用于跨域请求的方法列表
 cors_allowed_methods = ["HEAD", "GET", "POST"]
 
-# 客户端允许与跨域请求一起使用的非简单头列表
+# 客户端允许用于跨域请求的非简单头列表
 cors_allowed_headers = ["Origin", "Accept", "Content-Type", "X-Requested-With", "X-Server-Time"]
 
 # gRPC 服务器的 TCP 或 UNIX 套接字地址
 grpc_laddr = "tcp://127.0.0.1:9090"
 
-# 同时连接的最大数量
+# 最大并发连接数
 grpc_max_open_connections = 900
 
 # 激活不安全的 RPC 命令，如 /dial_seeds 和 /unsafe_flush_mempool
 unsafe = false
 
-# 同时连接的最大数量（包括 WebSocket）
+# 最大并发连接数（包括 WebSocket）
 max_open_connections = 900
 
-# 可以连接的唯一 clientID 的最大数量
+# 可连接的唯一客户端 ID 的最大数量
 max_subscription_clients = 100
 
-# 给定客户端可以订阅的唯一查询的最大数量
+# 给定客户端可订阅的唯一查询的最大数量
 max_subscriptions_per_client = 5
 
-# 等待 tx 提交的时间
+# 等待 tx 提交的超时时间
 timeout_broadcast_tx_commit = "10s"
 
 # 请求正文的最大大小
@@ -155,11 +155,11 @@ max_body_bytes = 1000000
 max_header_bytes = 1048576
 ```
 
-### 内存池配置
+### Mempool 配置
 
 ```toml
 [mempool]
-# 要使用的内存池版本
+# 要使用的 Mempool 版本
 version = "v1"
 
 # 重新检查已启用
@@ -168,10 +168,10 @@ recheck = true
 # 广播已启用
 broadcast = true
 
-# 内存池中的最大交易数量
+# Mempool 中的最大交易数量
 size = 3000
 
-# 限制内存池中所有 tx 的总大小
+# 限制 Mempool 中所有 tx 的总大小
 max_txs_bytes = 1073741824  # 1GB
 
 # 缓存大小
@@ -180,10 +180,10 @@ cache_size = 10000
 # 不要从缓存中删除无效交易
 keep-invalid-txs-in-cache = false
 
-# 单笔交易的最大大小
+# 单个交易的最大大小
 max_tx_bytes = 1048576  # 1MB
 
-# 发送给对等节点的交易批次的最大大小
+# 发送给对等节点的一批交易的最大大小
 max_batch_bytes = 0
 ```
 
@@ -191,7 +191,7 @@ max_batch_bytes = 0
 
 ```toml
 [consensus]
-# 在预投票空之前，我们等待提议区块的时间
+# 在预投票 nil 之前，我们等待提议块的时间
 timeout_propose = "5s"
 
 # 每个回合 timeout_propose 增加的量
@@ -209,17 +209,17 @@ timeout_precommit = "150s"
 # 每个回合 timeout_precommit 增加的量
 timeout_precommit_delta = "10ms"
 
-# 一旦我们收到所有预提交，就立即取得进展
+# 一旦我们完成所有预提交，立即进行
 skip_timeout_commit = false
 
 # 启用/禁用双重签名检查
 double_sign_check_height = 2
 
-# 空区块模式
+# EmptyBlocks 模式
 create_empty_blocks = true
 create_empty_blocks_interval = "0s"
 
-# Reactor 睡眠时长
+# Reactor 睡眠持续时间
 peer_gossip_sleep_duration = "100ms"
 peer_query_maj23_sleep_duration = "2s"
 ```
@@ -232,23 +232,23 @@ peer_query_maj23_sleep_duration = "2s"
 # 修剪策略
 pruning = "default"
 
-# HaltHeight 包含一个非零区块高度，在该高度节点将停止
+# HaltHeight 包含节点将停止的非零块高度
 halt-height = 0
 
-# HaltTime 包含一个非零时间，在该时间节点将停止
+# HaltTime 包含节点将停止的非零时间
 halt-time = 0
 
-# MinRetainBlocks 定义了节点将保留的区块数量
+# MinRetainBlocks 定义了节点将保留的块数量
 min-retain-blocks = 0
 
-# InterBlockCache 启用区块间缓存
+# InterBlockCache 启用块间缓存
 inter-block-cache = true
 
-# IndexEvents 定义了以 {eventType}.{attributeKey} 形式的事件集
+# IndexEvents 定义了 {eventType}.{attributeKey} 形式的事件集
 index-events = []
 
 # IavlCacheSize 设置 iavl 树缓存的大小
-iavl-cache-size = 781250
+iavl-cache_size = 781250
 ```
 
 ### API 配置
@@ -264,7 +264,7 @@ swagger = true
 # Address 定义 API 服务器监听的地址
 address = "tcp://0.0.0.0:1317"
 
-# MaxOpenConnections 定义最大打开连接数
+# MaxOpenConnections 定义最大开放连接数
 max-open-connections = 1000
 
 # EnabledUnsafeCORS 定义是否应启用 CORS
@@ -296,10 +296,10 @@ address = "0.0.0.0:8545"
 # 绑定 WebSocket 服务器的地址
 ws-address = "0.0.0.0:8546"
 
-# 启用的 API
+# 要启用的 API
 api = "eth,net,web3,txpool,personal,debug"
 
-# eth_call/estimateGas 的 gas 上限
+# eth_call/estimateGas 的 Gas 上限
 gas-cap = 25000000
 
 # eth_call/estimateGas 的 EVM 超时
@@ -308,16 +308,16 @@ evm-timeout = "5s"
 # 交易的 Tx 费用上限
 txfee-cap = 1
 
-# eth_getLogs 的过滤器上限
+# eth_getLogs 的过滤上限
 filter-cap = 200
 
 # FeeHistory 上限
 feehistory-cap = 100
 
-# eth_getLogs 的区块范围上限
+# eth_getLogs 的块范围上限
 logs-cap = 10000
 
-# 区块范围上限
+# 块范围上限
 block-range-cap = 10000
 
 # HTTP 超时
@@ -329,7 +329,7 @@ http-idle-timeout = "120s"
 # 允许未受保护的交易
 allow-unprotected-txs = true
 
-# 内存池中交易的最大数量
+# 池中交易的最大数量
 max-tx-in-pool = 3000
 
 # 启用索引器
@@ -358,7 +358,7 @@ sed -i 's/^snapshot-interval = .*/snapshot-interval = 1000/' ~/.stabled/config/a
 
 ### 归档节点
 
-不修剪，完整历史记录：
+不修剪，完整历史：
 
 ```bash
 # config.toml 调整
@@ -402,7 +402,7 @@ prometheus_listen_addr = ":26660"
 namespace = "stablebft"
 ```
 
-### 日志记录
+### 日志
 
 ```toml
 # config.toml
@@ -422,14 +422,14 @@ format = "plain"
 # 重启节点
 sudo systemctl restart ${SERVICE_NAME}
 
-# 检查日志中的错误
+# 检查日志是否有错误
 sudo journalctl -u ${SERVICE_NAME} -f
 
-# 验证加载的配置
+# 验证配置是否加载
 curl localhost:26657/status | jq '.result.node_info'
 ```
 
 ## 后续步骤
 
 - 为您的节点[设置监控](/cn/how-to/monitor-node)
-- 查看[故障排除指南](/cn/how-to/troubleshoot-node)以解决常见问题
+- 查看常见问题的[故障排除指南](/cn/how-to/troubleshoot-node)

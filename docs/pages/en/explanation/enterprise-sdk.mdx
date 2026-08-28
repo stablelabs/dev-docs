@@ -9,11 +9,11 @@ diataxis: "explanation"
 `@stablechain/enterprise` is a server-side TypeScript client for Stable's enterprise transaction rails. It signs and relays two kinds of privileged transactions: gas-waived transactions, where you sponsor a user's gas, and guaranteed-blockspace transactions, which land in a reserved Enterprise lane. You can enable either rail, or both, on one client.
 
 ```ts
-import { createStableEnterprise, stableTestnet } from "@stablechain/enterprise";
+import { createStableEnterprise, stable } from "@stablechain/enterprise";
 import { privateKeyToAccount } from "viem/accounts";
 
 const enterprise = createStableEnterprise({
-  chain: stableTestnet,
+  chain: stable,
   gasWaiver: { account: privateKeyToAccount("0xYOUR_WAIVER_KEY") },
 });
 
@@ -36,11 +36,11 @@ The SDK exposes three features, one per module. Each is optional and independent
 
 Every feature offers the same four methods: `send` and `sendBatch` for the custodial path where the SDK signs, and `relay` and `relayBatch` for the non-custodial path where the user signs elsewhere and hands you only the signed hex.
 
-The SDK is published on npm as [`@stablechain/enterprise`](https://www.npmjs.com/package/@stablechain/enterprise) and requires `viem >= 2.0.0` as a peer dependency.
+The SDK is published on npm as [`@stablechain/enterprise`](https://www.npmjs.com/package/@stablechain/enterprise), currently at version 1.0.0, and requires `viem >= 2.0.0` as a peer dependency.
 
 ## Access
 
-The Enterprise SDK is currently available on Stable Testnet only.
+The Enterprise SDK is available on Stable Mainnet and Stable Testnet. Pass `stable` for mainnet or `stableTestnet` for testnet as the client's `chain`; both are re-exported by the package.
 
 Both rails are gated. Gas waiver requires a governance-registered waiver key, and guaranteed blockspace requires an Enterprise RPC gateway API key. To integrate, [contact Stable](https://discord.gg/stablexyz) to get access. Stable provisions the waiver key and the gateway endpoint you need.
 
@@ -68,4 +68,4 @@ Reach for the Enterprise SDK when you operate a backend and want to sponsor user
 - [**Install from npm**](https://www.npmjs.com/package/@stablechain/enterprise): View the package on npmjs.com and check the latest version.
 - [**Gas waiver protocol**](/en/reference/gas-waiver-api): Transaction formats, marker routing, and governance controls.
 - [**Stable SDK**](/en/explanation/sdk-overview): The general-purpose client for transfers, bridging, swaps, and yield.
-- [**Connect to Stable**](/en/reference/connect): Chain IDs, RPC endpoints, and explorers for testnet.
+- [**Connect to Stable**](/en/reference/connect): Chain IDs, RPC endpoints, and explorers for mainnet and testnet.

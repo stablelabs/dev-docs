@@ -13,7 +13,7 @@ You can combine this with gas waiver to get [guaranteed relayed transactions](/e
 ## Prerequisites
 
 - Node.js 20 or later, and `@stablechain/enterprise` plus `viem` installed. See the [Enterprise SDK reference](/en/reference/enterprise-sdk#install).
-- An Enterprise RPC gateway API key. The Enterprise SDK is testnet only for now, and access is gated: [contact Stable](https://discord.gg/stablexyz) to get a gateway endpoint.
+- An Enterprise RPC gateway API key. The Enterprise SDK runs on Stable Mainnet and Stable Testnet, and access is gated: [contact Stable](https://discord.gg/stablexyz) to get a gateway endpoint.
 - A funded signer, since a GuaranteedTx pays its own gas.
 
 :::warning
@@ -25,11 +25,11 @@ This is a server-side library. Keep the Enterprise RPC gateway URL on your backe
 Pass `guaranteedBlock` and `enterpriseRpcEndpoints` to `createStableEnterprise`. The gateway is the only endpoint that admits `0x3F` GuaranteedTxs, and it holds your API key. An invalid `laneId` is rejected up front.
 
 ```ts
-import { createStableEnterprise, stableTestnet } from "@stablechain/enterprise";
+import { createStableEnterprise, stable } from "@stablechain/enterprise";
 import { privateKeyToAccount } from "viem/accounts";
 
 const enterprise = createStableEnterprise({
-  chain: stableTestnet,
+  chain: stable,
   enterpriseRpcEndpoints: [process.env.ENTERPRISE_RPC_URL], // the gateway URL Stable provisions
   guaranteedBlock: {
     account: privateKeyToAccount(process.env.SIGNER_PRIVATE_KEY as `0x${string}`), // must be funded
@@ -51,7 +51,7 @@ Call `send` with the signer and the varying fields. The 1559 fee fields are requ
 ```ts
 import { createPublicClient, http } from "viem";
 
-const publicClient = createPublicClient({ chain: stableTestnet, transport: http() });
+const publicClient = createPublicClient({ chain: stable, transport: http() });
 const gasPrice = await publicClient.getGasPrice();
 
 const { txHash } = await gb.send(signer, {
@@ -98,7 +98,7 @@ For a non-custodial flow, build and sign the GuaranteedTx elsewhere with `buildG
 ```ts
 import { buildGuaranteedTx, nonceKeyForLane, toSigner } from "@stablechain/enterprise";
 
-const signed = await buildGuaranteedTx(toSigner(signer), stableTestnet.id, {
+const signed = await buildGuaranteedTx(toSigner(signer), stable.id, {
   to: recipient,
   gas: 21_000n,
   gasFeeCap,

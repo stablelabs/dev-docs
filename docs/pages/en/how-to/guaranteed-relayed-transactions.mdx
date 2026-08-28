@@ -13,7 +13,7 @@ The `guaranteedWaiver` module handles both sides. The user signs an inner `0x3F`
 ## Prerequisites
 
 - Node.js 20 or later, and `@stablechain/enterprise` plus `viem` installed. See the [Enterprise SDK reference](/en/reference/enterprise-sdk#install).
-- A governance-registered waiver key and an Enterprise RPC gateway API key. The Enterprise SDK is testnet only for now, and access is on request: [contact Stable](https://discord.gg/stablexyz) to get both.
+- A governance-registered waiver key and an Enterprise RPC gateway API key. The Enterprise SDK runs on Stable Mainnet and Stable Testnet, and access is on request: [contact Stable](https://discord.gg/stablexyz) to get both.
 
 :::warning
 This is a server-side library. Keep the waiver key and the Enterprise RPC gateway URL on your backend: the gateway URL embeds your API key.
@@ -24,11 +24,11 @@ This is a server-side library. Keep the waiver key and the Enterprise RPC gatewa
 Pass `guaranteedWaiver` and `enterpriseRpcEndpoints` to `createStableEnterprise`. The module takes the whitelisted waiver key (which signs the outer wrapper) plus the Enterprise lane. It also accepts the same `allowedTargets`, `maxGasLimit`, and `maxDataLength` policy limits as `gasWaiver`.
 
 ```ts
-import { createStableEnterprise, stableTestnet } from "@stablechain/enterprise";
+import { createStableEnterprise, stable } from "@stablechain/enterprise";
 import { privateKeyToAccount } from "viem/accounts";
 
 const enterprise = createStableEnterprise({
-  chain: stableTestnet,
+  chain: stable,
   enterpriseRpcEndpoints: [process.env.ENTERPRISE_RPC_URL], // the gateway URL Stable provisions
   guaranteedWaiver: {
     account: privateKeyToAccount(process.env.WAIVER_PRIVATE_KEY as `0x${string}`),
@@ -89,7 +89,7 @@ For a non-custodial flow, the user signs the inner `0x3F` CustomTx in their own 
 import { buildGuaranteedTx, nonceKeyForLane, toSigner } from "@stablechain/enterprise";
 
 // on the user's side — buildGuaranteedTx signs through a Signer; toSigner adapts a viem account
-const signedInner = await buildGuaranteedTx(toSigner(user), stableTestnet.id, {
+const signedInner = await buildGuaranteedTx(toSigner(user), stable.id, {
   to: recipient,
   gas: 100_000n,
   gasFeeCap: 0n, // waived

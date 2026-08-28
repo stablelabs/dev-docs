@@ -9,7 +9,7 @@ diataxis: "reference"
 Full surface of `@stablechain/enterprise`. This covers the client from [`createStableEnterprise`](#createstableenterpriseconfig), its three features ([relay with gas waiver](#relay-with-gas-waiver), [guaranteed blockspace](#guaranteed-blockspace), and [guaranteed relay transactions](#guaranteed-relay-transactions)), the low-level build helpers, and the shared result and error types. For what these rails are, see [Stable Enterprise SDK](/en/explanation/enterprise-sdk), [Gas waiver](/en/explanation/gas-waiver), and [Guaranteed blockspace](/en/explanation/guaranteed-blockspace).
 
 :::note
-The Enterprise SDK is available on Stable Testnet only for now, and access is on request. To integrate, [contact Stable](https://discord.gg/stablexyz) to get a governance-registered waiver key and an Enterprise RPC gateway API key.
+The Enterprise SDK is available on Stable Mainnet and Stable Testnet, and access is on request. To integrate, [contact Stable](https://discord.gg/stablexyz) to get a governance-registered waiver key and an Enterprise RPC gateway API key.
 :::
 
 :::warning
@@ -28,16 +28,20 @@ added 2 packages, audited 3 packages in 2s
 
 `viem >= 2.0.0` is a peer dependency. The package is published as [`@stablechain/enterprise`](https://www.npmjs.com/package/@stablechain/enterprise) and re-exports `stable` and `stableTestnet` from `viem/chains`, so you don't import them separately.
 
+:::note
+The current release is version 1.0.0. Run `npm ls @stablechain/enterprise` to check what you have.
+:::
+
 ## `createStableEnterprise(config)`
 
 Construct a `StableEnterpriseClient`. Each module is present only when you configure it, so null-check it before use.
 
 ```ts
-import { createStableEnterprise, stableTestnet } from "@stablechain/enterprise";
+import { createStableEnterprise, stable } from "@stablechain/enterprise";
 import { privateKeyToAccount } from "viem/accounts";
 
 const enterprise = createStableEnterprise({
-  chain: stableTestnet,
+  chain: stable,
   gasWaiver: { account: privateKeyToAccount("0xYOUR_WAIVER_KEY") },
 });
 ```
@@ -70,14 +74,14 @@ npm install @aws-sdk/client-kms
 ```
 
 ```ts
-import { createStableEnterprise, stableTestnet } from "@stablechain/enterprise";
+import { createStableEnterprise, stable } from "@stablechain/enterprise";
 import { awsKmsSigner } from "@stablechain/enterprise/aws-kms";
 
 // the KMS key must be ECC_SECG_P256K1 (secp256k1); the SDK derives the address from it
 const signer = await awsKmsSigner({ keyId: process.env.AWS_KMS_KEY_ID });
 
 const enterprise = createStableEnterprise({
-  chain: stableTestnet,
+  chain: stable,
   gasWaiver: { signer }, // custody-grade waiver key, in place of `account`
 });
 ```
@@ -102,7 +106,7 @@ Enable it with `gasWaiver` in the config:
 
 ```ts
 const enterprise = createStableEnterprise({
-  chain: stableTestnet,
+  chain: stable,
   gasWaiver: {
     account: privateKeyToAccount("0xYOUR_WAIVER_KEY"),
     // optional per-partner policy limits
@@ -164,7 +168,7 @@ Relay a pre-signed zero-gas InnerTx. Use this for the non-custodial flow where t
 ```ts
 import { buildWaiverInnerTx, toSigner } from "@stablechain/enterprise";
 
-const signed = await buildWaiverInnerTx(toSigner(user), stableTestnet.id, { to, data, gas: 150_000n, nonce });
+const signed = await buildWaiverInnerTx(toSigner(user), stable.id, { to, data, gas: 150_000n, nonce });
 const { txHash } = await gw.relay(signed);
 ```
 
@@ -192,7 +196,7 @@ Enable it with `guaranteedBlock` plus `enterpriseRpcEndpoints`:
 
 ```ts
 const enterprise = createStableEnterprise({
-  chain: stableTestnet,
+  chain: stable,
   enterpriseRpcEndpoints: [process.env.ENTERPRISE_RPC_URL], // the gateway URL Stable provisions
   guaranteedBlock: {
     account: privateKeyToAccount("0xFUNDED_SIGNER_KEY"),
@@ -255,7 +259,7 @@ Relay a pre-signed GuaranteedTx, or a batch of them. Build and sign the transact
 ```ts
 import { buildGuaranteedTx, nonceKeyForLane, toSigner } from "@stablechain/enterprise";
 
-const signed = await buildGuaranteedTx(toSigner(signer), stableTestnet.id, {
+const signed = await buildGuaranteedTx(toSigner(signer), stable.id, {
   to,
   gas: 21_000n,
   gasFeeCap,
@@ -278,7 +282,7 @@ Enable it with `guaranteedWaiver` plus `enterpriseRpcEndpoints`:
 
 ```ts
 const enterprise = createStableEnterprise({
-  chain: stableTestnet,
+  chain: stable,
   enterpriseRpcEndpoints: [process.env.ENTERPRISE_RPC_URL], // the gateway URL Stable provisions
   guaranteedWaiver: {
     account: privateKeyToAccount("0xYOUR_WAIVER_KEY"),
@@ -324,7 +328,7 @@ For the non-custodial flow, the user signs the inner `0x3F` CustomTx with [`buil
 ```ts
 import { buildGuaranteedTx, nonceKeyForLane, toSigner } from "@stablechain/enterprise";
 
-const signedInner = await buildGuaranteedTx(toSigner(user), stableTestnet.id, {
+const signedInner = await buildGuaranteedTx(toSigner(user), stable.id, {
   to,
   gas: 100_000n,
   gasFeeCap: 0n, // waived
@@ -348,7 +352,7 @@ Low-level signers for the non-custodial `relay` paths. Each returns a signed tra
 Sign a waiver-ready InnerTx with the waiver invariants baked in: `gasPrice: 0`, legacy type, and the given `chainId`. `req` is a [`WaiverInnerTx`](#waiverinnertx) plus a required `nonce`.
 
 ```ts
-const signed = await buildWaiverInnerTx(toSigner(user), stableTestnet.id, { to, data, gas: 150_000n, nonce });
+const signed = await buildWaiverInnerTx(toSigner(user), stable.id, { to, data, gas: 150_000n, nonce });
 ```
 
 ### `buildGuaranteedTx(signer, chainId, req)`

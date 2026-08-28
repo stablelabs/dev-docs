@@ -13,7 +13,7 @@ Every method returns `H_inner`, the hash of the user's transaction, not the wrap
 ## Prerequisites
 
 - Node.js 20 or later, and `@stablechain/enterprise` plus `viem` installed. See the [Enterprise SDK reference](/en/reference/enterprise-sdk#install).
-- A governance-registered waiver key. The Enterprise SDK is testnet only for now, and access is gated: [contact Stable](https://discord.gg/stablexyz) to get a whitelisted waiver key.
+- A governance-registered waiver key. The Enterprise SDK runs on Stable Mainnet and Stable Testnet, and access is gated: [contact Stable](https://discord.gg/stablexyz) to get a whitelisted waiver key.
 
 :::warning
 This is a server-side library that signs with private keys. Never run it in a browser. Keep the waiver key on your backend.
@@ -24,11 +24,11 @@ This is a server-side library that signs with private keys. Never run it in a br
 Pass `gasWaiver: { account }` to `createStableEnterprise`, where `account` is your whitelisted waiver key. The module is present on the client only when you configure it.
 
 ```ts
-import { createStableEnterprise, stableTestnet } from "@stablechain/enterprise";
+import { createStableEnterprise, stable } from "@stablechain/enterprise";
 import { privateKeyToAccount } from "viem/accounts";
 
 const enterprise = createStableEnterprise({
-  chain: stableTestnet,
+  chain: stable,
   gasWaiver: { account: privateKeyToAccount(process.env.WAIVER_PRIVATE_KEY as `0x${string}`) },
 });
 
@@ -90,7 +90,7 @@ Restrict what the waiver key may sponsor by adding policy limits to the config. 
 
 ```ts
 const enterprise = createStableEnterprise({
-  chain: stableTestnet,
+  chain: stable,
   gasWaiver: {
     account: privateKeyToAccount(process.env.WAIVER_PRIVATE_KEY as `0x${string}`),
     maxGasLimit: 500_000n,
@@ -112,7 +112,7 @@ For a non-custodial flow, the user signs the InnerTx in their own environment an
 import { buildWaiverInnerTx, toSigner } from "@stablechain/enterprise";
 
 // on the user's side — buildWaiverInnerTx signs through a Signer; toSigner adapts a viem account
-const signed = await buildWaiverInnerTx(toSigner(user), stableTestnet.id, { to: token, data, gas: 150_000n, nonce });
+const signed = await buildWaiverInnerTx(toSigner(user), stable.id, { to: token, data, gas: 150_000n, nonce });
 
 // on your backend
 const { txHash } = await gw.relay(signed);

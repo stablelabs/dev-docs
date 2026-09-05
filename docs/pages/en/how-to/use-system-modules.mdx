@@ -1,14 +1,12 @@
 ---
 title: "Use system modules"
-description: "Call Stable's Bank, Distribution, and Staking precompiles from Solidity and ethers.js with minimal ABIs and working examples."
+description: "Call Stable's protocol precompiles from Solidity and ethers.js with minimal ABIs and working examples."
 diataxis: "how-to"
 ---
 
 # Use system modules
 
-Stable exposes protocol-level settlement logic through **precompiled contracts** at fixed addresses. The precompiles let EVM code call Stable SDK modules (staking, reward distribution, STABLE token operations) without re-implementing them. They're significantly more gas efficient than equivalent Solidity implementations because they run at the protocol level.
-
-This guide shows how to call a precompile from both Solidity and ethers.js, and when to use one over a regular contract.
+Stable exposes protocol-level logic through **precompiled contracts** at fixed addresses. You can call these precompiles from Solidity or ethers.js instead of reimplementing Stable SDK behavior in application contracts.
 
 :::note
 **Concept**: For what system modules do and why they're precompiles, see [System modules](/en/explanation/system-modules-overview). For per-module method signatures and events, see the [System modules reference](/en/reference/system-modules-api-overview).
@@ -23,9 +21,9 @@ This guide shows how to call a precompile from both Solidity and ethers.js, and 
 | Staking | `0x0000000000000000000000000000000000000800` | Delegation, undelegation, redelegation, validator queries |
 | Gov | `0x0000000000000000000000000000000000000805` | Proposals, tally results, and on-chain vote records |
 | Slashing | `0x0000000000000000000000000000000000000806` | Validator signing info and uptime |
-| StableSystem | `0x0000000000000000000000000000000000009999` | EVM event emission for system transactions (unbonding completions) |
+| StableSystem | `0x0000000000000000000000000000000000009999` | Guaranteed blockspace lane queries and EVM event emission for system transactions |
 
-All of these are callable from any EVM contract or off-chain client. The addresses are stable and identical on mainnet and testnet.
+Read methods are callable from any EVM contract or off-chain client. Some state-changing methods enforce caller authorization, and `notifySystemTxLogs()` accepts only protocol-generated system transactions. The addresses are identical on Mainnet and Testnet.
 
 ## When to call a precompile vs a regular contract
 
@@ -39,6 +37,7 @@ Precompiles are not a replacement for application contracts. They're a stable in
 Declare an interface for the methods you need, then call the precompile as if it were a deployed contract.
 
 ```solidity
+// SAFE: the precompile address is fixed on Stable.
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
@@ -86,10 +85,6 @@ contract StakingHelper {
 ```
 
 Compile and deploy with Foundry or Hardhat. The precompile address is burned into the contract at the constant slot, so there's nothing to wire up post-deployment.
-
-```solidity
-// SAFE: precompile address is fixed on Stable and never changes.
-```
 
 ## Call from ethers.js
 
@@ -146,13 +141,14 @@ const STABLE_SYSTEM = "0x0000000000000000000000000000000000009999";
 const stableSystem = new ethers.Contract(
   STABLE_SYSTEM,
   [
-    "event UnbondingCompleted(address indexed delegator, address indexed validator, uint256 amount)",
+    "event UnbondingCompleted(address indexed delegator, address indexed validator, uint64 indexed originBlockHeight, uint256 amount)",
   ],
   provider
 );
 
-stableSystem.on("UnbondingCompleted", (delegator, validator, amount, event) => {
+stableSystem.on("UnbondingCompleted", (delegator, validator, originBlockHeight, amount, event) => {
   console.log("Unbonding completed for:", delegator);
+  console.log("Origin block:", originBlockHeight.toString());
   console.log("Amount:", ethers.formatEther(amount), "STABLE");
   console.log("Tx:", event.log.transactionHash);
 });
@@ -167,6 +163,7 @@ npx tsx watchUnbonding.ts
 ```text
 Listening for UnbondingCompleted events...
 Unbonding completed for: 0xabcd...
+Origin block: 36975999
 Amount: 100.0 STABLE
 Tx: 0x12ab...
 ```
@@ -182,7 +179,7 @@ Each precompile's full method list, events, and authorization rules live in its 
 - [Staking precompile](/en/reference/staking-module-api): delegate, undelegate, redelegate, validator queries.
 - [System transactions](/en/reference/system-transactions-api): StableSystem event format and authorization.
 
-## Next recommended
+## Where to go next
 
 - [**Track unbonding completions**](/en/how-to/track-unbonding): Subscribe to the UnbondingCompleted event emitted via the StableSystem precompile.
 - [**System modules reference**](/en/reference/system-modules-api-overview): Jump to the per-module ABI, method signatures, and event schemas.

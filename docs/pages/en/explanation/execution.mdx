@@ -6,6 +6,8 @@ diataxis: "explanation"
 
 # Execution
 
+Stable executes EVM transactions concurrently with Block-STM while preserving a deterministic final state. Precompiles connect that execution layer to Stable SDK modules.
+
 ## Stable EVM
 
 <img
@@ -18,11 +20,11 @@ diataxis: "explanation"
 
 To bridge the gap between the Stable EVM and the Stable SDK, Stable EVM introduces a set of **precompiles**. These precompiles expose native Stable SDK module functionality to EVM smart contracts, enabling them to call into the core chain logic securely and atomically. Smart contracts can then perform privileged operations such as token transfers, staking, or governance participation.
 
-## Optimistic parallel execution in v1.4.0
+## Optimistic parallel execution in v1.8.0
 
 Historically, blockchain systems have relied on sequential execution, where each transaction is processed one after another to ensure deterministic state across all nodes. While this design guarantees consistency, it severely limits throughput and scalability, especially as modern blockchains aim to support tens of thousands of transactions per second.
 
-Stable v1.4.0 introduces **Optimistic Parallel Execution (OPE)** through Block-STM. Transactions execute concurrently across CPU cores, while a fixed in-block order keeps the final state deterministic.
+Stable v1.8.0 runs **Optimistic Parallel Execution (OPE)** through Block-STM. Transactions execute concurrently across CPU cores, while a fixed in-block order keeps the final state deterministic.
 
 ### How Block-STM works
 
@@ -89,7 +91,7 @@ OPE reduces execution time by using multiple CPU cores. OBP avoids executing the
 
 After a block commits, CometBFT normally rechecks every transaction still waiting in the mempool. This repeated work can consume 31–34% of a node's CPU.
 
-Stable v1.4.0 adds **Selective RecheckTx**. The application returns the block's state-change delta, and the node rechecks only transactions from affected accounts. CometBFT detects application support and falls back to a full recheck when selective recheck is unavailable.
+Stable v1.8.0 includes **Selective RecheckTx**. The application returns the block's state-change delta, and the node rechecks only transactions from affected accounts. CometBFT detects application support and falls back to a full recheck when selective recheck is unavailable.
 
 In a best-case benchmark with 10,000 pending transactions from unique senders, throughput increased from 700 to 1,400 TPS. More typical workloads project a 1.5–1.7 times improvement.
 
@@ -106,4 +108,4 @@ Stable is currently exploring alternative EVM implementations to boost execution
 - [**Storage (StableDB)**](/en/explanation/stable-db): See how decoupled state commitment feeds execution without blocking on disk I/O.
 - [**High performance RPC**](/en/explanation/high-performance-rpc): Understand the split-path RPC that surfaces execution results to clients.
 - [**Ethereum compatibility**](/en/explanation/ethereum-compatibility): Port existing contracts using standard EVM tooling against Stable.
-- [**Network upgrades**](/en/reference/network-upgrades): Review the complete v1.4.0 release scope and rollout notes.
+- [**Network upgrades**](/en/reference/network-upgrades): Review the v1.8.0 release scope and activation details.

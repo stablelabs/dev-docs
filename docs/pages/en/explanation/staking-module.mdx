@@ -1,6 +1,6 @@
 ---
 title: "Staking module"
-description: "The staking precompile exposes delegation, undelegation, and validator management to EVM contracts, with authorization checks that enforce caller identity."
+description: "Understand how EVM contracts delegate, undelegate, and manage validators through Stable's staking precompile."
 diataxis: "explanation"
 ---
 
@@ -33,13 +33,13 @@ When an unbonding period finishes, the tokens become liquid, but the SDK handles
 
 - A staking protocol manages delegation from a vault contract: call `delegate` and `undelegate` as users deposit and withdraw.
 - A governance dashboard needs a live validator set: use the query methods.
-- A restaking or liquid-staking product tracks unbonding completions: subscribe to the `UnbondingCompleted` event (see [Tracking unbonding completions](/en/how-to/track-unbonding) once that guide ships).
+- A restaking or liquid-staking product tracks unbonding completions: subscribe to the `UnbondingCompleted` event with [Tracking unbonding completions](/en/how-to/track-unbonding).
 
 ## Where to find the ABI
 
 Full method signatures, struct definitions, and emitted events are in the [Staking precompile reference](/en/reference/staking-module-api).
 
-## Next recommended
+## Where to go next
 
 - [**Staking precompile reference**](/en/reference/staking-module-api): Call `delegate`, `undelegate`, `redelegate`, and read validator state.
 - [**System transactions**](/en/explanation/system-transactions): Learn how unbonding completions reach the EVM as events.

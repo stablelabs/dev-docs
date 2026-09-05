@@ -1,260 +1,203 @@
 ---
-title: Upgrade guide
-description: "Node upgrade procedures, upgrade types, and rollback strategies for Stable network version changes."
+title: "Upgrade a node"
+description: "Upgrade a Stable node safely by backing up its identity, replacing release files, and verifying synchronization."
 diataxis: "how-to"
 ---
 
-This guide covers the upgrade process for Stable nodes, including upgrade procedures and rollback strategies.
+# Upgrade a node
 
-> For complete version history and upgrade details, see [Version History](/en/reference/testnet-version-history).
-
-## Upgrade types
-
-### Soft upgrades (non-breaking)
-- Can be performed at any time
-- Backward compatible
-
-### Hard upgrades (breaking)
-- Requires upgrade at specific height
-- Not backward compatible
-
-### Emergency upgrades
-- Critical security fixes
-- Immediate action required
-- May require chain halt
-
-## v1.4.0 storage migration
-
-v1.4.0 replaces the LevelDB-backed state store with MemIAVL. This upgrade requires a data migration in addition to the normal binary replacement.
-
-Use a local snapshot export and restore unless the network-specific upgrade instructions choose another method. Benchmarking measured 19.4 seconds of average validator downtime for the standard restore and approximately 2.6 seconds for a parallel restore.
-
-Migrate validators in round-robin order so at least two-thirds of voting power stays online. Configure the RocksDB-backed VersionDB if your node must answer historical queries older than its earliest retained snapshot.
+Use this procedure to upgrade a Stable node while preserving its node-specific configuration and validator state. Always take the version, binary, and activation height from the history page for your network.
 
 :::warning
-Do not use the generic binary-only procedure below for v1.4.0. Wait for the final network-specific binary, upgrade height, backup path, and restore commands in [Network upgrades](/en/reference/network-upgrades).
+A state-breaking upgrade requires every node to switch at the coordinated height. Confirm the network, release, and upgrade height before stopping or replacing anything.
 :::
 
-## Standard upgrade procedure
+## Before you start
 
-### Step 1: preparation
+You need:
 
-```bash
-# Check current version
-stabled version --long
+- Shell access to the node and permission to manage its service.
+- Enough disk space for a protected backup outside the active data directory.
+- The node home, service name, and installed binary path for your deployment.
+- The release entry from the [Mainnet version history](/en/reference/mainnet-version-history) or [Testnet version history](/en/reference/testnet-version-history).
 
-# Backup critical data
-cp -r ~/.stabled/config ~/stable-backup-$(date +%Y%m%d)/
-
-# For validators only: Backup validator state
-cp ~/.stabled/data/priv_validator_state.json ~/stable-backup-$(date +%Y%m%d)/
-
-# Check disk space (need 2x current data size)
-df -h ~/.stabled
-```
-
-### Step 2: download new binary
+The examples below use these paths. Change them to match your deployment:
 
 ```bash
-# For v1.2.0-rc1 upgrade (January 22, 2026)
-# Choose your architecture:
-
-# Linux AMD64
-BINARY_URL="https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/binary/stabled-1.2.0-rc1-linux-amd64-testnet.tar.gz"
-
-# OR Linux ARM64
-BINARY_URL="https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/binary/stabled-1.2.0-rc1-linux-arm64-testnet.tar.gz"
-
-# Download new binary
-wget $BINARY_URL
-
-# Extract to temporary location
-tar -xvzf stabled-1.2.0-rc1-linux-*.tar.gz -C /tmp/
-
-# Verify new version
-/tmp/stabled version --long
+export STABLED_HOME="/var/lib/stabled"
+export STABLED_SERVICE="stabled"
+export STABLED_BIN="/usr/local/bin/stabled"
+export STABLED_ARCH="amd64" # Use arm64 on ARM hosts.
 ```
 
-### Step 3: perform upgrade
+```text
+No output.
+```
 
-#### For soft upgrades
+## 1. Check the running node
+
+Record the current build and synchronization state before changing the node:
 
 ```bash
-# Stop node
-sudo systemctl stop ${SERVICE_NAME}
-
-# Backup current binary
-sudo mv /usr/bin/stabled /usr/bin/stabled.backup
-
-# Install new binary
-sudo mv /tmp/stabled /usr/bin/stabled
-sudo chmod +x /usr/bin/stabled
-
-# Verify installation
-stabled version --long
-
-# Start node
-sudo systemctl start ${SERVICE_NAME}
-
-# Monitor logs
-sudo journalctl -u ${SERVICE_NAME} -f
+"$STABLED_BIN" version --long
+curl -fsS http://localhost:26657/status \
+  | jq '{catching_up: .result.sync_info.catching_up, latest_block_height: .result.sync_info.latest_block_height}'
 ```
 
-#### For hard upgrades
+```text
+<current build information>
+{
+  "catching_up": false,
+  "latest_block_height": "<current height>"
+}
+```
+
+Do not continue until `catching_up` is `false`.
+
+## 2. Back up identity and configuration
+
+Keep validator keys and signing state private. Store this backup on encrypted storage with permissions limited to the node operator.
 
 ```bash
-# Monitor for upgrade height
-while true; do
-    HEIGHT=$(curl -s localhost:26657/status | jq -r '.result.sync_info.latest_block_height')
-    echo "Current height: $HEIGHT"
-    if [ $HEIGHT -ge $UPGRADE_HEIGHT ]; then
-        break
-    fi
-    sleep 10
-done
-
-# Node will halt automatically at upgrade height
-# Wait for halt message in logs
-sudo journalctl -u ${SERVICE_NAME} -f | grep "UPGRADE"
-
-# Once halted, perform upgrade
-sudo systemctl stop ${SERVICE_NAME}
-sudo mv /usr/bin/stabled /usr/bin/stabled.backup
-sudo mv /tmp/stabled /usr/bin/stabled
-
-# Start with new binary
-sudo systemctl start ${SERVICE_NAME}
+export STABLED_BACKUP="/var/backups/stabled/pre-upgrade"
+sudo install -d -m 0700 "$STABLED_BACKUP"
+sudo cp -a "$STABLED_HOME/config" "$STABLED_BACKUP/config"
+sudo cp -a "$STABLED_HOME/data/priv_validator_state.json" \
+  "$STABLED_BACKUP/priv_validator_state.json"
+sudo cp -a "$STABLED_BIN" "$STABLED_BACKUP/stabled"
+printf 'Backup stored at %s\n' "$STABLED_BACKUP"
 ```
 
-### Step 4: post-upgrade verification
+```text
+Backup stored at /var/backups/stabled/pre-upgrade
+```
+
+:::danger
+Never run two validators with the same private validator key. A duplicated key can cause double-signing and slashing.
+:::
+
+## 3. Download and inspect the release
+
+Stable Mainnet activated v1.8.0 at block `36,976,000`. Download the archive for your host architecture and inspect the reported build before installation:
 
 ```bash
-# Check node status
-curl -s localhost:26657/status | jq '.result'
+export STABLED_RELEASE="v1.8.0"
+export STABLED_ARCHIVE="/tmp/stabled-1.8.0-linux-${STABLED_ARCH}-mainnet.tar.gz"
+export STABLED_STAGE="/tmp/stabled-v1.8.0"
 
-# Verify version
-curl -s localhost:26657/status | jq '.result.node_info.version'
-
-# Check peers
-curl -s localhost:26657/net_info | jq '.result.n_peers'
-
-# Monitor sync status
-watch -n 2 'curl -s localhost:26657/status | jq ".result.sync_info"'
-
-# Check for errors
-sudo journalctl -u ${SERVICE_NAME} --since "10 minutes ago" | grep -i error
+curl -fL \
+  "https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/binary/stabled-1.8.0-linux-${STABLED_ARCH}-mainnet.tar.gz" \
+  -o "$STABLED_ARCHIVE"
+mkdir -p "$STABLED_STAGE"
+tar -xzf "$STABLED_ARCHIVE" -C "$STABLED_STAGE"
+"$STABLED_STAGE/stabled" version --long
 ```
 
-## Cosmovisor setup (automated upgrades)
+```text
+<build information for v1.8.0>
+```
 
-Cosmovisor automates the upgrade process for coordinated upgrades.
+For another release or Testnet, copy the exact binary URL from the corresponding version-history table.
 
-### Installation
+## 4. Prepare the v1.8.0 configuration
+
+v1.8.0 adds required settings to both `config.toml` and `app.toml`. Download the Mainnet templates into a staging directory:
 
 ```bash
-# Install cosmovisor
-go install cosmossdk.io/tools/cosmovisor/cmd/cosmovisor@latest
-
-# Or download binary
-wget https://github.com/cosmos/cosmos-sdk/releases/download/cosmovisor%2Fv1.7.0/cosmovisor-v1.7.0-linux-amd64.tar.gz
-tar -xzf cosmovisor-v1.7.0-linux-amd64.tar.gz
-sudo mv cosmovisor /usr/bin/
+export STABLED_CONFIG_STAGE="/tmp/stable-v1.8.0-config"
+mkdir -p "$STABLED_CONFIG_STAGE"
+curl -fL \
+  "https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/configuration/v1.8.0/partners/config.toml" \
+  -o "$STABLED_CONFIG_STAGE/config.toml"
+curl -fL \
+  "https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/configuration/v1.8.0/partners/app.toml" \
+  -o "$STABLED_CONFIG_STAGE/app.toml"
+printf 'Configuration staged at %s\n' "$STABLED_CONFIG_STAGE"
 ```
 
-### Configuration
+```text
+Configuration staged at /tmp/stable-v1.8.0-config
+```
+
+Start from these templates, then restore every node-specific value from your backup. Check at least:
+
+- `moniker` and `external_address`.
+- Persistent peers, seeds, and private-peer settings.
+- API, JSON-RPC, gRPC, and metrics settings.
+- Organization-specific timeouts and resource limits.
+- Pruning settings for archive nodes.
+
+The distributed `app.toml` uses default pruning. Pruned history cannot be reconstructed from the local node. v1.8.0 also forces `inter-block-cache` off.
+
+## 5. Stop the node and install the files
+
+For a coordinated future upgrade, wait until the node halts at the published height. The v1.8.0 Mainnet height is historical, so an older Mainnet node can be stopped before this installation.
 
 ```bash
-# Set environment variables
-cat >> ~/.bashrc <<EOF
-export DAEMON_NAME=stabled
-export DAEMON_HOME=$HOME/.stabled
-export DAEMON_RESTART_AFTER_UPGRADE=true
-export DAEMON_ALLOW_DOWNLOAD_BINARIES=true
-export UNSAFE_SKIP_BACKUP=false
-EOF
-
-source ~/.bashrc
-
-# Create directory structure
-mkdir -p $DAEMON_HOME/cosmovisor/genesis/bin
-mkdir -p $DAEMON_HOME/cosmovisor/upgrades
-
-# Copy current binary to genesis
-cp /usr/bin/stabled $DAEMON_HOME/cosmovisor/genesis/bin/
-
-# Create systemd service
-sudo tee /etc/systemd/system/cosmovisor.service > /dev/null <<EOF
-[Unit]
-Description=Cosmovisor daemon
-After=network-online.target
-
-[Service]
-Environment="DAEMON_NAME=stabled"
-Environment="DAEMON_HOME=$HOME/.stabled"
-Environment="DAEMON_RESTART_AFTER_UPGRADE=true"
-Environment="DAEMON_ALLOW_DOWNLOAD_BINARIES=true"
-User=$USER
-ExecStart=/usr/bin/cosmovisor run start --chain-id stabletestnet_2201-1
-Restart=always
-RestartSec=3
-LimitNOFILE=65535
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-# Enable and start
-sudo systemctl daemon-reload
-sudo systemctl enable cosmovisor
-sudo systemctl start cosmovisor
+sudo systemctl stop "$STABLED_SERVICE"
+systemctl is-active "$STABLED_SERVICE" || true
 ```
 
-### Upgrade with Cosmovisor
+```text
+inactive
+```
+
+Install the staged binary and the completed configuration files:
 
 ```bash
-# For each upgrade, create directory (use the upgrade name from the proposal)
-mkdir -p $DAEMON_HOME/cosmovisor/upgrades/v1.2.0-rc1/bin
-
-# Place new binary
-cp /path/to/new/stabled $DAEMON_HOME/cosmovisor/upgrades/v1.2.0-rc1/bin/
-
-# Cosmovisor will automatically switch at upgrade height
+sudo install -m 0755 "$STABLED_STAGE/stabled" "$STABLED_BIN"
+cp "$STABLED_CONFIG_STAGE/config.toml" "$STABLED_HOME/config/config.toml"
+cp "$STABLED_CONFIG_STAGE/app.toml" "$STABLED_HOME/config/app.toml"
+printf 'Installed %s\n' "$STABLED_RELEASE"
 ```
 
-## Rollback
+```text
+Installed v1.8.0
+```
+
+The v1.8.0 Mainnet upgrade did not require a state export, import, or snapshot reset.
+
+## 6. Start and verify the node
+
+Start the service, verify the installed build, and confirm the node resumes synchronization:
 
 ```bash
-# Stop node
-sudo systemctl stop ${SERVICE_NAME}
-
-# Backup current state (in case needed)
-cp -r ~/.stabled/data ~/.stabled/data.failed
-
-# Restore from snapshot before upgrade
-cd ~/.stabled
-rm -rf data/
-tar -I lz4 -xf ~/snapshots/pre-upgrade-snapshot.tar.lz4
-
-# Restore previous binary
-sudo mv /usr/bin/stabled.backup /usr/bin/stabled
-
-# Start node
-sudo systemctl start ${SERVICE_NAME}
+sudo systemctl start "$STABLED_SERVICE"
+systemctl is-active "$STABLED_SERVICE"
+"$STABLED_BIN" version --long
+curl -fsS http://localhost:26657/status \
+  | jq '{catching_up: .result.sync_info.catching_up, latest_block_height: .result.sync_info.latest_block_height}'
 ```
 
-## Emergency procedures
-
-```bash
-# If chain halts unexpectedly
-# 1. Check Discord for instructions
-# 2. Export state at last known good height
-stabled export --height <last_good_height> > export.json
-
-# 3. Wait for coordinated restart instructions
+```text
+active
+<build information for v1.8.0>
+{
+  "catching_up": false,
+  "latest_block_height": "<current height>"
+}
 ```
 
-## Next steps
+Check service logs for repeated panics, consensus failures, or configuration parsing errors before returning the node to normal operations.
 
-- [Version History](/en/reference/testnet-version-history) - Complete upgrade history and release notes
-- [Monitor your node](/en/how-to/monitor-node) after upgrades
-- Review [Troubleshooting](/en/how-to/troubleshoot-node) for common issues
+## Automate future upgrades with Cosmovisor
+
+Cosmovisor can switch binaries when the on-chain upgrade handler reaches its configured height. Follow the [Cosmovisor documentation](https://docs.cosmos.network/main/build/tooling/cosmovisor) and use the upgrade name from the applicable governance proposal.
+
+Keep automatic binary downloads disabled unless your operating policy explicitly trusts the configured source. Stage and verify release binaries before the activation height.
+
+## Roll back only with release-specific instructions
+
+:::danger
+Do not delete the active data directory or restore an older snapshot unless Stable's release instructions require it. Starting an old binary against state written by a newer release can corrupt the node or make it follow the wrong chain.
+:::
+
+If the new process fails before it executes an upgraded block, keep the service stopped and inspect the error. Restore the previous binary and configuration only when the release notes say that rollback is safe.
+
+If the node has executed an upgraded block, coordinate recovery with the network operators. Recovery may require a release-specific binary or a trusted snapshot at an agreed height.
+
+## Where to go next
+
+- [**Network upgrades**](/en/reference/network-upgrades): Identify the compatibility and operator impact of each protocol release.
+- [**Monitor a node**](/en/how-to/monitor-node): Verify synchronization, peers, resource use, and service health after an upgrade.
+- [**Troubleshoot a node**](/en/how-to/troubleshoot-node): Diagnose startup, networking, consensus, and storage failures.

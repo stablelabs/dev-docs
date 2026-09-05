@@ -1,262 +1,205 @@
 ---
 source_path: how-to/upgrade-node.mdx
-source_sha: c05435b6446847bcf6c1ef3c51961b184f712073
-title: 升级指南
-description: "Stable 网络版本变更的节点升级过程、升级类型和回滚策略。"
+source_sha: e2f8ef3c819976fcf7a91e8ff2841f1368c80108
+title: "升级节点"
+description: "通过备份身份、替换发布文件和验证同步来安全升级 Stable 节点。"
 diataxis: "how-to"
 ---
 
-本指南介绍 Stable 节点的升级过程，包括升级步骤和回滚策略。
+# 升级节点
 
-> 有关完整的版本历史和升级详情，请参阅 [版本历史](/cn/reference/testnet-version-history)。
-
-## 升级类型
-
-### 软升级（非破坏性）
-- 可随时执行
-- 向后兼容
-
-### 硬升级（破坏性）
-- 需要在特定高度进行升级
-- 不向后兼容
-
-### 紧急升级
-- 关键安全修复
-- 需要立即采取行动
-- 可能需要暂停链
-
-## v1.4.0 存储迁移
-
-v1.4.0 将基于 LevelDB 的状态存储替换为 MemIAVL。除了正常二进制替换外，本次升级还需要数据迁移。
-
-除非网络特定的升级说明选择其他方法，否则请使用本地快照导出和恢复。基准测试表明，标准恢复的平均验证器停机时间为 19.4 秒，并行恢复约为 2.6 秒。
-
-以轮询方式迁移验证器，以便至少三分之二的投票权保持在线。如果您的节点必须回答早于其最早保留快照的历史查询，请配置基于 RocksDB 的 VersionDB。
+使用此过程升级 Stable 节点，同时保留其节点特定配置和验证器状态。始终从网络历史页面获取版本、二进制文件和激活高度。
 
 :::warning
-请勿对 v1.4.0 使用下面通用的纯二进制过程。请等待 [网络升级](/cn/reference/network-upgrades) 中的最终网络特定二进制文件、升级高度、备份路径和恢复命令。
+状态中断升级要求每个节点在协调高度切换。在停止或替换任何内容之前，请确认网络、版本和升级高度。
 :::
 
-## 标准升级流程
+## 开始之前
 
-### 步骤 1：准备
+你需要：
 
-```bash
-# Check current version
-stabled version --long
+- 节点的 Shell 访问权限以及管理其服务的权限。
+- 足以在活动数据目录之外进行受保护备份的磁盘空间。
+- 部署的节点主目录、服务名称和已安装的二进制文件路径。
+- [主网版本历史](/cn/reference/mainnet-version-history) 或 [测试网版本历史](/cn/reference/testnet-version-history) 中的版本条目。
 
-# Backup critical data
-cp -r ~/.stabled/config ~/stable-backup-$(date +%Y%m%d)/
-
-# For validators only: Backup validator state
-cp ~/.stabled/data/priv_validator_state.json ~/stable-backup-$(date +%Y%m%d)/
-
-# Check disk space (need 2x current data size)
-df -h ~/.stabled
-```
-
-### 步骤 2：下载新二进制文件
+以下示例使用这些路径。将它们更改为与你的部署匹配：
 
 ```bash
-# For v1.2.0-rc1 upgrade (January 22, 2026)
-# Choose your architecture:
-
-# Linux AMD64
-BINARY_URL="https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/binary/stabled-1.2.0-rc1-linux-amd64-testnet.tar.gz"
-
-# OR Linux ARM64
-BINARY_URL="https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/binary/stabled-1.2.0-rc1-linux-arm64-testnet.tar.gz"
-
-# Download new binary
-wget $BINARY_URL
-
-# Extract to temporary location
-tar -xvzf stabled-1.2.0-rc1-linux-*.tar.gz -C /tmp/
-
-# Verify new version
-/tmp/stabled version --long
+export STABLED_HOME="/var/lib/stabled"
+export STABLED_SERVICE="stabled"
+export STABLED_BIN="/usr/local/bin/stabled"
+export STABLED_ARCH="amd64" # 在 ARM 主机上使用 arm64。
 ```
 
-### 步骤 3：执行升级
+```text
+无输出。
+```
 
-#### 对于软升级
+## 1. 检查运行中的节点
+
+在更改节点之前记录当前构建和同步状态：
 
 ```bash
-# Stop node
-sudo systemctl stop ${SERVICE_NAME}
-
-# Backup current binary
-sudo mv /usr/bin/stabled /usr/bin/stabled.backup
-
-# Install new binary
-sudo mv /tmp/stabled /usr/bin/stabled
-sudo chmod +x /usr/bin/stabled
-
-# Verify installation
-stabled version --long
-
-# Start node
-sudo systemctl start ${SERVICE_NAME}
-
-# Monitor logs
-sudo journalctl -u ${SERVICE_NAME} -f
+"$STABLED_BIN" version --long
+curl -fsS http://localhost:26657/status \
+  | jq '{catching_up: .result.sync_info.catching_up, latest_block_height: .result.sync_info.latest_block_height}'
 ```
 
-#### 对于硬升级
+```text
+<当前构建信息>
+{
+  "catching_up": false,
+  "latest_block_height": "<当前高度>"
+}
+```
+
+在 `catching_up` 为 `false` 之前不要继续。
+
+## 2. 备份身份和配置
+
+保持验证器密钥和签名状态私密。将此备份存储在加密存储上，权限仅限于节点操作员。
 
 ```bash
-# Monitor for upgrade height
-while true; do
-    HEIGHT=$(curl -s localhost:26657/status | jq -r '.result.sync_info.latest_block_height')
-    echo "Current height: $HEIGHT"
-    if [ $HEIGHT -ge $UPGRADE_HEIGHT ]; then
-        break
-    fi
-    sleep 10
-done
-
-# Node will halt automatically at upgrade height
-# Wait for halt message in logs
-sudo journalctl -u ${SERVICE_NAME} -f | grep "UPGRADE"
-
-# Once halted, perform upgrade
-sudo systemctl stop ${SERVICE_NAME}
-sudo mv /usr/bin/stabled /usr/bin/stabled.backup
-sudo mv /tmp/stabled /usr/bin/stabled
-
-# Start with new binary
-sudo systemctl start ${SERVICE_NAME}
+export STABLED_BACKUP="/var/backups/stabled/pre-upgrade"
+sudo install -d -m 0700 "$STABLED_BACKUP"
+sudo cp -a "$STABLED_HOME/config" "$STABLED_BACKUP/config"
+sudo cp -a "$STABLED_HOME/data/priv_validator_state.json" \
+  "$STABLED_BACKUP/priv_validator_state.json"
+sudo cp -a "$STABLED_BIN" "$STABLED_BACKUP/stabled"
+printf '备份存储在 %s\n' "$STABLED_BACKUP"
 ```
 
-### 步骤 4：升级后验证
+```text
+备份存储在 /var/backups/stabled/pre-upgrade
+```
+
+:::danger
+切勿使用相同的私有验证器密钥运行两个验证器。重复的密钥可能导致双重签名和惩罚。
+:::
+
+## 3. 下载并检查发布版本
+
+Stable 主网在区块 `36,976,000` 激活了 v1.8.0。下载适用于你的主机架构的存档，并在安装前检查报告的构建：
 
 ```bash
-# Check node status
-curl -s localhost:26657/status | jq '.result'
+export STABLED_RELEASE="v1.8.0"
+export STABLED_ARCHIVE="/tmp/stabled-1.8.0-linux-${STABLED_ARCH}-mainnet.tar.gz"
+export STABLED_STAGE="/tmp/stabled-v1.8.0"
 
-# Verify version
-curl -s localhost:26657/status | jq '.result.node_info.version'
-
-# Check peers
-curl -s localhost:26657/net_info | jq '.result.n_peers'
-
-# Monitor sync status
-watch -n 2 'curl -s localhost:26657/status | jq ".result.sync_info"'
-
-# Check for errors
-sudo journalctl -u ${SERVICE_NAME} --since "10 minutes ago" | grep -i error
+curl -fL \
+  "https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/binary/stabled-1.8.0-linux-${STABLED_ARCH}-mainnet.tar.gz" \
+  -o "$STABLED_ARCHIVE"
+mkdir -p "$STABLED_STAGE"
+tar -xzf "$STABLED_ARCHIVE" -C "$STABLED_STAGE"
+"$STABLED_STAGE/stabled" version --long
 ```
 
-## Cosmovisor 设置（自动化升级）
+```text
+<v1.8.0 的构建信息>
+```
 
-Cosmovisor 自动化协调升级过程。
+对于其他版本或测试网，从相应的版本历史表中复制精确的二进制文件 URL。
 
-### 安装
+## 4. 准备 v1.8.0 配置
+
+v1.8.0 在 `config.toml` 和 `app.toml` 中添加了所需设置。将主网模板下载到临时目录：
 
 ```bash
-# Install cosmovisor
-go install cosmossdk.io/tools/cosmovisor/cmd/cosmovisor@latest
-
-# Or download binary
-wget https://github.com/cosmos/cosmos-sdk/releases/download/cosmovisor%2Fv1.7.0/cosmovisor-v1.7.0-linux-amd64.tar.gz
-tar -xzf cosmovisor-v1.7.0-linux-amd64.tar.gz
-sudo mv cosmovisor /usr/bin/
+export STABLED_CONFIG_STAGE="/tmp/stable-v1.8.0-config"
+mkdir -p "$STABLED_CONFIG_STAGE"
+curl -fL \
+  "https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/configuration/v1.8.0/partners/config.toml" \
+  -o "$STABLED_CONFIG_STAGE/config.toml"
+curl -fL \
+  "https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/configuration/v1.8.0/partners/app.toml" \
+  -o "$STABLED_CONFIG_STAGE/app.toml"
+printf '配置暂存到 %s\n' "$STABLED_CONFIG_STAGE"
 ```
 
-### 配置
+```text
+配置暂存到 /tmp/stable-v1.8.0-config
+```
+
+从这些模板开始，然后从备份中恢复每个节点特定的值。至少检查：
+
+- `moniker` 和 `external_address`。
+- 持久对等点、种子和私有对等点设置。
+- API、JSON-RPC、gRPC 和指标设置。
+- 组织特定的超时和资源限制。
+- 归档节点的修剪设置。
+
+分发的 `app.toml` 使用默认修剪。修剪的历史无法从本地节点重建。v1.8.0 还强制关闭 `inter-block-cache`。
+
+## 5. 停止节点并安装文件
+
+对于协调的未来升级，等待节点在发布的高度停止。v1.8.0 主网高度是历史的，因此较旧的主网节点可以在此安装之前停止。
 
 ```bash
-# Set environment variables
-cat >> ~/.bashrc <<EOF
-export DAEMON_NAME=stabled
-export DAEMON_HOME=$HOME/.stabled
-export DAEMON_RESTART_AFTER_UPGRADE=true
-export DAEMON_ALLOW_DOWNLOAD_BINARIES=true
-export UNSAFE_SKIP_BACKUP=false
-EOF
-
-source ~/.bashrc
-
-# Create directory structure
-mkdir -p $DAEMON_HOME/cosmovisor/genesis/bin
-mkdir -p $DAEMON_HOME/cosmovisor/upgrades
-
-# Copy current binary to genesis
-cp /usr/bin/stabled $DAEMON_HOME/cosmovisor/genesis/bin/
-
-# Create systemd service
-sudo tee /etc/systemd/system/cosmovisor.service > /dev/null <<EOF
-[Unit]
-Description=Cosmovisor daemon
-After=network-online.target
-
-[Service]
-Environment="DAEMON_NAME=stabled"
-Environment="DAEMON_HOME=$HOME/.stabled"
-Environment="DAEMON_RESTART_AFTER_UPGRADE=true"
-Environment="DAEMON_ALLOW_DOWNLOAD_BINARIES=true"
-User=$USER
-ExecStart=/usr/bin/cosmovisor run start --chain-id stabletestnet_2201-1
-Restart=always
-RestartSec=3
-LimitNOFILE=65535
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-# Enable and start
-sudo systemctl daemon-reload
-sudo systemctl enable cosmovisor
-sudo systemctl start cosmovisor
+sudo systemctl stop "$STABLED_SERVICE"
+systemctl is-active "$STABLED_SERVICE" || true
 ```
 
-### 使用 Cosmovisor 升级
+```text
+非活动
+```
+
+安装暂存的二进制文件和已完成的配置文件：
 
 ```bash
-# For each upgrade, create directory (use the upgrade name from the proposal)
-mkdir -p $DAEMON_HOME/cosmovisor/upgrades/v1.2.0-rc1/bin
-
-# Place new binary
-cp /path/to/new/stabled $DAEMON_HOME/cosmovisor/upgrades/v1.2.0-rc1/bin/
-
-# Cosmovisor will automatically switch at upgrade height
+sudo install -m 0755 "$STABLED_STAGE/stabled" "$STABLED_BIN"
+cp "$STABLED_CONFIG_STAGE/config.toml" "$STABLED_HOME/config/config.toml"
+cp "$STABLED_CONFIG_STAGE/app.toml" "$STABLED_HOME/config/app.toml"
+printf '已安装 %s\n' "$STABLED_RELEASE"
 ```
 
-## 回滚
+```text
+已安装 v1.8.0
+```
+
+v1.8.0 主网升级不需要状态导出、导入或快照重置。
+
+## 6. 启动并验证节点
+
+启动服务，验证已安装的构建，并确认节点恢复同步：
 
 ```bash
-# Stop node
-sudo systemctl stop ${SERVICE_NAME}
-
-# Backup current state (in case needed)
-cp -r ~/.stabled/data ~/.stabled/data.failed
-
-# Restore from snapshot before upgrade
-cd ~/.stabled
-rm -rf data/
-tar -I lz4 -xf ~/snapshots/pre-upgrade-snapshot.tar.lz4
-
-# Restore previous binary
-sudo mv /usr/bin/stabled.backup /usr/bin/stabled
-
-# Start node
-sudo systemctl start ${SERVICE_NAME}
+sudo systemctl start "$STABLED_SERVICE"
+systemctl is-active "$STABLED_SERVICE"
+"$STABLED_BIN" version --long
+curl -fsS http://localhost:26657/status \
+  | jq '{catching_up: .result.sync_info.catching_up, latest_block_height: .result.sync_info.latest_block_height}'
 ```
 
-## 紧急程序
-
-```bash
-# If chain halts unexpectedly
-# 1. Check Discord for instructions
-# 2. Export state at last known good height
-stabled export --height <last_good_height> > export.json
-
-# 3. Wait for coordinated restart instructions
+```text
+活跃
+<v1.8.0 的构建信息>
+{
+  "catching_up": false,
+  "latest_block_height": "<当前高度>"
+}
 ```
 
-## 后续步骤
+在将节点恢复正常操作之前，检查服务日志中是否有重复的崩溃、共识失败或配置解析错误。
 
-- [版本历史](/cn/reference/testnet-version-history) - 完整的升级历史和发行说明
-- 升级后[监控您的节点](/cn/how-to/monitor-node)
-- 查看[故障排除](/cn/how-to/troubleshoot-node)以获取常见问题
+## 使用 Cosmovisor 自动执行未来的升级
+
+当链上升级处理程序达到其配置的高度时，Cosmovisor 可以切换二进制文件。遵循 [Cosmovisor 文档](https://docs.cosmos.network/main/build/tooling/cosmovisor) 并使用适用治理提案中的升级名称。
+
+除非你的操作策略明确信任配置的源，否则请禁用自动二进制下载。在激活高度之前暂存并验证发布二进制文件。
+
+## 仅根据特定于版本的说明回滚
+
+:::danger
+除非 Stable 的发布说明要求，否则不要删除活动数据目录或恢复旧快照。使用旧的二进制文件对抗由较新版本写入的状态可能会损坏节点或使其跟随错误的链。
+:::
+
+如果新进程在执行升级块之前失败，请保持服务停止并检查错误。仅当发布说明表示回滚安全时才恢复以前的二进制文件和配置。
+
+如果节点已执行升级块，请与网络操作员协调恢复。恢复可能需要特定于版本的二进制文件或在商定高度的受信任快照。
+
+## 接下来去哪里
+
+- [**网络升级**](/cn/reference/network-upgrades)：确定每个协议版本的兼容性和操作员影响。
+- [**监控节点**](/cn/how-to/monitor-node)：升级后验证同步、对等点、资源使用和服务运行状况。
+- [**故障排除节点**](/cn/how-to/troubleshoot-node)：诊断启动、网络、共识和存储故障。

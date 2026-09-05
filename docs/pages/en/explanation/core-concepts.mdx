@@ -15,6 +15,7 @@ You pay transaction fees in USDT0, the same asset you're already holding and tra
 USDT0 is both the native gas asset (18 decimals, read via `address(x).balance`) and an ERC-20 token (6 decimals, read via `USDT0.balanceOf(x)`). Both interfaces operate on the same underlying balance, and the protocol reconciles the 12-digit precision gap automatically.
 
 ```solidity
+// SAFE: both reads use Stable's canonical balance interfaces.
 // Both read the same balance:
 uint256 native = address(user).balance;        // 18 decimals
 uint256 erc20  = IERC20(USDT0).balanceOf(user); // 6 decimals
@@ -28,11 +29,11 @@ Read more: [USDT0 as gas](/en/explanation/usdt-as-gas-token) · [USDT0 behavior 
 
 ## Guaranteed blockspace
 
-Stable v1.4.0 can reserve a gas quota within each block for eligible priority workloads. Normal traffic cannot consume this VIP-lane capacity during congestion.
+Stable v1.8.0 reserves a gas quota within each block for eligible priority workloads. Normal traffic cannot consume this Enterprise-lane capacity during congestion.
 
-Standard EVM transactions keep using the default nonce channel, `NonceKey = 0`. Eligible priority flows use `CustomTx` type `0x3F` and a protocol-reserved `NonceKey` that identifies the VIP lane.
+Standard EVM transactions keep using the default nonce channel, `NonceKey = 0`. Eligible priority flows use `CustomTx` type `0x3F` and a `NonceKey` with bit 63 set.
 
-Governance configures the lanes and quotas. With no configuration, every transaction uses one normal lane. The feature is currently in the v1.4.0 Testnet release candidate, with its Mainnet schedule pending.
+Governance configures the lanes and quotas. Guaranteed blockspace is live on Mainnet and Testnet, and `StableSystem.blockspaceLanes()` returns the active configuration.
 
 Read more: [Guaranteed blockspace](/en/explanation/guaranteed-blockspace).
 
@@ -87,7 +88,7 @@ Stable has a planned feature for zero-knowledge transfers that hide amounts whil
 
 Read more: [Confidential transfer](/en/explanation/confidential-transfer).
 
-## Next recommended
+## Where to go next
 
 - [**Quick start**](/en/tutorial/quick-start): Connect to testnet and send a first transaction.
 - [**USDT0 behavior**](/en/explanation/usdt0-behavior): Port a contract to Stable without hitting dual-role gotchas.

@@ -1,10 +1,10 @@
 ---
-title: "Tracking unbonding completions"
-description: "Subscribe to UnbondingCompleted events emitted by the StableSystem precompile through system transactions. Filter by user or validator, query historical events."
+title: "Track unbonding completions"
+description: "Subscribe to UnbondingCompleted by user or validator, and query historical events through StableSystem."
 diataxis: "how-to"
 ---
 
-# Tracking unbonding completions
+# Track unbonding completions
 
 When an unbonding period completes, the protocol emits an `UnbondingCompleted` event through the `StableSystem` precompile (`0x0000000000000000000000000000000000009999`) via a system transaction. This lets dApps notify users and update balances in real time without running custom indexers or polling REST endpoints.
 
@@ -36,7 +36,7 @@ export const STABLE_SYSTEM_ADDRESS =
   "0x0000000000000000000000000000000000009999";
 
 export const STABLE_SYSTEM_ABI = [
-  "event UnbondingCompleted(address indexed delegator, address indexed validator, uint256 amount)",
+  "event UnbondingCompleted(address indexed delegator, address indexed validator, uint64 indexed originBlockHeight, uint256 amount)",
 ];
 
 export const provider = new ethers.JsonRpcProvider("https://rpc.testnet.stable.xyz");
@@ -45,6 +45,10 @@ export const stableSystem = new ethers.Contract(
   STABLE_SYSTEM_ABI,
   provider
 );
+```
+
+```text
+No output. The StableSystem contract instance is ready to query or subscribe.
 ```
 
 ## Step 2: Handle events in your application
@@ -57,16 +61,28 @@ Subscribe to `UnbondingCompleted` events for real-time notifications when any un
 
 ```typescript
 // subscribeBasic.ts
+import { ethers } from "ethers";
 import { stableSystem } from "./config";
 
-stableSystem.on("UnbondingCompleted", (delegator, validator, amount, event) => {
+stableSystem.on("UnbondingCompleted", (delegator, validator, originBlockHeight, amount, event) => {
   console.log("Unbonding completed:");
   console.log("  Delegator:", delegator);
   console.log("  Validator:", validator);
+  console.log("  Origin block:", originBlockHeight.toString());
   console.log("  Amount:", ethers.formatEther(amount), "tokens");
   console.log("  Block:", event.log.blockNumber);
   console.log("  Tx Hash:", event.log.transactionHash);
 });
+```
+
+```text
+Unbonding completed:
+  Delegator: 0xabcd...
+  Validator: 0x1234...
+  Origin block: 36975999
+  Amount: 100.0 tokens
+  Block: 36976000
+  Tx Hash: 0x12ab...
 ```
 
 ### Filter by user
@@ -81,12 +97,23 @@ import { stableSystem } from "./config";
 const userAddress = "0xabcd...";
 const filter = stableSystem.filters.UnbondingCompleted(userAddress);
 
-stableSystem.on(filter, (delegator, validator, amount, event) => {
-  refreshUserBalance(userAddress);
-  showNotification(
-    `Your unbonding of ${ethers.formatEther(amount)} tokens completed!`
-  );
+stableSystem.on(filter, (delegator, validator, originBlockHeight, amount) => {
+  console.log("User unbonding completed:", {
+    delegator,
+    validator,
+    originBlockHeight,
+    amount: ethers.formatEther(amount),
+  });
 });
+```
+
+```text
+User unbonding completed: {
+  delegator: "0xabcd...",
+  validator: "0x1234...",
+  originBlockHeight: 36975999n,
+  amount: "100.0"
+}
 ```
 
 ### Filter by validator
@@ -101,9 +128,23 @@ const validatorFilter = stableSystem.filters.UnbondingCompleted(
   validatorAddress
 );
 
-stableSystem.on(validatorFilter, (delegator, validator, amount) => {
-  updateValidatorStats(validator, amount);
+stableSystem.on(validatorFilter, (delegator, validator, originBlockHeight, amount) => {
+  console.log("Validator unbonding completed:", {
+    delegator,
+    validator,
+    originBlockHeight,
+    amount,
+  });
 });
+```
+
+```text
+Validator unbonding completed: {
+  delegator: "0xabcd...",
+  validator: "0x1234...",
+  originBlockHeight: 36975999n,
+  amount: 100000000000000000000n
+}
 ```
 
 ### Historical query
@@ -126,6 +167,7 @@ async function getUnbondingHistory(
   return events.map((event) => ({
     delegator: event.args.delegator,
     validator: event.args.validator,
+    originBlockHeight: event.args.originBlockHeight,
     amount: ethers.formatEther(event.args.amount),
     blockNumber: event.blockNumber,
     txHash: event.transactionHash,
@@ -138,6 +180,21 @@ const history = await getUnbondingHistory(
   currentBlock - 1000,
   currentBlock
 );
+
+console.log(history);
+```
+
+```text
+[
+  {
+    delegator: "0xabcd...",
+    validator: "0x1234...",
+    originBlockHeight: 36975999n,
+    amount: "100.0",
+    blockNumber: 36976000,
+    txHash: "0x12ab..."
+  }
+]
 ```
 
 ## Step 3: Handle connection issues
@@ -152,8 +209,18 @@ import { STABLE_SYSTEM_ADDRESS, STABLE_SYSTEM_ABI } from "./config";
 let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 5;
 
-function handleUnbonding(delegator: string, validator: string, amount: bigint) {
-  console.log("Unbonding completed:", { delegator, validator, amount });
+function handleUnbonding(
+  delegator: string,
+  validator: string,
+  originBlockHeight: bigint,
+  amount: bigint
+) {
+  console.log("Unbonding completed:", {
+    delegator,
+    validator,
+    originBlockHeight,
+    amount,
+  });
 }
 
 function setupEventListener() {
@@ -179,7 +246,11 @@ function setupEventListener() {
 setupEventListener();
 ```
 
-## Next recommended
+```text
+No output until an unbonding completes or the provider reports an error.
+```
+
+## Where to go next
 
 - [**System transactions concept**](/en/explanation/system-transactions): Understand how protocol-level events reach the EVM.
 - [**Staking module concept**](/en/explanation/staking-module): Review the delegation and unbonding flow.

@@ -1,14 +1,14 @@
 ---
 source_path: explanation/technical-roadmap.mdx
-source_sha: 12d6268b1d6e265ecdcb13be47d79ee8c3d0e443
+source_sha: ff6d7eb8b66059317f331963487cd09ff3a2f9c1
 title: "路线图"
-description: "Stable 阶段性优化路线图：当前已上线功能、即将推出功能以及未来规划。"
+description: "了解哪些 Stable 协议优化已上线、正在进行或已规划。"
 diataxis: "explanation"
 ---
 
 # 路线图
 
-Stable 分三阶段优化交易管道的每一层（共识、执行、存储、RPC 和 USDT 特定流程）。本页面将标记已发布、正在进行和仍在规划中的内容。
+Stable 的三阶段路线图涵盖了共识、执行、存储、RPC 和 USDT 特有的流程。以下每个项目都标明了已上线、正在进行或已规划。
 
 <img
   className="block"
@@ -22,58 +22,58 @@ Stable 分三阶段优化交易管道的每一层（共识、执行、存储、R
 
 ### StableBFT：已上线
 
-基于 CometBFT 构建的自定义 PoS 共识协议。提供确定性终结性和拜占庭容错能力，最多可抵御三分之一的验证者作恶。有关当前实现，请参阅[共识](/cn/explanation/consensus)。
+基于 CometBFT 构建的定制 PoS 共识协议。提供确定性终结和针对高达三分之一验证者数量的拜占庭容错能力。有关当前实现，请参阅[共识](/cn/explanation/consensus)。
 
 ### USDT0 作为原生 Gas：已上线
 
-USDT0 是用于 Gas 支付和价值转移的原生资产，同时支持 ERC-20 接口（`approve`、`transfer`、`transferFrom`、`permit`）。请参阅[USDT0 作为 Gas 代币](/cn/explanation/usdt-as-gas-token)。
+USDT0 是用于 Gas 支付和价值转移的原生资产，同时支持 ERC-20 接口 (`approve`、`transfer`、`transferFrom`、`permit`)。请参阅 [USDT0 作为 Gas](/cn/explanation/usdt-as-gas-token)。
 
-### Stable Pay 和 Stable Name：进行中
+### Stable Pay & Stable Name：正在进行中
 
-Stable Pay 是一种 Web2.5 用户体验钱包，旨在简化新用户的入门流程，同时兼容现有 Web3 钱包。Stable Name 是一种用户友好的别名系统，用人类可读的标识符取代原始 EVM 地址，用于发送和接收代币。
+Stable Pay 是一种 Web2.5 UX 钱包体验，旨在简化新用户的入门，同时兼容现有 Web3 钱包。Stable Name 是一种用户友好的别名系统，用人类可读的标识符替换原始 EVM 地址，用于发送和接收代币。
 
 ## 阶段 2：USDT 的体验层
 
-状态：**v1.4.0 候选版本已在测试网上。** 主网升级计划待定。USDT Transfer Aggregator 仍在开发中。
+状态：**v1.8.0 版本已在主网发布。**USDT 转账聚合器仍在开发中。
 
-### MemIAVL 状态存储：已包含在 v1.4.0 中
+### MemIAVL 状态存储：v1.8.0 版本已上线
 
-MemIAVL 用一个内存映射快照和仅追加的预写日志取代了 LevelDB。RocksDB 支持的 VersionDB 为保留快照之前的历史查询提供服务。请参阅[存储 (StableDB)](/cn/explanation/stable-db)。
+MemIAVL 用一个内存映射快照和仅追加的预写日志取代了 LevelDB。一个由 RocksDB 支持的 VersionDB 为比保留快照更早的历史查询提供服务。请参阅[存储 (StableDB)](/cn/explanation/stable-db)。
 
-### 乐观并发执行：已包含在 v1.4.0 中
+### 乐观并行执行：v1.8.0 版本已上线
 
-Block-STM 在 CPU 核心上并行执行交易，检测冲突并重新执行受影响的工作。固定的区块内顺序确保了验证者之间状态的确定性。请参阅[执行](/cn/explanation/execution)。
+Block-STM 在 CPU 核心之间并行执行事务，检测冲突，并重新执行受影响的工作。固定的区块内顺序保持了验证器之间确定性状态。请参阅[执行](/cn/explanation/execution)。
 
-### 选择性 RecheckTx：已包含在 v1.4.0 中
+### 选择性 RecheckTx：v1.8.0 版本已上线
 
-区块提交后，节点仅重新检查受影响账户中待处理的交易。当应用程序不支持时，CometBFT 会回退到完整内存池重新检查。
+在区块提交后，节点仅重新检查受影响账户的待处理事务。当应用程序不支持时，CometBFT 会回退到完整的内存池重新检查。
 
-### 2D nonce 和有保证的区块空间：已包含在 v1.4.0 中
+### 2D 随机数和保证的区块空间：v1.8.0 版本已上线
 
-独立的 nonce 通道防止单个卡住的交易阻塞同一账户后续的所有交易。协议保留的 nonce 键标识 VIP 流量，而每个通道的 gas 配额保留区块容量。请参阅[有保证的区块空间](/cn/explanation/guaranteed-blockspace)。
+独立的随机数通道可防止一个卡住的事务阻塞同一账户的所有后续事务。协议保留的随机数键识别企业流量，而每通道 Gas 配额保留区块容量。请参阅[保证的区块空间](/cn/explanation/guaranteed-blockspace)。
 
-### USDT Transfer Aggregator：计划中
+### USDT 转账聚合器：已规划
 
-聚合机制，将 USDT0 转账分组并集体处理，从而减少每笔交易的开销并提高整体吞吐量。请参阅[USDT 转账聚合器](/cn/explanation/usdt-transfer-aggregator)。
+一种聚合机制，将 USDT0 转账分组并集体处理，从而降低每笔交易的开销并提高整体吞吐量。请参阅 [USDT 转账聚合器](/cn/explanation/usdt-transfer-aggregator)。
 
 ## 阶段 3：USDT 的全栈优化层
 
-状态：**计划中。**
+状态：**已规划。**
 
-### Autobahn 上的 StableBFT
+### StableBFT on Autobahn
 
-基于 DAG 的 BFT 共识，与 Stable 基于 CometBFT 的共识层自然集成。有关当前协议，请参阅[StableBFT](/cn/explanation/consensus)，有关目标架构，请参阅[Autobahn](/cn/explanation/autobahn)。内部概念验证已在受控环境中演示了超过 200,000 TPS（仅共识）。
+基于 DAG 的 BFT 共识，自然地与 Stable 基于 CometBFT 的共识层集成。有关当前协议，请参阅 [StableBFT](/cn/explanation/consensus)，有关目标架构，请参阅 [Autobahn](/cn/explanation/autobahn)。内部概念验证已在受控环境中演示了超过 200,000 TPS（仅限共识）。
 
 ### StableVM++
 
-高性能执行引擎，用 C++ 实现取代基于 Go 的 EVM。预计可将 EVM 执行速度提高多达 6 倍。
+高性能执行引擎，用 C++ 实现取代了基于 Go 的 EVM。预计可将 EVM 执行速度提高多达 6 倍。
 
 ### 高性能 RPC
 
-一个完整的 RPC 堆栈，涵盖节点级增强（实时链状态处理）、节点集成索引（低延迟应用程序 API）、通过 WebSocket 实现可扩展的 pub/sub 以及按操作类型路由的混合负载均衡器。有关当前分路径架构，请参阅[高性能 RPC](/cn/explanation/high-performance-rpc)。
+一个完整的 RPC 堆栈，涵盖节点级增强（实时链状态处理）、节点集成索引（低延迟应用程序 API）、通过 WebSocket 进行可扩展的 pub/sub，以及按操作类型路由的混合负载均衡器。有关当前分流架构，请参阅[高性能 RPC](/cn/explanation/high-performance-rpc)。
 
-## 接下来建议阅读
+## 接下来去哪里
 
-- [**架构概述**](/cn/explanation/core-optimization-overview)：了解路线图演进的堆栈现状。
-- [**代币经济学**](/cn/reference/tokenomics)：回顾资助路线图中验证者激励的经济模型。
-- [**技术概述**](/cn/explanation/tech-overview)：返回架构摘要。
+- [**架构概览**](/cn/explanation/core-optimization-overview)：了解路线图演进的堆栈现状。
+- [**代币经济学**](/cn/reference/tokenomics)：回顾为整个路线图中的验证者激励提供资金的经济模型。
+- [**技术概览**](/cn/explanation/tech-overview)：返回架构摘要。

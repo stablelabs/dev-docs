@@ -1,48 +1,48 @@
 ---
 source_path: explanation/staking-module.mdx
-source_sha: 32af1af02985137c678f7ed6d46376607121b6bf
-title: "Stake 模块"
-description: "Stake 预编译合约将委托、解除委托和验证者管理暴露给 EVM 合约，通过授权检查强制执行调用者身份。"
+source_sha: 668fab7ce8eadc9f4afe3f31ec4e23e2397c2df3
+title: "质押模块"
+description: "了解 EVM 合约如何通过 Stable 的质押预编译委托、解除委托和管理验证者。"
 diataxis: "explanation"
 ---
 
-# Stake 模块
+# 质押模块
 
-`x/staking` 模块控制 Stable 上的验证者参与和委托。它的预编译合约使得这些操作可以从 Solidity 调用，因此合约可以委托 STABLE、在解绑期后解除委托、在验证者之间重新委托或查询验证者状态，而无需离开 EVM。
+`x/staking` 模块控制 Stable 上的验证者参与和委托。它的预编译使得这些操作可以通过 Solidity 调用，因此合约可以在不离开 EVM 的情况下委托 STABLE、在解绑期后解除委托、在验证者之间重新委托或查询验证者状态。
 
-## 暴露的功能
+## 它暴露了什么
 
-- **创建验证者**：注册一个新验证者，包括描述、佣金率和初始自我委托。
+- **创建验证者**：注册一个带有描述、佣金率和初始自我委托的新验证者。
 - **编辑验证者**：更新验证者元数据和佣金参数。
 - **委托**：将 STABLE 质押给验证者。
-- **解除委托**：开始从验证者解除绑定（代币将在解绑期后可用）。
-- **重新委托**：在不解除绑定的情况下在验证者之间转移质押。
-- **取消解除委托**：在解绑期完成之前取消正在进行的解除绑定。
-- **查询方法**：读取验证者集合、委托记录、解除绑定记录和参数。
+- **解除委托**：开始从验证者解除绑定（代币在解绑期后可用）。
+- **重新委托**：在不解绑的情况下在验证者之间移动质押。
+- **取消解绑委托**：在解绑期完成之前撤销正在进行的解绑。
+- **查询方法**：读取验证者集、委托记录、解绑记录和参数。
 
 ## 授权语义
 
-预编译合约执行两个检查：
+预编译执行两次检查：
 
 1. 绑定面额（质押代币）必须在链初始化时注册。在 Stable 上，这是 STABLE 代币。
-2. 调用者必须与被修改状态的验证者或委托者匹配。您不能通过直接调用预编译合约来代表他人进行委托。
+2. 调用者必须与正在修改状态的验证者或委托人匹配。您不能通过直接调用预编译来代表他人委托。
 
 ## 解绑完成
 
-当解绑期结束时，代币变得可流通，但 SDK 会悄悄地处理此过程，EVM 不会看到直接事件。Stable 的[系统交易](/cn/explanation/system-transactions)机制弥合了这一点：一旦解绑完成，协议通过 `StableSystem` 预编译合约发出 `UnbondingCompleted` 事件，因此 dApp 可以通过标准 EVM 日志订阅。
+当解绑期结束时，代币变为流动性，但 SDK 会悄悄处理，EVM 看不到直接事件。Stable 的[系统交易](/cn/explanation/system-transactions)机制弥合了这一点：一旦解绑清除，协议会通过 `StableSystem` 预编译发出 `UnbondingCompleted` 事件，因此 dApp 可以通过标准 EVM 日志订阅。
 
-## 何时使用
+## 何时使用它
 
-- 质押协议通过保险库合约管理委托：当用户存入和取出时调用 `delegate` 和 `undelegate`。
-- 治理仪表板需要一个实时的验证者集合：使用查询方法。
-- 重质押或流动性质押产品跟踪解绑完成：订阅 `UnbondingCompleted` 事件（一旦该指南发布，请参见[跟踪解绑完成](/cn/how-to/track-unbonding)）。
+- 质押协议从保管库合约管理委托：在用户存入和取出时调用 `delegate` 和 `undelegate`。
+- 治理仪表板需要实时验证者集：使用查询方法。
+- 重质押或流动质押产品跟踪解绑完成：订阅 `UnbondingCompleted` 事件，参考[跟踪解绑完成](/cn/how-to/track-unbonding)。
 
-## 何处查找 ABI
+## ABI 的查找位置
 
-完整的方法签名、结构定义和发出的事件在[Stake 预编译合约参考](/cn/reference/staking-module-api)中。
+完整的方法签名、结构定义和发出的事件在[质押预编译参考](/cn/reference/staking-module-api)中。
 
-## 推荐阅读
+## 下一步去哪里
 
-- [**Stake 预编译合约参考**](/cn/reference/staking-module-api)：调用 `delegate`、`undelegate`、`redelegate` 并读取验证者状态。
+- [**质押预编译参考**](/cn/reference/staking-module-api)：调用 `delegate`、`undelegate`、`redelegate` 并读取验证者状态。
 - [**系统交易**](/cn/explanation/system-transactions)：了解解绑完成如何以事件形式到达 EVM。
-- [**分发模块**](/cn/explanation/distribution-module)：提取此处管理的委托所赚取的奖励。
+- [**分发模块**](/cn/explanation/distribution-module)：提取从此处管理的委托中获得的奖励。

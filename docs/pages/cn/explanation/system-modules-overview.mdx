@@ -1,39 +1,39 @@
 ---
 source_path: explanation/system-modules-overview.mdx
-source_sha: e9d156bb03d4413c1981f308ba7c076759d9baa8
+source_sha: 844ae01965c8d027ec16cf10164b75b94fdb3078
 title: "系统模块"
-description: "从 EVM 调用质押、分发和银行操作。Stable 将 Cosmos-SDK 协议模块作为预编译合约公开，无需重写。"
+description: "了解 EVM 合约如何通过固定地址预编译调用 Stable SDK 模块。"
 diataxis: "explanation"
 ---
 
 # 系统模块
 
-Stable 的核心协议行为存在于 SDK 模块中： `x/bank` 、 `x/distribution` 和 `x/staking` 。为了使 EVM 可以访问此行为，Stable 将每个模块作为**预编译合约**公开在固定地址。用 Solidity 编写的合约直接调用预编译，EVM 将调用路由到原生 SDK 处理程序。预编译是在协议级别实现的，因此它们比等效的 Solidity 重新实现节省了更多的 gas。
+Stable 的核心协议行为存在于 `x/bank`、`x/distribution` 和 `x/staking` 等 SDK 模块中。固定地址预编译将 Solidity 调用路由到其原生 SDK 处理程序，而无需在应用程序合约中重复协议逻辑。
 
-## 这三个模块
+## 三个模块
 
-| 模块 | 预编译地址 | 用途 |
+| **模块** | **预编译地址** | **用途** |
 | :--- | :--- | :--- |
-| [银行](/cn/explanation/bank-module) | `0x0000…1003` (STABLE) | 代币转账、余额记账、津贴管理、授权合约的铸造/销毁。 |
+| [银行](/cn/explanation/bank-module) | `0x0000…1003` (STABLE) | 代币转账、余额记账、授权管理、授权合约的铸造/销毁。 |
 | [分发](/cn/explanation/distribution-module) | `0x0000…0801` | 质押奖励认领、奖励查询、提款地址管理。 |
-| [质押](/cn/explanation/staking-module) | `0x0000…0800` | 委托、取消委托、重新委托、验证器查询。 |
-| [系统交易](/cn/explanation/system-transactions) | `0x0000…9999` | SDK 层操作（例如解除绑定完成）的协议发出的 EVM 事件。 |
+| [质押](/cn/explanation/staking-module) | `0x0000…0800` | 委托、解除委托、重新委托、验证人查询。 |
+| [系统交易](/cn/explanation/system-transactions) | `0x0000…9999` | 保证区块空间通道查询和协议发出的 EVM 事件。 |
 
-上面每个页面都解释了模块的功能、何时使用以及在哪里可以找到其 ABI。
+上面每个页面都解释了模块的功能、何时使用以及在哪里找到其 ABI。
 
 ## 为什么是预编译，而不是 Solidity
 
 原因有二：
 
-- **Gas 效率。** 预编译在协议的原生执行路径中运行。等效的 Solidity 合约将重新实现相同的逻辑，但 gas 成本明显更高。
-- **单一事实来源。** 质押、分发和代币供应是协议级状态。通过预编译公开它们可以避免维护重复的 Solidity 实现，这可能会偏离 SDK。
+- **燃气效率。** 预编译在协议的原生执行路径中运行。等效的 Solidity 合约将重新实现相同的逻辑，但燃气成本会显著提高。
+- **单一事实来源。** 质押、分发和代币供应是协议级状态。通过预编译暴露它们可以避免维护一个可能偏离 SDK 的重复 Solidity 实现。
 
 ## 授权
 
-某些预编译方法（`mint`、`burn`、协议级质押操作）需要调用者授权。`x/precompile` 模块维护一个链上白名单，未注册合约的调用会回滚。这使得特权操作受到治理限制，同时不阻止 EVM 对读/转账方法的通用使用。
+一些预编译方法（`mint`、`burn`、协议级质押操作）需要调用者授权。`x/precompile` 模块维护一个链上白名单，未注册合约的调用将被回滚。这使得特权操作受治理限制，同时不影响读/转账方法的通用 EVM 使用。
 
-## 下一步建议
+## 下一步
 
-- [**银行模块**](/cn/explanation/bank-module)：了解代币转账、津贴和铸造/销毁授权模型。
-- [**质押模块**](/cn/explanation/staking-module)：了解委托和验证器管理如何到达 EVM。
-- [**系统交易**](/cn/explanation/system-transactions)：了解解除绑定完成等协议级事件如何作为 EVM 日志显示。
+- [**银行模块**](/cn/explanation/bank-module)：了解代币转账、授权以及铸造/销毁授权模型。
+- [**质押模块**](/cn/explanation/staking-module)：查看委托和验证人管理如何触达 EVM。
+- [**系统交易**](/cn/explanation/system-transactions)：了解协议级事件（如解除绑定完成）如何作为 EVM 日志出现。

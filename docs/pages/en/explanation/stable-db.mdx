@@ -6,10 +6,10 @@ diataxis: "explanation"
 
 # Storage (StableDB)
 
-Stable v1.4.0 replaces the LevelDB-backed state store with MemIAVL. MemIAVL keeps one state snapshot in a memory-mapped file and records each new block's changes in a sequential write-ahead log.
+Stable v1.8.0 uses MemIAVL instead of the previous LevelDB-backed state store. MemIAVL keeps one state snapshot in a memory-mapped file and records each new block's changes in a sequential write-ahead log.
 
 :::note
-MemIAVL is live in the v1.4.0 Testnet release candidate. The Mainnet upgrade schedule is still pending. Track [Network upgrades](/en/reference/network-upgrades) for rollout status.
+MemIAVL and VersionDB are live on Mainnet. Stable v1.8.0 also hardens WAL recovery, snapshot publication and rollback, state sync, and historical-query resource cleanup.
 :::
 
 ## Why disk I/O is a bottleneck
@@ -65,16 +65,16 @@ MemIAVL serves the current state and the snapshots a node retains. A companion V
 
 You need VersionDB when the node must answer historical state queries older than its earliest retained MemIAVL snapshot. This is especially important for archive nodes and RPC services that expose long-range queries.
 
-## Migration considerations
+## Upgrade considerations
 
-Existing nodes must migrate their LevelDB state when they adopt v1.4.0. The recommended path is a local snapshot export and restore.
+Stable Mainnet activated v1.8.0 at block `36,976,000`. The documented upgrade replaced the binary and both configuration files without a state export or snapshot reset.
 
-Benchmarks measured an average of 19.4 seconds of downtime per validator for the standard restore. A parallel restore variant reduced the average to approximately 2.6 seconds.
+The v1.8.0 configuration files add settings used by the new storage and proposal paths. Back up `config.toml` and `app.toml`, install the v1.8.0 templates, then restore every node-specific setting.
 
-Validators can migrate one at a time in round-robin order. Keeping at least two-thirds of voting power online lets the network continue producing blocks during the migration.
+Archive-node operators must also restore their previous pruning settings. The distributed `app.toml` template uses default pruning, and pruned history cannot be recovered from the local node.
 
 :::warning
-These times are benchmark results, not a downtime guarantee. Follow the network-specific upgrade instructions for the final binary, upgrade height, backup, and restore commands.
+Do not reuse a pre-v1.8.0 configuration file unchanged. Follow the [node upgrade guide](/en/how-to/upgrade-node) to replace both templates and restore your operational settings.
 :::
 
 ## Further reading
@@ -91,4 +91,4 @@ For more technical deep-dives and implementation details, refer to:
 - [**High performance RPC**](/en/explanation/high-performance-rpc): See how the RPC layer exposes state reads without contending with writes.
 - [**Execution**](/en/explanation/execution): Understand how execution writes into the storage layer covered here.
 - [**Upgrade a node**](/en/how-to/upgrade-node): Prepare backups and verify a node after a coordinated upgrade.
-- [**Network upgrades**](/en/reference/network-upgrades): Review the complete v1.4.0 scope and rollout status.
+- [**Network upgrades**](/en/reference/network-upgrades): Review the v1.8.0 scope and activation details.

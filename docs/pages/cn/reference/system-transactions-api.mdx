@@ -1,360 +1,179 @@
 ---
 source_path: reference/system-transactions-api.mdx
-source_sha: 14ee7e0538b5323f809b63454db35d954d8db488
+source_sha: a8f5d4cbdfe52da5101751e74b8efb7a8390d16d
 title: "系统交易参考"
-description: "StableSystem 预编译参考：接口、发送者授权、批处理限制和 gas 计费。"
+description: "通过 StableSystem 预编译查询有保证的块空间通道并消费协议事件。"
 diataxis: "reference"
 ---
 
 # 系统交易参考
 
+`StableSystem` 预编译通过固定的 EVM 合约接口暴露 Stable 协议数据和事件。在 v1.8.0 中，任何客户端都可以查询有保证的块空间注册表，而只有协议生成的交易才能发出系统日志。
+
 :::note
-**概念：** 关于系统交易如何将 SDK 事件桥接到 EVM 以及为什么这很重要，请参阅[系统交易](/cn/explanation/system-transactions)。
+有关系统交易流程及其安全模型，请参阅[系统交易](/cn/explanation/system-transactions)。
 :::
 
-## 摘要
+## 合约
 
-系统交易为 Stable 协议提供了一种为 Stable SDK 操作发出 EVM 事件的方式。当诸如解绑完成之类的质押事件在 SDK 层发生时，协议会自动生成发出相应事件的 EVM 交易。这使得这些操作对 EVM 工具和应用程序完全可见。
+预编译在主网和测试网上使用相同的地址：
 
-## 动机
+`0x0000000000000000000000000000000000009999`
 
-你和你在 Stable 上的应用程序期望通过标准的 EVM 接口（如 `eth_getLogs`）来监控区块链事件。但关键操作发生在 Stable SDK 模块中，而这些模块本身不会自然地发出 EVM 事件。这造成了可见性缺口：EVM dApp 无法轻松追踪用户的代币何时完成解绑。
+| **方法** | **选择器** | **访问** | **Gas 限制** | **目的** |
+| :--- | :--- | :--- | :--- | :--- |
+| `blockspaceLanes()` | `0x2c0ac3be` | 任何人，只读 | `10,000` | 返回活跃的企业和交易类型通道注册表。 |
+| `notifySystemTxLogs()` | `0xe8e983b7` | 仅限系统交易发送方 | `50,000` | 处理最多 100 个排队的系统日志条目。 |
 
-系统交易弥补了这一缺口。当质押模块完成一个解绑操作时，Stable 的 x/stable 模块会检测到该事件并生成一个调用 StableSystem 预编译（`0x0000000000000000000000000000000000009999`）的系统交易。然后，预编译会发出任何 dApp 都可以订阅的正确 EVM 事件。系统交易以一个特殊的发送者地址（`0x8888888888888888888888888888888888888888`）运行，只有协议才能使用该地址。这可以防止任何人伪造协议事件，同时保持事件发出过程无需信任且可在链上验证。
-
-## 规范
-
-系统交易通过三个主要组件运作：x/stable 模块的 EndBlocker、PrepareProposal 处理器以及 StableSystem 预编译。
-
-### 架构概览
-
-<img
-  className="block"
-  src="/images/system-transaction-architecture.png"
-  alt="system-transaction-architecture"
-/>
-
-### StableSystem 预编译
-
-StableSystem 预编译位于 `0x0000000000000000000000000000000000009999`，处理需要发出 EVM 事件的协议级操作。目前它支持解绑完成通知。
+使用此 Solidity 接口获取 v1.8.0 ABI：
 
 ```solidity
-interface IStableSystem {
-    /// @notice Processes queued unbonding completions and emits EVM events
-    /// @param blockHeight The block height at which to process completions
-    /// @dev Only callable by system transactions (from = 0x8888888888888888888888888888888888888888)
-    /// @dev Processes up to 100 completions per call
-    /// @dev Automatically deletes processed completions from the queue
-    function notifyUnbondingCompletions(int64 blockHeight) external;
-
-    /// @notice Emitted when an unbonding operation completes
-    /// @param delegator The address that delegated the tokens
-    /// @param validator The validator address the tokens were delegated to
-    /// @param amount The amount of tokens that finished unbonding (in uusdc)
-    event UnbondingCompleted(
-        address indexed delegator,
-        address indexed validator,
-        uint256 amount
-    );
-
-    /// @notice The caller is not authorized (not system transaction sender)
-    error Unauthorized();
+// SAFE: This interface matches the Stable v1.8.0 StableSystem ABI.
+struct EnterpriseLane {
+    uint64 id;
+    string name;
+    uint32 weight;
 }
-```
 
-### 系统交易发送者
+struct TxTypeLane {
+    uint64 id;
+    string name;
+    address[] toAddrs;
+    bytes4[] methods;
+    uint8[] txTypes;
+    uint64[] nonceKeys;
+    address[] senders;
+    uint32 weight;
+    bool noOverflow;
+}
 
-系统交易使用 `0x8888888888888888888888888888888888888888` 作为发送者地址。该地址：
+struct BlockspaceLanes {
+    uint32 maxBlockspaceGasWeight;
+    EnterpriseLane[] enterpriseLanes;
+    TxTypeLane[] txTypeLanes;
+}
 
-- 不需要签名验证
-- 只能由在 PrepareProposal 中创建的交易使用
-- 无法被用户或合约伪造
-- 通过 SystemTxDecorator ante 处理器跳过手续费扣除
-
-EVM 通过检查 `msg.sender == 0x8888888888888888888888888888888888888888` 来识别系统交易。预编译可以利用这一点来限制仅协议可执行的操作。
-
-### 事件驱动流程
-
-当用户的解绑期完成时，会发生以下情况：
-
-1. **Stable SDK 层：** 质押模块的 EndBlocker 完成解绑，并发出 EventTypeCompleteUnbonding，其中包含委托人地址、验证者地址和金额。
-2. **检测：** x/stable 模块的 EndBlocker 在质押之后运行，并扫描区块事件日志中的解绑事件。对于每个完成的解绑，它都会在状态中排入一个条目，包含委托人地址、验证者地址、金额和区块高度。
-3. **系统交易生成**：在下一个区块的 PrepareProposal 中，应用查询所有排队的完成项。如果存在任何完成项，它会创建一个调用 StableSystem.notifyUnbondingCompletions(blockHeight) 的系统交易，并传入当前区块高度。该交易位于区块的最前面，在任何用户交易之前。
-4. **执行：** 在区块执行期间，系统交易最先运行。预编译查询该区块高度下排队的完成项的状态，为每一项（最多 100 项）发出一个 UnbondingCompleted 事件，并将它们从队列中删除。
-5. **EVM 可见性：** 这些事件出现在交易收据和日志中，可被 eth\_getLogs 查询、区块浏览器以及任何监控 StableSystem 预编译的应用程序看到。
-
-### 批处理
-
-为了防止区块变得过大，系统每个区块最多处理 100 个解绑完成项。如果有 150 个完成项排队：
-
-- 区块 N：创建处理完成项 0-99 的系统交易
-- 区块 N+1：创建处理完成项 100-149 的系统交易
-
-预编译直接查询状态，而不是在 calldata 中接收完成数据。这使得交易大小可预测，并将数据从昂贵的 calldata 转移到更便宜的状态读取。
-
-## 使用示例
-
-最常见的用例是一个质押仪表盘，需要在用户的解绑期完成时通知用户。以下是如何为解绑完成设置监听器。
-
-```javascript
-import { ethers } from 'ethers';
-
-// StableSystem precompile address
-const STABLE_SYSTEM_ADDRESS = '0x0000000000000000000000000000000000009999';
-
-// ABI for the UnbondingCompleted event
-const STABLE_SYSTEM_ABI = [
-  'event UnbondingCompleted(address indexed delegator, address indexed validator, uint256 amount)'
-];
-
-// Connect to the Stable network
-const provider = new ethers.JsonRpcProvider('https://rpc.testnet.stable.xyz');
-const stableSystem = new ethers.Contract(
-  STABLE_SYSTEM_ADDRESS,
-  STABLE_SYSTEM_ABI,
-  provider
-);
-
-// Subscribe to all unbonding completions
-stableSystem.on('UnbondingCompleted', (delegator, validator, amount, event) => {
-  console.log('Unbonding completed!');
-  console.log('Delegator:', delegator);
-  console.log('Validator:', validator);
-  console.log('Amount:', ethers.formatEther(amount), 'tokens');
-  console.log('Block:', event.log.blockNumber);
-  console.log('Tx Hash:', event.log.transactionHash);
-});
-
-```
-
-每当任何用户的解绑完成时，此监听器都会触发。对于生产环境的 dApp，请按如下所示为特定用户过滤事件。
-
-### 为特定用户过滤事件
-
-要仅接收特定委托人地址的事件，请使用索引事件参数来创建过滤器：
-
-```javascript
-// Only watch unbondings for a specific user
-const userAddress = '0xabcd...';
-
-const filter = stableSystem.filters.UnbondingCompleted(userAddress);
-
-stableSystem.on(filter, (delegator, validator, amount, event) => {
-  // This only fires for the specified user's unbondings
-  showNotification(`Your unbonding of ${ethers.formatEther(amount)} tokens completed!`);
-  refreshUserBalance(userAddress);
-});
-```
-
-如果你正在构建一个特定于验证者的仪表盘，也可以按验证者过滤：
-
-```javascript
-// Watch all unbondings from a specific validator
-const validatorAddress = '0x1234...';
-
-const validatorFilter = stableSystem.filters.UnbondingCompleted(null, validatorAddress);
-
-stableSystem.on(validatorFilter, (delegator, validator, amount) => {
-  updateValidatorStats(validator, amount);
-});
-```
-
-### 查询历史事件
-
-如果你的 dApp 需要显示过去解绑完成的历史记录，你可以使用带有区块范围的事件过滤器来查询历史事件：
-
-```javascript
-// Get all unbondings for a user in the last 1000 blocks
-const currentBlock = await provider.getBlockNumber();
-const filter = stableSystem.filters.UnbondingCompleted(userAddress);
-
-const events = await stableSystem.queryFilter(
-  filter,
-  currentBlock - 1000,
-  currentBlock
-);
-
-const unbondingHistory = events.map(event => ({
-  delegator: event.args.delegator,
-  validator: event.args.validator,
-  amount: ethers.formatEther(event.args.amount),
-  blockNumber: event.blockNumber,
-  txHash: event.transactionHash
-}));
-
-console.log('Recent unbondings:', unbondingHistory);
-
-```
-
-## 集成指南
-
-### 步骤 1：添加 Stable System 合约接口
-
-首先，将 StableSystem 预编译接口添加到你的项目中。如果你使用的是 Foundry 或 Hardhat，请创建一个新的接口文件：
-
-```solidity
 interface IStableSystem {
     event UnbondingCompleted(
         address indexed delegator,
         address indexed validator,
+        uint64 indexed originBlockHeight,
         uint256 amount
     );
+
+    function notifySystemTxLogs() external;
+
+    function blockspaceLanes()
+        external
+        view
+        returns (BlockspaceLanes memory lanes);
 }
 ```
 
-如果你正在构建一个没有 Solidity 合约的纯前端 dApp，你只需要事件的 ABI 片段：
+## `blockspaceLanes()`
 
-```javascript
-const STABLE_SYSTEM_ABI = [
-  'event UnbondingCompleted(address indexed delegator, address indexed validator, uint256 amount)'
-];
+`blockspaceLanes()` 返回在块提案和验证期间使用的由治理控制的通道注册表。它是一个普通的 `eth_call`，而不是自定义的 JSON-RPC 方法，并且不需要企业网关。
+
+两个通道数组都按 `id` 升序排序。较低的 ID 具有较高的匹配优先级。
+
+### 返回值
+
+| **字段** | **类型** | **描述** |
+| :--- | :--- | :--- |
+| `maxBlockspaceGasWeight` | `uint32` | 所有配置通道中保留的块 gas 限制的百分比，从 0 到 100。 |
+| `enterpriseLanes` | `EnterpriseLane[]` | 企业通道定义。治理最多允许一个企业通道。 |
+| `txTypeLanes` | `TxTypeLane[]` | 匹配规则检查交易字段的通道。 |
+
+### 企业通道
+
+任何 `CustomTx`，其 `NonceKey` 的第 63 位设置，都路由到配置的企业通道，除了 `MaxUint64`。较低的 63 位选择一个独立的 nonce 通道，而不是一个通道。
+
+| **字段** | **类型** | **描述** |
+| :--- | :--- | :--- |
+| `id` | `uint64` | 耗尽顺序优先级和标识符。 |
+| `name` | `string` | 人类可读的通道名称。 |
+| `weight` | `uint32` | 分配给通道的保留块空间池的百分比，从 0 到 100。 |
+
+### 交易类型通道
+
+交易必须匹配所有已填充的匹配器字段。一个字段内的条目是替代项，空匹配器是通配符。
+
+| **字段** | **类型** | **描述** |
+| :--- | :--- | :--- |
+| `id` | `uint64` | 通道优先级和标识符。较低的 ID 优先匹配。 |
+| `name` | `string` | 人类可读的通道名称。 |
+| `toAddrs` | `address[]` | 允许的目标地址。空值匹配任何目标。 |
+| `methods` | `bytes4[]` | 允许的四字节函数选择器。空值匹配任何选择器。 |
+| `txTypes` | `uint8[]` | 允许的交易格式。空值或 `0` 条目匹配任何格式。 |
+| `nonceKeys` | `uint64[]` | 允许的 nonce 键。空值或 `0` 条目匹配任何键。 |
+| `senders` | `address[]` | 允许的发送方地址。空值匹配任何发送方。 |
+| `weight` | `uint32` | 分配给通道的保留块空间池的百分比，从 0 到 100。 |
+| `noOverflow` | `bool` | 当为 `true` 时，未使用的容量不会级联到后续通道。 |
+
+`txTypes` 使用这些 `TxFormat` 值：
+
+| **值** | **交易格式** | **EVM 类型** |
+| :--- | :--- | :--- |
+| `0` | 通配符 | 任何 |
+| `1` | 传统 | `0x00` |
+| `2` | 访问列表 | `0x01` |
+| `3` | 动态费用 | `0x02` |
+| `4` | 设置代码 | `0x04` |
+| `5` | 二维 nonce | `0x3F` |
+
+### 查询注册表
+
+使用 Foundry 的 `cast` 命令调用预编译：
+
+```bash
+cast call \
+  0x0000000000000000000000000000000000009999 \
+  "blockspaceLanes()((uint32,(uint64,string,uint32)[],(uint64,string,address[],bytes4[],uint8[],uint64[],address[],uint32,bool)[]))" \
+  --rpc-url https://rpc.stable.xyz
 ```
 
-### 步骤 2：设置事件监听器
+v1.8.0 主网激活时，播种了一个 20% 的保留池和一个企业通道，该通道占用池的 50%。治理可以更改此输出。
 
-初始化你的 ethers.js provider，并创建一个指向 StableSystem 预编译地址的合约实例。该预编译在 Stable 测试网和 Stable 主网上始终部署于 `0x00000000000....0000009999`。
-
-*注意：该预编译尚未部署在 Stable 主网上，将在 v1.2.0 升级后提供。*
-
-```javascript
-const provider = new ethers.JsonRpcProvider(RPC_URL);
-const stableSystem = new ethers.Contract(
-  '0x0000000000000000000000000000000000009999',
-  STABLE_SYSTEM_ABI,
-  provider
-);
+```text
+(20, [(1, "enterprise", 50)], [])
 ```
 
-### 步骤 3：在应用程序逻辑中处理事件
+## `notifySystemTxLogs()`
 
-订阅事件并相应地更新你的应用程序状态。常见的模式包括：
+`notifySystemTxLogs()` 从状态中读取排队的协议日志条目，每次调用最多处理 100 个。它不接受任何参数，也不返回任何值。
 
-- **余额更新**：当解绑完成时，刷新用户的代币余额
-- **通知系统**：当用户的解绑完成时显示弹窗通知
-- **仪表盘统计**：实时更新质押指标和图表
-- **交易历史**：将已完成的解绑添加到用户的活动动态中
+只有发送方为 `0x0000000000000000000000000000000000000001` 的系统交易才能调用此方法。来自用户或合约的调用将回滚。
 
-### 步骤 4：处理连接问题
+当解除绑定完成时，流程如下：
 
-由于事件订阅依赖于持久的 websocket 连接，请为生产环境的 dApp 实现重连逻辑：
+1. 质押模块完成操作并记录其 SDK 事件。
+2. `x/stable` 模块将事件数据及其原始块高排入队列。
+3. 下一个块提议者创建一个调用 `notifySystemTxLogs()` 的系统交易。
+4. 预编译为最多 100 个排队条目发出 EVM 日志。
+5. 客户端通过 `eth_getLogs`、WebSocket 订阅或区块浏览器读取日志。
 
-```javascript
-let reconnectAttempts = 0;
-const MAX_RECONNECT_ATTEMPTS = 5;
+超出批处理限制的条目将继续排队等待后续区块。
 
-function setupEventListener() {
-  const provider = new ethers.WebSocketProvider('wss://rpc.testnet.stable.xyz');
+## `UnbondingCompleted` 事件
 
-  provider.on('error', (error) => {
-    console.error('Provider error:', error);
-    if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-      reconnectAttempts++;
-      setTimeout(() => setupEventListener(), 5000);
-    }
-  });
+| **参数** | **类型** | **索引** | **描述** |
+| :--- | :--- | :--- | :--- |
+| `delegator` | `address` | 是 | 其委托代币完成解除绑定的地址。 |
+| `validator` | `address` | 是 | 从其验证者操作员地址派生的验证者地址。 |
+| `originBlockHeight` | `uint64` | 是 | SDK 层解除绑定最初完成时的块高。 |
+| `amount` | `uint256` | 否 | 完成解除绑定的数量。 |
 
-  const stableSystem = new ethers.Contract(
-    '0x0000000000000000000000000000000000009999',
-    STABLE_SYSTEM_ABI,
-    provider
-  );
+EVM 日志出现在包含系统交易的区块中。当您需要原始 SDK 事件的高度时，请使用 `originBlockHeight`。
 
-  stableSystem.on('UnbondingCompleted', handleUnbonding);
-}
-```
+## 安全模型
 
-## 为什么采用这种方法？
+- 协议在区块提案期间创建系统交易。
+- EVM 状态转换规则为系统交易保留发送方 `0x0000000000000000000000000000000000000001`。
+- 用户交易无法伪造发送方或成功调用 `notifySystemTxLogs()`。
+- `blockspaceLanes()` 有意公开，不能更改状态。
 
-### 与自定义索引器相比
+## 下一步
 
-以前，Stable SDK 要求你运行自定义索引器来监视 SDK 事件并将它们存储在数据库中。这增加了运维开销并引入了潜在的故障点。
-
-有了系统交易，就不再需要单独的索引器基础设施。事件通过 EVM 的日志系统原生可用，而每个 RPC 节点都已经对其进行了索引和服务。任何标准的 web3 库都可以订阅这些事件，而无需额外的工具。
-
-### 与轮询 SDK 端点相比
-
-如果没有系统交易，EVM dApp 将需要定期调用 Stable SDK REST 端点来检查解绑期是否已完成。这会带来几个问题：
-
-- **延迟增加**：5-10 秒的轮询间隔意味着用户可能要等待那么长时间才能看到更新
-- **负载更高**：每个 dApp 实例轮询端点都会增加 RPC 基础设施的负载
-- **复杂性**：dApp 需要同时处理 web3 provider（用于 EVM 交互）和 Stable SDK REST 客户端（用于 SDK 查询）
-- **没有实时更新**：轮询本质上无法提供即时通知
-
-系统交易通过 dApp 已经用于 EVM 交互的相同 websocket 连接提供实时事件通知。这简化了开发者体验并降低了基础设施成本。
-
-## 安全保证
-
-### 无需信任的事件发出
-
-系统交易在 `PrepareProposal` ABCI 阶段创建，只有验证者才能执行该阶段。用户提交的交易无法伪造系统发送者地址（`0x8888888888888888888888888888888888888888`）。EVM 的状态转换逻辑强制规定只有发往 StableSystem 预编译地址的交易才能跳过签名验证。
-
-这意味着：
-
-- 用户无法伪造解绑完成事件
-- 用户无法从自己的交易中调用 `notifyUnbondingCompletions`
-- 发出 `UnbondingCompleted` 事件的唯一方式是 Stable SDK 质押模块中实际完成一次解绑
-
-### 没有额外的信任假设
-
-系统交易不会在区块链共识所需的基础上引入新的安全假设。如果你信任验证者正确地执行区块，你就可以信任系统交易事件准确地反映了 Stable SDK 的状态变化。
-
-事件发出过程是确定性的：给定 `EndBlock` 中相同的 SDK 事件，所有诚实的验证者都会在 `PrepareProposal` 期间生成相同的系统交易。共识机制确保验证者就要包含哪些系统交易达成一致。
-
-### 区块最终性
-
-Stable 区块链通过 StableBFT 的共识机制实现快速最终性。一旦区块被提交，它立即成为最终状态且无法重组。这意味着一旦你收到 `UnbondingCompleted` 事件，你就可以信任它是永久性的。
-
-无需像在概率最终性链上那样等待多次确认。dApp 可以在收到事件后立即更新用户余额并显示通知。
-
-## 性能与限制
-
-### 批处理大小约束
-
-每个区块通过系统交易最多处理 100 个解绑完成项。这一限制的存在是为了防止在解绑活动高峰期间区块大小无限制增长。
-
-实际上，假设平均出块时间为 0.7 秒，每个区块 100 个完成项可提供每分钟约 9000 个完成项的吞吐量。正常的质押活动很少达到这一限制。在特殊情况下，完成项可能会排队数个区块才能完全处理。
-
-### Gas 消耗
-
-系统交易在执行期间消耗 gas，这会计入区块的 gas 限制中。gas 成本与处理的完成项数量呈线性关系：
-
-- 基础函数调用：约 21,000 gas
-- 每个事件发出：约 3,000 gas
-- 读取状态：每个完成项约 2,000 gas
-
-一个完整的 100 个完成项批次消耗约 521,000 gas。由于 Stable 的区块 gas 限制为 100,000,000，这还不到可用区块空间的 0.6%。
-
-### 通知延迟
-
-当解绑期在区块 N 期间完成时：
-
-1. Stable 模块的 `EndBlock` 在区块 N 的状态中将完成项排队
-2. 区块 N+1 的 `PrepareProposal` 创建一个系统交易
-3. 系统交易在区块 N+1 期间执行，发出事件
-
-这意味着在解绑完成和 EVM 事件被发出之间存在一个区块的延迟（约 0.7 秒）。对于大多数用例来说，这一延迟是可以接受的，因为解绑期本身就是 7 天。
-
-### 高负载场景
-
-如果解绑完成项的到达速度快于每个区块 100 个，它们会在队列中累积。队列按 FIFO 顺序处理，因此最旧的完成项总是最先被通知。
-
-在持续的高负载期间，队列可能会暂时增长。然而，一旦峰值消退，后续完成项较少的区块将逐渐排空队列。该系统旨在处理突发情况而不丢失事件。
-
-## 未来扩展
-
-系统交易机制为将任何 Stable SDK 操作桥接到 EVM 事件空间提供了一种通用模式。虽然目前仅用于解绑完成，但该架构可以扩展以涵盖更多用例：
-
-### 质押操作
-
-除了解绑之外，其他质押事件也可以发出 EVM 通知：
-
-- 验证者更改佣金率
-- 验证者监禁和解除监禁
-
-### 治理执行
-
-当治理提案通过并执行时，系统交易可以发出带有提案 ID 和执行结果的事件。这将允许 dApp 对参数更改或升级做出反应，而无需轮询治理模块。
-
-### 通用事件桥
-
-该模式可以泛化为一个可配置的事件桥，其中每个模块注册哪些 SDK 事件应被镜像到 EVM。这将提供对所有 Stable SDK 操作的全面可见性，而无需为每个模块定制逻辑。关键的架构原则是系统交易始终是协议级功能，仅由验证者在区块提议期间创建。
+- [**有保证的块空间**](/cn/explanation/guaranteed-blockspace)：了解返回的权重和匹配器如何控制保留容量。
+- [**跟踪解除绑定完成**](/cn/how-to/track-unbonding)：订阅 `UnbondingCompleted` 并查询历史事件。
+- [**系统交易**](/cn/explanation/system-transactions)：了解协议事件如何成为 EVM 日志。

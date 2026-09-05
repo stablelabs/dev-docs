@@ -1,34 +1,34 @@
 ---
 source_path: how-to/track-unbonding.mdx
-source_sha: 5c4d430a5edb73996ba773710b260c58025a04d8
+source_sha: 5918da4d054d3399391dee083017aa5d5317dbfd
 title: "언본딩 완료 추적"
-description: "시스템 트랜잭션을 통해 StableSystem 사전 컴파일러가 내보내는 UnbondingCompleted 이벤트를 구독하세요. 사용자 또는 검증인별로 필터링하고 과거 이벤트를 쿼리하세요."
+description: "사용자 또는 검증자에 의한 UnbondingCompleted를 구독하고, StableSystem을 통해 과거 이벤트를 쿼리합니다."
 diataxis: "how-to"
 ---
 
 # 언본딩 완료 추적
 
-언본딩 기간이 완료되면 프로토콜은 시스템 트랜잭션을 통해 `StableSystem` 사전 컴파일러 (`0x0000000000000000000000000000000000009999`)를 통해 `UnbondingCompleted` 이벤트를 내보냅니다. 이를 통해 dApp은 사용자 지정 인덱서를 실행하거나 REST 엔드포인트를 폴링하지 않고도 사용자에게 알리고 실시간으로 잔액을 업데이트할 수 있습니다.
+언본딩 기간이 완료되면 프로토콜은 시스템 트랜잭션을 통해 `StableSystem` 프리컴파일(`0x0000000000000000000000000000000000009999`)을 통해 `UnbondingCompleted` 이벤트를 발생시킵니다. 이를 통해 dApp은 사용자에게 알림을 보내고, 사용자 정의 인덱서를 실행하거나 REST 엔드포인트를 폴링하지 않고도 실시간으로 잔액을 업데이트할 수 있습니다.
 
 :::note
-**개념:** 시스템 트랜잭션이 SDK 계층 이벤트를 EVM에 연결하는 방법과 그것이 중요한 이유에 대해서는 [시스템 트랜잭션](/ko/explanation/system-transactions)을 참조하세요.
+**개념:** 시스템 트랜잭션이 SDK-계층 이벤트를 EVM에 어떻게 연결하는지, 그리고 왜 중요한지에 대한 내용은 [시스템 트랜잭션](/ko/explanation/system-transactions)을 참조하세요.
 :::
 
 ## 전제 조건
 
 - [시스템 트랜잭션](/ko/explanation/system-transactions)에 대한 이해.
 - [스테이킹](/ko/explanation/staking-module), 특히 `undelegate` 및 언본딩 프로세스에 대한 숙지.
-- 표준 web3 라이브러리 (예: [ethers.js](https://docs.ethers.org/) v6)를 사용한 컨트랙트 이벤트 구독 및 필터링 경험.
+- 표준 web3 라이브러리(예: [ethers.js](https://docs.ethers.org/) v6)를 사용한 컨트랙트 이벤트 구독 및 필터링 경험.
 
 ## 개요
 
-- **컨트랙트 인스턴스 설정**: StableSystem 사전 컴파일러에 대한 컨트랙트 인스턴스를 생성합니다.
+- **컨트랙트 인스턴스 설정**: StableSystem 프리컴파일을 위한 컨트랙트 인스턴스를 생성합니다.
 - **애플리케이션에서 이벤트 처리**: 애플리케이션 로직에 따라 실시간 이벤트를 구독하거나 과거 데이터를 쿼리합니다.
 - **연결 문제 처리**: 지속적인 WebSocket 구독을 위한 재연결 로직을 구현합니다.
 
 ## 1단계: 컨트랙트 인스턴스 설정
 
-`UnbondingCompleted` 이벤트 ABI를 사용하여 `StableSystem` 사전 컴파일러에 대한 컨트랙트 인스턴스를 생성합니다.
+`UnbondingCompleted` 이벤트 ABI를 사용하여 `StableSystem` 프리컴파일을 위한 컨트랙트 인스턴스를 생성합니다.
 
 ```typescript
 // config.ts
@@ -38,7 +38,7 @@ export const STABLE_SYSTEM_ADDRESS =
   "0x0000000000000000000000000000000000009999";
 
 export const STABLE_SYSTEM_ABI = [
-  "event UnbondingCompleted(address indexed delegator, address indexed validator, uint256 amount)",
+  "event UnbondingCompleted(address indexed delegator, address indexed validator, uint64 indexed originBlockHeight, uint256 amount)",
 ];
 
 export const provider = new ethers.JsonRpcProvider("https://rpc.testnet.stable.xyz");
@@ -49,31 +49,47 @@ export const stableSystem = new ethers.Contract(
 );
 ```
 
+```text
+출력 없음. StableSystem 컨트랙트 인스턴스는 쿼리 또는 구독할 준비가 되었습니다.
+```
+
 ## 2단계: 애플리케이션에서 이벤트 처리
 
-애플리케이션 로직에 따라 실시간 이벤트를 구독하거나 과거 데이터를 쿼리하거나 둘 다 수행합니다.
+애플리케이션 로직에 따라 실시간 이벤트를 구독하거나, 과거 데이터를 쿼리하거나, 둘 다 수행합니다.
 
 ### 실시간 구독
 
-언본딩이 완료될 때 실시간 알림을 위해 `UnbondingCompleted` 이벤트를 구독합니다. 잔액 업데이트 트리거, 알림 전송 또는 대시보드 통계 새로고침에 유용합니다.
+언본딩이 완료될 때 실시간 알림을 위해 `UnbondingCompleted` 이벤트를 구독합니다. 잔액 업데이트 트리거, 알림 전송 또는 대시보드 통계 새로 고침에 유용합니다.
 
 ```typescript
 // subscribeBasic.ts
+import { ethers } from "ethers";
 import { stableSystem } from "./config";
 
-stableSystem.on("UnbondingCompleted", (delegator, validator, amount, event) => {
+stableSystem.on("UnbondingCompleted", (delegator, validator, originBlockHeight, amount, event) => {
   console.log("Unbonding completed:");
   console.log("  Delegator:", delegator);
   console.log("  Validator:", validator);
+  console.log("  Origin block:", originBlockHeight.toString());
   console.log("  Amount:", ethers.formatEther(amount), "tokens");
   console.log("  Block:", event.log.blockNumber);
   console.log("  Tx Hash:", event.log.transactionHash);
 });
 ```
 
+```text
+Unbonding completed:
+  Delegator: 0xabcd...
+  Validator: 0x1234...
+  Origin block: 36975999
+  Amount: 100.0 tokens
+  Block: 36976000
+  Tx Hash: 0x12ab...
+```
+
 ### 사용자별 필터링
 
-특정 위임자 주소에 대한 이벤트만 수신하려면 인덱싱된 이벤트 매개변수를 사용하여 필터를 생성합니다.
+특정 위임자 주소에 대한 이벤트만 수신하려면, 인덱싱된 이벤트 매개변수를 사용하여 필터를 생성합니다.
 
 ```typescript
 // subscribeByUser.ts
@@ -83,15 +99,26 @@ import { stableSystem } from "./config";
 const userAddress = "0xabcd...";
 const filter = stableSystem.filters.UnbondingCompleted(userAddress);
 
-stableSystem.on(filter, (delegator, validator, amount, event) => {
-  refreshUserBalance(userAddress);
-  showNotification(
-    `Your unbonding of ${ethers.formatEther(amount)} tokens completed!`
-  );
+stableSystem.on(filter, (delegator, validator, originBlockHeight, amount) => {
+  console.log("User unbonding completed:", {
+    delegator,
+    validator,
+    originBlockHeight,
+    amount: ethers.formatEther(amount),
+  });
 });
 ```
 
-### 검증인별 필터링
+```text
+User unbonding completed: {
+  delegator: "0xabcd...",
+  validator: "0x1234...",
+  originBlockHeight: 36975999n,
+  amount: "100.0"
+}
+```
+
+### 검증자별 필터링
 
 ```typescript
 // subscribeByValidator.ts
@@ -103,14 +130,28 @@ const validatorFilter = stableSystem.filters.UnbondingCompleted(
   validatorAddress
 );
 
-stableSystem.on(validatorFilter, (delegator, validator, amount) => {
-  updateValidatorStats(validator, amount);
+stableSystem.on(validatorFilter, (delegator, validator, originBlockHeight, amount) => {
+  console.log("Validator unbonding completed:", {
+    delegator,
+    validator,
+    originBlockHeight,
+    amount,
+  });
 });
+```
+
+```text
+Validator unbonding completed: {
+  delegator: "0xabcd...",
+  validator: "0x1234...",
+  originBlockHeight: 36975999n,
+  amount: 100000000000000000000n
+}
 ```
 
 ### 과거 쿼리
 
-dApp에서 과거 언본딩 완료 기록을 표시해야 하는 경우 블록 범위가 있는 이벤트 필터를 사용하여 과거 이벤트를 쿼리합니다.
+dApp이 과거 언본딩 완료 기록을 표시해야 하는 경우, 블록 범위와 함께 이벤트 필터를 사용하여 과거 이벤트를 쿼리합니다.
 
 ```typescript
 // queryHistory.ts
@@ -128,6 +169,7 @@ async function getUnbondingHistory(
   return events.map((event) => ({
     delegator: event.args.delegator,
     validator: event.args.validator,
+    originBlockHeight: event.args.originBlockHeight,
     amount: ethers.formatEther(event.args.amount),
     blockNumber: event.blockNumber,
     txHash: event.transactionHash,
@@ -140,11 +182,26 @@ const history = await getUnbondingHistory(
   currentBlock - 1000,
   currentBlock
 );
+
+console.log(history);
+```
+
+```text
+[
+  {
+    delegator: "0xabcd...",
+    validator: "0x1234...",
+    originBlockHeight: 36975999n,
+    amount: "100.0",
+    blockNumber: 36976000,
+    txHash: "0x12ab..."
+  }
+]
 ```
 
 ## 3단계: 연결 문제 처리
 
-이벤트 구독은 지속적인 WebSocket 연결에 의존합니다. 프로덕션 dApp을 위한 재연결 로직을 구현합니다.
+이벤트 구독은 지속적인 WebSocket 연결에 의존합니다. 프로덕션 dApp을 위해 재연결 로직을 구현합니다.
 
 ```typescript
 // subscribeWithReconnection.ts
@@ -154,8 +211,18 @@ import { STABLE_SYSTEM_ADDRESS, STABLE_SYSTEM_ABI } from "./config";
 let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 5;
 
-function handleUnbonding(delegator: string, validator: string, amount: bigint) {
-  console.log("Unbonding completed:", { delegator, validator, amount });
+function handleUnbonding(
+  delegator: string,
+  validator: string,
+  originBlockHeight: bigint,
+  amount: bigint
+) {
+  console.log("Unbonding completed:", {
+    delegator,
+    validator,
+    originBlockHeight,
+    amount,
+  });
 }
 
 function setupEventListener() {
@@ -181,8 +248,12 @@ function setupEventListener() {
 setupEventListener();
 ```
 
-## 다음 권장 사항
+```text
+언본딩이 완료되거나 공급자에서 오류가 보고될 때까지 출력 없음.
+```
 
-- [**시스템 트랜잭션 개념**](/ko/explanation/system-transactions): 프로토콜 수준 이벤트가 EVM에 도달하는 방식을 이해합니다.
+## 다음 단계
+
+- [**시스템 트랜잭션 개념**](/ko/explanation/system-transactions): 프로토콜 수준 이벤트가 EVM에 도달하는 방법을 이해합니다.
 - [**스테이킹 모듈 개념**](/ko/explanation/staking-module): 위임 및 언본딩 흐름을 검토합니다.
-- [**스테이킹 사전 컴파일러 참조**](/ko/reference/staking-module-api): 여기서 추적된 이벤트를 트리거하는 메서드를 찾아봅니다.
+- [**스테이킹 프리컴파일 참조**](/ko/reference/staking-module-api): 여기서 추적되는 이벤트를 트리거하는 메서드를 찾아봅니다.

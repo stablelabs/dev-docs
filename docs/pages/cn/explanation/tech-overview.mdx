@@ -1,5 +1,66 @@
 ---
 source_path: explanation/tech-overview.mdx
-source_sha: 66c5144a0a00b4fc60545e70df03a2260238b7b8
+source_sha: 6e72e9e8a97620c7a9cc7e0ecb4db16891e6020a
 title: "技术概述"
-description: "Stable 的四层堆栈（共识、执行、存储和 RPC）如何为稳定币支付吞吐量进行端到端优化。"
+description: "了解 Stable 如何协调共识、执行、存储和 RPC，以实现稳定币支付。"
+diataxis: "explanation"
+---
+
+# 技术概述
+
+Stable 的交易管道分为四层：共识、执行、存储和 RPC。您可以使用标准的 EVM 工具，而 Stable 特定的子系统则负责处理最终性、USDT0 gas、状态访问和交易吞吐量。
+
+:::note
+**发布状态：** Stable v1.8.0 已在主网发布。它包括 Block-STM 执行、选择性 RecheckTx、MemIAVL、2D nonce 和保证的区块空间。
+:::
+
+<img
+  className="block"
+  src="/images/futurework.png"
+  alt="技术概述"
+/>
+
+## StableBFT
+
+**状态：已上线**
+
+Stable 区块链利用 **StableBFT**，一种基于 CometBFT 构建的定制 PoS 共识协议，以实现网络的高吞吐量、低延迟和高可靠性。
+
+:::note
+**计划中：** 基于 DAG 的 **Autobahn** 共识，具有解耦的数据传播。请参阅 [路线图](/cn/explanation/technical-roadmap#phase-3-full-stack-optimized-layer-for-usdt)。
+:::
+
+## Stable EVM
+
+**状态：已上线**
+
+**Stable EVM** 是 Stable 的以太坊兼容执行层。标准的以太坊工具和钱包可以无缝地与链进行交互。一组**预编译合约**将 Stable EVM 连接到 Stable SDK，允许 EVM 智能合约原子地调用核心链逻辑。
+
+:::note
+**v1.8.0 中已上线：** Block-STM 增加了跨 CPU 核的乐观并行执行。选择性 RecheckTx 减少了提交后的内存池工作。请参阅[执行](/cn/explanation/execution)。
+:::
+
+StableVM++ 作为当前基于 Go 的 EVM 实现的可能替代方案，仍是后续路线图项目。
+
+## StableDB
+
+**状态：v1.8.0 在主网已上线**
+
+MemIAVL 用内存映射快照和仅追加的预写日志取代了 LevelDB。一个由 RocksDB 支持的 VersionDB 为早于保留快照的历史查询提供服务。
+
+## 高性能 RPC
+
+**状态：已上线**
+
+即使在快速链上，缓慢的 RPC 层也会破坏用户体验。Stable 通过**分路径架构**解决了这个问题，该架构按功能分离操作，部署轻量级、专门的 RPC 节点以加快响应时间。
+
+:::note
+**计划中：** 针对 EVM 视图调用优化的 RPC 节点，以及节点集成的索引器。请参阅[路线图](/cn/explanation/technical-roadmap#phase-3-full-stack-optimized-layer-for-usdt)。
+:::
+
+## 接下来去哪里
+
+- [**执行**](/cn/explanation/execution)：了解 OPE 和选择性 RecheckTx 如何消除 CPU 瓶颈。
+- [**存储 (StableDB)**](/cn/explanation/stable-db)：了解 MemIAVL 如何改变当前和历史状态存储。
+- [**保证的区块空间**](/cn/explanation/guaranteed-blockspace)：了解 2D nonce 和区块通道模型。
+- [**网络升级**](/cn/reference/network-upgrades)：查看 v1.8.0 兼容性和激活详情。

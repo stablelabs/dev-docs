@@ -1,34 +1,34 @@
 ---
 source_path: how-to/track-unbonding.mdx
-source_sha: 5c4d430a5edb73996ba773710b260c58025a04d8
-title: "跟踪解除质押完成情况"
-description: "通过系统交易订阅 StableSystem 预编译合约发出的 UnbondingCompleted 事件。按用户或验证者进行筛选，查询历史事件。"
+source_sha: 5918da4d054d3399391dee083017aa5d5317dbfd
+title: "追踪解除绑定完成情况"
+description: "通过用户或验证者订阅 UnbondingCompleted，并通过 StableSystem 查询历史事件。"
 diataxis: "how-to"
 ---
 
-# 跟踪解除质押完成情况
+# 追踪解除绑定完成情况
 
-当解除质押期完成时，协议会通过系统交易，通过 `StableSystem` 预编译合约（`0x0000000000000000000000000000000000009999`）发出一个 `UnbondingCompleted` 事件。这允许 dApp 实时通知用户并更新余额，而无需运行自定义索引器或轮询 REST 端点。
+当解除绑定期完成时，协议通过系统交易，通过 `StableSystem` 预编译 (`0x0000000000000000000000000000000000009999`) 发出一个 `UnbondingCompleted` 事件。这允许 dApp 通知用户并实时更新余额，而无需运行自定义索引器或轮询 REST 端点。
 
 :::note
-**概念：** 有关系统交易如何将 SDK 层事件桥接到 EVM 以及其重要性，请参阅[系统交易](/cn/explanation/system-transactions)。
+**概念**：有关系统事务如何将 SDK 层事件桥接到 EVM 以及其重要性的信息，请参阅[系统事务](/cn/explanation/system-transactions)。
 :::
 
 ## 前提条件
 
-- 了解[系统交易](/cn/explanation/system-transactions)。
-- 熟悉[质押](/cn/explanation/staking-module)，特别是 `undelegate` 和解除质押过程。
-- 有使用标准 web3 库（例如 [ethers.js](https://docs.ethers.org/) v6）进行合约事件订阅和过滤的经验。
+- 了解[系统事务](/cn/explanation/system-transactions)。
+- 熟悉[质押](/cn/explanation/staking-module)，特别是 `undelegate` 和解除绑定过程。
+- 具有使用标准 web3 库（例如 [ethers.js](https://docs.ethers.org/) v6）进行合约事件订阅和过滤的经验。
 
 ## 概述
 
-- **设置合约实例**：为 StableSystem 预编译合约创建合约实例。
-- **在你的应用程序中处理事件**：根据你的应用程序逻辑订阅实时事件或查询历史数据。
-- **处理连接问题**：为持久的 WebSocket 订阅实现重新连接逻辑。
+- **设置合约实例**：为 StableSystem 预编译创建一个合约实例。
+- **在应用程序中处理事件**：根据应用程序逻辑订阅实时事件或查询历史数据。
+- **处理连接问题**：为持久 WebSocket 订阅实现重新连接逻辑。
 
 ## 步骤 1：设置合约实例
 
-使用 `UnbondingCompleted` 事件 ABI 为 `StableSystem` 预编译合约创建一个合约实例。
+使用 `UnbondingCompleted` 事件 ABI 为 `StableSystem` 预编译创建一个合约实例。
 
 ```typescript
 // config.ts
@@ -38,7 +38,7 @@ export const STABLE_SYSTEM_ADDRESS =
   "0x0000000000000000000000000000000000009999";
 
 export const STABLE_SYSTEM_ABI = [
-  "event UnbondingCompleted(address indexed delegator, address indexed validator, uint256 amount)",
+  "event UnbondingCompleted(address indexed delegator, address indexed validator, uint64 indexed originBlockHeight, uint256 amount)",
 ];
 
 export const provider = new ethers.JsonRpcProvider("https://rpc.testnet.stable.xyz");
@@ -49,29 +49,45 @@ export const stableSystem = new ethers.Contract(
 );
 ```
 
-## 步骤 2：在你的应用程序中处理事件
+```text
+No output. The StableSystem contract instance is ready to query or subscribe.
+```
 
-根据你的应用程序逻辑，订阅实时事件、查询历史数据或两者兼而有之。
+## 步骤 2：在应用程序中处理事件
+
+根据应用程序逻辑订阅实时事件、查询历史数据或两者兼而有之。
 
 ### 实时订阅
 
-订阅 `UnbondingCompleted` 事件以获取任何解除质押完成时的实时通知。这对于触发余额更新、发送通知或刷新仪表板统计数据非常有用。
+订阅 `UnbondingCompleted` 事件，以便在任何解除绑定完成时获得实时通知。这对于触发余额更新、发送通知或刷新仪表板统计信息很有用。
 
 ```typescript
 // subscribeBasic.ts
+import { ethers } from "ethers";
 import { stableSystem } from "./config";
 
-stableSystem.on("UnbondingCompleted", (delegator, validator, amount, event) => {
+stableSystem.on("UnbondingCompleted", (delegator, validator, originBlockHeight, amount, event) => {
   console.log("Unbonding completed:");
   console.log("  Delegator:", delegator);
   console.log("  Validator:", validator);
+  console.log("  Origin block:", originBlockHeight.toString());
   console.log("  Amount:", ethers.formatEther(amount), "tokens");
   console.log("  Block:", event.log.blockNumber);
   console.log("  Tx Hash:", event.log.transactionHash);
 });
 ```
 
-### 按用户筛选
+```text
+Unbonding completed:
+  Delegator: 0xabcd...
+  Validator: 0x1234...
+  Origin block: 36975999
+  Amount: 100.0 tokens
+  Block: 36976000
+  Tx Hash: 0x12ab...
+```
+
+### 按用户过滤
 
 要仅接收特定委托人地址的事件，请使用索引事件参数创建过滤器。
 
@@ -83,15 +99,26 @@ import { stableSystem } from "./config";
 const userAddress = "0xabcd...";
 const filter = stableSystem.filters.UnbondingCompleted(userAddress);
 
-stableSystem.on(filter, (delegator, validator, amount, event) => {
-  refreshUserBalance(userAddress);
-  showNotification(
-    `您的 ${ethers.formatEther(amount)} 代币的解除质押已完成！`
-  );
+stableSystem.on(filter, (delegator, validator, originBlockHeight, amount) => {
+  console.log("User unbonding completed:", {
+    delegator,
+    validator,
+    originBlockHeight,
+    amount: ethers.formatEther(amount),
+  });
 });
 ```
 
-### 按验证者筛选
+```text
+User unbonding completed: {
+  delegator: "0xabcd...",
+  validator: "0x1234...",
+  originBlockHeight: 36975999n,
+  amount: "100.0"
+}
+```
+
+### 按验证者过滤
 
 ```typescript
 // subscribeByValidator.ts
@@ -103,14 +130,28 @@ const validatorFilter = stableSystem.filters.UnbondingCompleted(
   validatorAddress
 );
 
-stableSystem.on(validatorFilter, (delegator, validator, amount) => {
-  updateValidatorStats(validator, amount);
+stableSystem.on(validatorFilter, (delegator, validator, originBlockHeight, amount) => {
+  console.log("Validator unbonding completed:", {
+    delegator,
+    validator,
+    originBlockHeight,
+    amount,
+  });
 });
+```
+
+```text
+Validator unbonding completed: {
+  delegator: "0xabcd...",
+  validator: "0x1234...",
+  originBlockHeight: 36975999n,
+  amount: 100000000000000000000n
+}
 ```
 
 ### 历史查询
 
-如果你的 dApp 需要显示过去解除质押完成的历史记录，请使用带有区块范围的事件过滤器查询历史事件。
+如果您的 dApp 需要显示过去解除绑定的历史记录，请使用带有区块范围的事件过滤器查询历史事件。
 
 ```typescript
 // queryHistory.ts
@@ -128,6 +169,7 @@ async function getUnbondingHistory(
   return events.map((event) => ({
     delegator: event.args.delegator,
     validator: event.args.validator,
+    originBlockHeight: event.args.originBlockHeight,
     amount: ethers.formatEther(event.args.amount),
     blockNumber: event.blockNumber,
     txHash: event.transactionHash,
@@ -140,29 +182,54 @@ const history = await getUnbondingHistory(
   currentBlock - 1000,
   currentBlock
 );
+
+console.log(history);
+```
+
+```text
+[
+  {
+    delegator: "0xabcd...",
+    validator: "0x1234...",
+    originBlockHeight: 36975999n,
+    amount: "100.0",
+    blockNumber: 36976000,
+    txHash: "0x12ab..."
+  }
+]
 ```
 
 ## 步骤 3：处理连接问题
 
-事件订阅依赖于持久的 WebSocket 连接。为生产 dApp 实现重新连接逻辑。
+事件订阅依赖于持久的 WebSocket 连接。请为生产 dApp 实现重新连接逻辑。
 
 ```typescript
 // subscribeWithReconnection.ts
-import { ethers } = "ethers";
+import { ethers } from "ethers";
 import { STABLE_SYSTEM_ADDRESS, STABLE_SYSTEM_ABI } from "./config";
 
 let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 5;
 
-function handleUnbonding(delegator: string, validator: string, amount: bigint) {
-  console.log("解除质押完成:", { delegator, validator, amount });
+function handleUnbonding(
+  delegator: string,
+  validator: string,
+  originBlockHeight: bigint,
+  amount: bigint
+) {
+  console.log("Unbonding completed:", {
+    delegator,
+    validator,
+    originBlockHeight,
+    amount,
+  });
 }
 
 function setupEventListener() {
   const wsProvider = new ethers.WebSocketProvider("wss://rpc.testnet.stable.xyz");
 
   wsProvider.on("error", (error) => {
-    console.error("提供者错误:", error);
+    console.error("Provider error:", error);
     if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
       reconnectAttempts++;
       setTimeout(() => setupEventListener(), 5000);
@@ -181,8 +248,12 @@ function setupEventListener() {
 setupEventListener();
 ```
 
-## 下一步推荐
+```text
+No output until an unbonding completes or the provider reports an error.
+```
 
-- [**系统交易概念**](/cn/explanation/system-transactions)：了解协议级别的事件如何到达 EVM。
-- [**质押模块概念**](/cn/explanation/staking-module)：回顾委托和解除质押流程。
+## 接下来去哪里
+
+- [**系统事务概念**](/cn/explanation/system-transactions)：了解协议级事件如何到达 EVM。
+- [**质押模块概念**](/cn/explanation/staking-module)：回顾委托和解除绑定流程。
 - [**质押预编译参考**](/cn/reference/staking-module-api)：查找触发此处跟踪的事件的方法。

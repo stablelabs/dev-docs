@@ -1,24 +1,36 @@
 ---
 source_path: how-to/verify-contract.mdx
-source_sha: 6cc73e10bb88685960bc61fa08f4942073bc61bc
+source_sha: 203fffb80a0e333188b0fc2122787d3ff82df9d9
 title: "스마트 컨트랙트 검증"
-description: "forge verify-contract를 사용하여 Stablescan에서 Stable 컨트랙트 소스를 검증하여 사용자가 코드를 읽고 상호작용할 수 있도록 합니다."
+description: "사용자가 읽고 상호 작용할 수 있도록 forge verify-contract를 사용하여 Stablescan에서 Stable 컨트랙트 소스를 검증하세요."
 diataxis: "how-to"
 ---
 
 # 스마트 컨트랙트 검증
 
-검증은 컨트랙트의 소스 코드를 블록 탐색기에 업로드하고 배포된 바이트코드로 컴파일되었음을 증명합니다. 일단 검증되면, 사용자는 코드를 다시 호스팅할 필요 없이 Stablescan에서 상태를 읽고, 함수를 호출하고, 소스를 감사할 수 있습니다. 이 가이드는 Stable에 배포된 Foundry 컨트랙트를 검증하는 과정을 안내합니다.
+검증은 컨트랙트의 소스 코드를 블록 탐색기에 업로드하고 배포된 바이트코드로 컴파일되었음을 증명합니다. 검증되면 사용자는 코드를 다시 호스팅할 필요 없이 Stablescan에서 상태를 읽고, 함수를 호출하고, 소스를 감사할 수 있습니다. 이 가이드는 Foundry에 배포된 컨트랙트를 Stable에서 검증하는 과정을 안내합니다.
+
+Stablescan은 Etherscan의 멀티체인(V2) API에서 실행되므로, 검증 및 기타 모든 탐색기 API 호출은 `chainid` 매개변수와 함께 `https://api.etherscan.io/v2/api`로 전송됩니다.
+
+| **네트워크**     | **체인 ID** | **검증기 URL**                                |
+| :--------------- | :----------- | :--------------------------------------------- |
+| Stable 테스트넷 | `2201`       | `https://api.etherscan.io/v2/api?chainid=2201` |
+| Stable 메인넷   | `988`        | `https://api.etherscan.io/v2/api?chainid=988`  |
+
+:::warning
+Stablescan은 자체 API를 제공하지 않습니다. `https://testnet.stablescan.xyz/api`로의 요청은 `{"status":"0","message":"NOTOK","result":"Invalid API URL endpoint"}`를 반환하고, 브라우저는 `/notavailable`로 리디렉션됩니다. 대신 위에 명시된 Etherscan V2 URL을 사용하십시오.
+:::
 
 ## 전제 조건
 
-- Stable 테스트넷 또는 메인넷에 이미 배포된 컨트랙트. 아직 배포하지 않았다면, [스마트 컨트랙트 배포](/ko/tutorial/smart-contract)를 참조하세요.
-- Foundry 설치 (`forge`가 PATH에 있어야 함).
+- Stable 테스트넷 또는 메인넷에 이미 배포된 컨트랙트. 아직 배포하지 않았다면, [스마트 컨트랙트 배포](/ko/tutorial/smart-contract)를 참조하십시오.
+- Foundry가 설치되어 있어야 합니다 (`forge`가 PATH에 있어야 합니다). `--verifier custom`이 인식되지 않으면 `foundryup`을 실행하십시오.
 - `forge create` 출력에서 얻은 배포된 컨트랙트 주소.
+- [https://etherscan.io/myapikey](https://etherscan.io/myapikey)에서 얻은 Etherscan API 키. 하나의 키로 Stable 네트워크를 포함한 V2 API의 모든 체인을 커버할 수 있습니다.
 
 ## 1. 배포된 주소 확인
 
-이전 배포에서 얻은 `Deployed to` 주소를 확인하세요. [스마트 컨트랙트 배포](/ko/tutorial/smart-contract) 흐름에서 이는 `forge create` 이후에 출력된 값이었습니다.
+이전 배포에서 얻은 `Deployed to` 주소를 가지고 있는지 확인하세요. [스마트 컨트랙트 배포](/ko/tutorial/smart-contract) 흐름에서 이 값은 `forge create` 후 출력된 값이었습니다.
 
 ```bash
 cast code 0xDeployedContractAddress --rpc-url https://rpc.testnet.stable.xyz | head -c 20
@@ -30,41 +42,57 @@ cast code 0xDeployedContractAddress --rpc-url https://rpc.testnet.stable.xyz | h
 
 비어 있지 않은 바이트코드는 해당 주소에 컨트랙트가 배포되었음을 확인합니다.
 
-## 2. forge verify-contract 실행
+## 2. API 키 내보내기
 
-Foundry의 검증 흐름은 소스를 Stablescan 검증기에 제출합니다.
+Foundry와 `curl`은 모두 셸에서 키를 읽으므로 한 번 내보냅니다.
+
+```bash
+export ETHERSCAN_API_KEY=YourApiKey
+
+curl "https://api.etherscan.io/v2/api?chainid=2201&module=account&action=balance&address=0xDeployedContractAddress&tag=latest&apikey=$ETHERSCAN_API_KEY"
+```
+
+```text
+{"status":"1","message":"OK","result":"0"}
+```
+
+`"status":"1"` 응답은 키가 Stable 테스트넷에서 작동함을 확인합니다. `Missing/Invalid API Key`가 발생하면 키가 설정되지 않았거나 아직 활성화되지 않은 것입니다.
+
+## 3. forge verify-contract 실행
+
+Foundry를 체인 `2201`의 Etherscan V2 엔드포인트로 지정합니다.
 
 ```bash
 forge verify-contract \
   0xDeployedContractAddress \
   src/Counter.sol:Counter \
   --chain-id 2201 \
-  --verifier blockscout \
-  --verifier-url https://testnet.stablescan.xyz/api \
+  --verifier custom \
+  --verifier-url "https://api.etherscan.io/v2/api?chainid=2201" \
+  --verifier-api-key $ETHERSCAN_API_KEY \
   --watch
 ```
 
 ```text
-2201에 배포된 컨트랙트 `0xDeployedContractAddress` 검증 시작
+Start verifying contract `0xDeployedContractAddress` deployed on 2201
 
-컨트랙트 검증 제출: Counter
-검증을 위해 제출된 컨트랙트:
-        응답: `OK`
+Submitting verification for [src/Counter.sol:Counter] 0xDeployedContractAddress.
+Submitted contract for verification:
+        Response: `OK`
         GUID: `abc123...`
-        URL: https://testnet.stablescan.xyz/address/0xDeployedContractAddress
-컨트랙트 검증 상태:
-응답: `OK`
-세부 정보: `Pass - Verified`
-컨트랙트가 성공적으로 검증되었습니다.
+Contract verification status:
+Response: `OK`
+Details: `Pass - Verified`
+Contract successfully verified
 ```
 
-`--watch`는 검증이 완료될 때까지 블록을 유지하므로 폴링할 필요가 없습니다. 메인넷에서는 체인 ID를 `988`로, 검증기 URL을 `https://stablescan.xyz/api`로 변경하세요.
+`--watch`는 검증이 완료될 때까지 차단하므로 폴링할 필요가 없습니다. 메인넷에서는 체인 ID를 `988`로, 검증기 URL을 `https://api.etherscan.io/v2/api?chainid=988`로 변경합니다.
 
 :::note
-**생성자 인수**: 컨트랙트가 생성자 인수를 사용하는 경우, `--constructor-args $(cast abi-encode "constructor(uint256,address)" 42 0xSomeAddress)`를 명령에 추가하세요. 이 플래그가 없으면 비어 있지 않은 생성자를 가진 모든 컨트랙트에 대한 검증이 실패합니다.
+**생성자 인수**: 컨트랙트가 생성자 인수를 받는 경우, `--constructor-args $(cast abi-encode "constructor(uint256,address)" 42 0xSomeAddress)`를 명령에 추가하십시오. 이 플래그가 없으면 비어 있지 않은 생성자를 가진 모든 컨트랙트에 대한 검증이 실패합니다.
 :::
 
-## 3. Stablescan에서 검증 확인
+## 4. Stablescan에서 검증 확인
 
 탐색기에서 컨트랙트 페이지를 엽니다.
 
@@ -72,13 +100,15 @@ forge verify-contract \
 https://testnet.stablescan.xyz/address/0xDeployedContractAddress
 ```
 
-이제 **Contract** 탭에 소스 코드, 녹색 "Verified" 배지 및 전체 ABI가 표시되어야 합니다. 사용자는 **Read Contract**에서 상태를 읽고 **Write Contract**에서 트랜잭션을 보낼 수 있습니다.
+**Contract** 탭에 이제 소스 코드, 녹색 "Verified" 배지, 전체 ABI가 표시되어야 합니다. 사용자는 **Read Contract**에서 상태를 읽고 **Write Contract**에서 트랜잭션을 보낼 수 있습니다.
 
 ## 문제 해결
 
-- **"바이트코드가 일치하지 않습니다"**: 소스가 배포된 바이트코드와 다르게 컴파일됩니다. 가장 흔한 원인은 솔리디티 버전 또는 최적화 프로그램 설정 불일치입니다. `foundry.toml`과 일치하도록 `--compiler-version` 및 `--optimizer-runs`를 명시적으로 전달하세요.
-- **"GUID를 찾을 수 없습니다"**: 검증기가 아직 제출을 등록하지 않았습니다. `--watch`로 다시 실행하거나 응답에 출력된 URL을 수동으로 확인하세요.
-- **컨트랙트가 라이브러리를 사용합니다**: 연결된 각 라이브러리에 대해 `--libraries src/Lib.sol:Lib:0xDeployedLibAddress`를 추가하세요.
+- **"Invalid API URL endpoint"**: 탐색기 호스트를 직접 호출하고 있습니다. `https://testnet.stablescan.xyz/api`를 `https://api.etherscan.io/v2/api?chainid=2201`로 교체하십시오.
+- **"Missing/Invalid API Key"**: `ETHERSCAN_API_KEY`가 현재 셸에 설정되지 않았거나 키가 방금 생성되어 아직 활성화되지 않았습니다. 2단계에서 `curl` 확인을 다시 실행하십시오.
+- **"Bytecode does not match"**: 소스가 배포된 바이트코드와 다르게 컴파일됩니다. 대부분 Solidity 버전 또는 옵티마이저 설정 불일치로 인해 발생합니다. `foundry.toml`과 일치하도록 `--compiler-version` 및 `--optimizer-runs`를 명시적으로 전달하십시오.
+- **"GUID not found"**: 검증기가 아직 제출을 등록하지 않았습니다. `--watch`로 다시 실행하거나 응답에 출력된 URL을 수동으로 확인하십시오.
+- **컨트랙트가 라이브러리를 사용합니다**: 각 연결된 라이브러리에 대해 `--libraries src/Lib.sol:Lib:0xDeployedLibAddress`를 추가하십시오.
 
 ## 다음 권장 사항
 

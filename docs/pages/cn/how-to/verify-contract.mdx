@@ -1,6 +1,6 @@
 ---
 source_path: how-to/verify-contract.mdx
-source_sha: 6cc73e10bb88685960bc61fa08f4942073bc61bc
+source_sha: 203fffb80a0e333188b0fc2122787d3ff82df9d9
 title: "验证智能合约"
 description: "使用 forge verify-contract 在 Stablescan 上验证您的 Stable 合约源代码，以便用户可以读取和与其交互。"
 diataxis: "how-to"
@@ -8,17 +8,29 @@ diataxis: "how-to"
 
 # 验证智能合约
 
-验证会将您的合约源代码上传到区块浏览器，并证明其编译为已部署的字节码。验证后，用户无需重新托管您的代码，即可在 Stablescan 上读取状态、调用函数和审计源代码。本指南将介绍如何在 Stable 上验证 Foundry 部署的合约。
+验证会将您的合约源代码上传到区块浏览器，并证明其编译为已部署的字节码。一旦验证，用户可以在 Stablescan 上读取状态、调用函数和审计源代码，而无需重新托管您的代码。本指南将介绍如何在 Stable 上验证 Foundry 部署的合约。
 
-## 先决条件
+Stablescan 在 Etherscan 的多链 (V2) API 上运行，因此验证和所有其他浏览器 API 调用都将发送到 `https://api.etherscan.io/v2/api` 并带有 `chainid` 参数：
 
-- 已在 Stable 测试网或主网上部署的合约。如果您尚未部署，请参阅[部署智能合约](/cn/tutorial/smart-contract)。
-- 已安装 Foundry（`forge` 在您的 PATH 中可用）。
-- 来自 `forge create` 输出的已部署合约地址。
+| **网络**        | **链 ID**    | **验证器 URL**                                 |
+| :-------------- | :----------- | :--------------------------------------------- |
+| Stable 测试网 | `2201`       | `https://api.etherscan.io/v2/api?chainid=2201` |
+| Stable 主网   | `988`        | `https://api.etherscan.io/v2/api?chainid=988`  |
 
-## 1. 确认已部署地址
+:::warning
+Stablescan 不提供自己的 API。对 `https://testnet.stablescan.xyz/api` 的请求返回 `{"status":"0","message":"NOTOK","result":"Invalid API URL endpoint"}`，浏览器会被重定向到 `/notavailable`。请改用上面提供的 Etherscan V2 URL。
+:::
 
-确保您拥有之前部署的“部署到”地址。在[部署智能合约](/cn/tutorial/smart-contract)流程中，这是 `forge create` 后打印的值。
+## 前提条件
+
+- 已经在 Stable 测试网或主网部署的合约。如果您尚未部署，请参阅[部署智能合约](/cn/tutorial/smart-contract)。
+- 已安装 Foundry（`forge` 在您的 PATH 中可用）。如果 `--verifier custom` 未被识别，请运行 `foundryup`。
+- 您 `forge create` 输出中的已部署合约地址。
+- 来自 [https://etherscan.io/myapikey](https://etherscan.io/myapikey) 的 Etherscan API 密钥。一个密钥涵盖 V2 API 上的所有链，包括两个 Stable 网络。
+
+## 1. 确认已部署的地址
+
+请确保您拥有之前部署的 `Deployed to` 地址。在[部署智能合约](/cn/tutorial/smart-contract)流程中，这是在 `forge create` 后打印的值。
 
 ```bash
 cast code 0xDeployedContractAddress --rpc-url https://rpc.testnet.stable.xyz | head -c 20
@@ -30,41 +42,57 @@ cast code 0xDeployedContractAddress --rpc-url https://rpc.testnet.stable.xyz | h
 
 非空字节码确认合约已部署在该地址。
 
-## 2. 运行 forge verify-contract
+## 2. 导出您的 API 密钥
 
-Foundry 的验证流程将您的源代码提交给 Stablescan 验证器。
+Foundry 和 `curl` 都从您的 shell 读取密钥，因此请一次性导出。
+
+```bash
+export ETHERSCAN_API_KEY=YourApiKey
+
+curl "https://api.etherscan.io/v2/api?chainid=2201&module=account&action=balance&address=0xDeployedContractAddress&tag=latest&apikey=$ETHERSCAN_API_KEY"
+```
+
+```text
+{"status":"1","message":"OK","result":"0"}
+```
+
+`"status":"1"` 响应确认密钥在 Stable 测试网上可用。如果您收到 `Missing/Invalid API Key`，则密钥未设置或尚未激活。
+
+## 3. 运行 forge verify-contract
+
+将 Foundry 指向链 `2201` 的 Etherscan V2 端点。
 
 ```bash
 forge verify-contract \
   0xDeployedContractAddress \
   src/Counter.sol:Counter \
   --chain-id 2201 \
-  --verifier blockscout \
-  --verifier-url https://testnet.stablescan.xyz/api \
+  --verifier custom \
+  --verifier-url "https://api.etherscan.io/v2/api?chainid=2201" \
+  --verifier-api-key $ETHERSCAN_API_KEY \
   --watch
 ```
 
 ```text
 Start verifying contract `0xDeployedContractAddress` deployed on 2201
 
-Submitting verification of contract: Counter
+Submitting verification for [src/Counter.sol:Counter] 0xDeployedContractAddress.
 Submitted contract for verification:
         Response: `OK`
         GUID: `abc123...`
-        URL: https://testnet.stablescan.xyz/address/0xDeployedContractAddress
 Contract verification status:
 Response: `OK`
 Details: `Pass - Verified`
 Contract successfully verified
 ```
 
-`--watch` 会一直阻塞直到验证完成，这样您就不需要轮询。在主网上，将链 ID 更改为 `988`，验证器 URL 更改为 `https://stablescan.xyz/api`。
+`--watch` 会阻塞直到验证完成，这样您就不必轮询了。在主网上，将链 ID 切换到 `988`，验证器 URL 切换到 `https://api.etherscan.io/v2/api?chainid=988`。
 
 :::note
-**构造函数参数**：如果您的合约接受构造函数参数，请将 `--constructor-args $(cast abi-encode "constructor(uint256,address)" 42 0xSomeAddress)` 添加到命令中。如果没有此标志，任何带有非空构造函数的合约都将验证失败。
+**构造函数参数**：如果您的合约带有构造函数参数，请在命令中添加 `--constructor-args $(cast abi-encode "constructor(uint256,address)" 42 0xSomeAddress)`。如果没有此标志，任何带有非空构造函数的合约验证都将失败。
 :::
 
-## 3. 在 Stablescan 上确认验证
+## 4. 在 Stablescan 上确认验证
 
 在浏览器上打开合约页面。
 
@@ -72,12 +100,14 @@ Contract successfully verified
 https://testnet.stablescan.xyz/address/0xDeployedContractAddress
 ```
 
-**合约**选项卡现在应该显示源代码，一个绿色的“已验证”徽章，以及完整的 ABI。用户可以在**读取合约**下读取状态，并在**写入合约**下发送交易。
+**Contract** 选项卡现在应该显示源代码、一个绿色的“已验证”徽章和完整的 ABI。用户可以在 **Read Contract** 下读取状态，在 **Write Contract** 下发送交易。
 
 ## 故障排除
 
-- **“字节码不匹配”**：您的源代码编译成与已部署代码不同的字节码。这通常是由于 Solidity 版本或优化器设置不匹配造成的。明确传递 `--compiler-version` 和 `--optimizer-runs` 以匹配您的 `foundry.toml`。
-- **“GU ID 未找到”**：验证器尚未注册您的提交。使用 `--watch` 重新运行或手动检查响应中打印的 URL。
+- **“Invalid API URL endpoint”**：您正在直接调用浏览器主机。将 `https://testnet.stablescan.xyz/api` 替换为 `https://api.etherscan.io/v2/api?chainid=2201`。
+- **“Missing/Invalid API Key”**：`ETHERSCAN_API_KEY` 在当前 shell 中未设置，或者密钥刚刚创建且尚未激活。重新运行步骤 2 中的 `curl` 检查。
+- **“Bytecode does not match”**：您的源代码编译为与已部署的字节码不同的字节码。最常见的原因是 Solidity 版本或优化器设置不匹配。明确传递 `--compiler-version` 和 `--optimizer-runs` 以匹配您的 `foundry.toml`。
+- **“GUID not found”**：验证器尚未注册您的提交。使用 `--watch` 重新运行或手动检查响应中打印的 URL。
 - **合约使用库**：为每个链接的库添加 `--libraries src/Lib.sol:Lib:0xDeployedLibAddress`。
 
 ## 下一步推荐

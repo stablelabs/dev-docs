@@ -8,11 +8,23 @@ diataxis: "how-to"
 
 Verification uploads your contract's source code to the block explorer and proves it compiles to the deployed bytecode. Once verified, users can read state, call functions, and audit the source on Stablescan without re-hosting your code. This guide walks through verifying a Foundry-deployed contract on Stable.
 
+Stablescan runs on Etherscan's multichain (V2) API, so verification and every other explorer API call go to `https://api.etherscan.io/v2/api` with a `chainid` parameter:
+
+| **Network**    | **Chain ID** | **Verifier URL**                                |
+| :------------- | :----------- | :---------------------------------------------- |
+| Stable testnet | `2201`       | `https://api.etherscan.io/v2/api?chainid=2201`  |
+| Stable mainnet | `988`        | `https://api.etherscan.io/v2/api?chainid=988`   |
+
+:::warning
+Stablescan does not serve an API of its own. Requests to `https://testnet.stablescan.xyz/api` return `{"status":"0","message":"NOTOK","result":"Invalid API URL endpoint"}`, and a browser is redirected to `/notavailable`. Use the Etherscan V2 URLs above instead.
+:::
+
 ## Prerequisites
 
 - A contract already deployed on Stable testnet or mainnet. If you haven't deployed yet, see [Deploy a smart contract](/en/tutorial/smart-contract).
-- Foundry installed (`forge` available in your PATH).
+- Foundry installed (`forge` available in your PATH). Run `foundryup` if `--verifier custom` is not recognized.
 - The deployed contract address from your `forge create` output.
+- An Etherscan API key from [https://etherscan.io/myapikey](https://etherscan.io/myapikey). One key covers every chain on the V2 API, including both Stable networks.
 
 ## 1. Confirm the deployed address
 
@@ -28,41 +40,57 @@ cast code 0xDeployedContractAddress --rpc-url https://rpc.testnet.stable.xyz | h
 
 A non-empty bytecode confirms the contract is deployed at that address.
 
-## 2. Run forge verify-contract
+## 2. Export your API key
 
-Foundry's verification flow submits your source to the Stablescan verifier.
+Foundry and `curl` both read the key from your shell, so export it once.
+
+```bash
+export ETHERSCAN_API_KEY=YourApiKey
+
+curl "https://api.etherscan.io/v2/api?chainid=2201&module=account&action=balance&address=0xDeployedContractAddress&tag=latest&apikey=$ETHERSCAN_API_KEY"
+```
+
+```text
+{"status":"1","message":"OK","result":"0"}
+```
+
+A `"status":"1"` response confirms the key works against Stable testnet. If you get `Missing/Invalid API Key`, the key is unset or not yet active.
+
+## 3. Run forge verify-contract
+
+Point Foundry at the Etherscan V2 endpoint for chain `2201`.
 
 ```bash
 forge verify-contract \
   0xDeployedContractAddress \
   src/Counter.sol:Counter \
   --chain-id 2201 \
-  --verifier blockscout \
-  --verifier-url https://testnet.stablescan.xyz/api \
+  --verifier custom \
+  --verifier-url "https://api.etherscan.io/v2/api?chainid=2201" \
+  --verifier-api-key $ETHERSCAN_API_KEY \
   --watch
 ```
 
 ```text
 Start verifying contract `0xDeployedContractAddress` deployed on 2201
 
-Submitting verification of contract: Counter
+Submitting verification for [src/Counter.sol:Counter] 0xDeployedContractAddress.
 Submitted contract for verification:
         Response: `OK`
         GUID: `abc123...`
-        URL: https://testnet.stablescan.xyz/address/0xDeployedContractAddress
 Contract verification status:
 Response: `OK`
 Details: `Pass - Verified`
 Contract successfully verified
 ```
 
-`--watch` blocks until verification finishes so you don't have to poll. On mainnet, swap the chain ID to `988` and the verifier URL to `https://stablescan.xyz/api`.
+`--watch` blocks until verification finishes so you don't have to poll. On mainnet, swap the chain ID to `988` and the verifier URL to `https://api.etherscan.io/v2/api?chainid=988`.
 
 :::note
 **Constructor arguments**: If your contract takes constructor arguments, add `--constructor-args $(cast abi-encode "constructor(uint256,address)" 42 0xSomeAddress)` to the command. Without this flag, verification fails for any contract with a non-empty constructor.
 :::
 
-## 3. Confirm verification on Stablescan
+## 4. Confirm verification on Stablescan
 
 Open the contract page on the explorer.
 
@@ -74,6 +102,8 @@ The **Contract** tab should now show source code, a green "Verified" badge, and 
 
 ## Troubleshooting
 
+- **"Invalid API URL endpoint"**: you're calling the explorer host directly. Replace `https://testnet.stablescan.xyz/api` with `https://api.etherscan.io/v2/api?chainid=2201`.
+- **"Missing/Invalid API Key"**: `ETHERSCAN_API_KEY` is unset in the current shell, or the key was just created and isn't active yet. Re-run the `curl` check in step 2.
 - **"Bytecode does not match"**: your source compiles to different bytecode than what's deployed. Most often caused by mismatched Solidity version or optimizer settings. Pass `--compiler-version` and `--optimizer-runs` explicitly to match your `foundry.toml`.
 - **"GUID not found"**: the verifier hasn't registered your submission yet. Re-run with `--watch` or manually check the URL printed in the response.
 - **Contract uses libraries**: add `--libraries src/Lib.sol:Lib:0xDeployedLibAddress` for each linked library.

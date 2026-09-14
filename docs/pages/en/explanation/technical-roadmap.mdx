@@ -1,12 +1,12 @@
 ---
 title: "Roadmap"
-description: "Stable's phased optimization roadmap: what's live today, what's shipping next, and what comes after."
+description: "Identify which Stable protocol optimizations are live, in progress, or planned."
 diataxis: "explanation"
 ---
 
 # Roadmap
 
-Stable optimizes every layer of the transaction pipeline (consensus, execution, storage, RPC, and USDT-specific flows) across three phases. This page marks what's shipped, what's in progress, and what's still ahead.
+Stable's three-phase roadmap covers consensus, execution, storage, RPC, and USDT-specific flows. Each item below is marked as live, in progress, or planned.
 
 <img
   className="block"
@@ -32,23 +32,23 @@ Stable Pay is a Web2.5 UX wallet experience designed to simplify onboarding for 
 
 ## Phase 2: Experience layer for USDT
 
-Status: **v1.4.0 release candidate on Testnet.** The Mainnet upgrade schedule is pending. The USDT Transfer Aggregator remains in development.
+Status: **Live on Mainnet in v1.8.0.** The USDT Transfer Aggregator remains in development.
 
-### MemIAVL state store: Included in v1.4.0
+### MemIAVL state store: Live in v1.8.0
 
 MemIAVL replaces LevelDB with one memory-mapped snapshot and an append-only write-ahead log. A RocksDB-backed VersionDB serves historical queries older than the retained snapshots. See [Storage (StableDB)](/en/explanation/stable-db).
 
-### Optimistic parallel execution: Included in v1.4.0
+### Optimistic parallel execution: Live in v1.8.0
 
 Block-STM executes transactions concurrently across CPU cores, detects conflicts, and re-executes affected work. A fixed in-block order preserves deterministic state across validators. See [Execution](/en/explanation/execution).
 
-### Selective RecheckTx: Included in v1.4.0
+### Selective RecheckTx: Live in v1.8.0
 
 After a block commits, the node rechecks only pending transactions from affected accounts. CometBFT falls back to a full mempool recheck when application support is unavailable.
 
-### 2D nonce and guaranteed blockspace: Included in v1.4.0
+### 2D nonce and guaranteed blockspace: Live in v1.8.0
 
-Independent nonce channels prevent one stuck transaction from blocking every later transaction from the same account. Protocol-reserved nonce keys identify VIP traffic, while per-lane gas quotas reserve block capacity. See [Guaranteed blockspace](/en/explanation/guaranteed-blockspace).
+Independent nonce channels prevent one stuck transaction from blocking every later transaction from the same account. Protocol-reserved nonce keys identify Enterprise traffic, while per-lane gas quotas reserve block capacity. See [Guaranteed blockspace](/en/explanation/guaranteed-blockspace).
 
 ### USDT Transfer Aggregator: Planned
 
@@ -70,7 +70,7 @@ High-performance execution engine that replaces the Go-based EVM with a C++ impl
 
 A full RPC stack covering node-level enhancements (real-time chain state processing), node-integrated indexing (low-latency application APIs), scalable pub/sub over WebSocket, and a hybrid load balancer that routes by operation type. See [High performance RPC](/en/explanation/high-performance-rpc) for the current split-path architecture.
 
-## Next recommended
+## Where to go next
 
 - [**Architecture overview**](/en/explanation/core-optimization-overview): Walk through the current state of the stack the roadmap evolves.
 - [**Tokenomics**](/en/reference/tokenomics): Review the economic model that funds validator incentives across the roadmap.

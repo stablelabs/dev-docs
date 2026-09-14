@@ -6,21 +6,23 @@ diataxis: "explanation"
 
 # Guaranteed blockspace
 
-Stable v1.4.0 divides each block into lanes with separate gas budgets. Eligible priority transactions enter the VIP lane, so normal traffic cannot consume the capacity reserved for them.
+Stable v1.8.0 divides each block into lanes with separate gas budgets. Eligible priority transactions enter the Enterprise lane, so normal traffic cannot consume the capacity reserved for them.
 
 :::note
-Guaranteed blockspace is live in the v1.4.0 Testnet release candidate. The Mainnet upgrade schedule is still pending. Without a governance configuration, every transaction continues to use one normal lane.
+Guaranteed blockspace is live on Stable Mainnet and Testnet. Governance can change the active lane configuration, so query `blockspaceLanes()` before classifying transactions off-chain.
 :::
 
 ## Block lanes
 
 The proposal and validation rules recognize three lane types:
 
-- **VIP lane**: carries transactions whose `NonceKey` is in the protocol-reserved range.
+- **Enterprise lane**: carries `CustomTx` transactions whose `NonceKey` has bit 63 set, except the unordered marker `MaxUint64`.
 - **Transaction-type lane**: reserves capacity for a configured transaction category.
 - **Normal lane**: carries standard transactions that do not match another configured lane.
 
-Each lane has its own gas quota. A proposer fills the lanes within those limits, and validators enforce the same limits when they validate the proposed block.
+`maxBlockspaceGasWeight` sets the percentage of the block gas limit reserved across all configured lanes. Each lane's `weight` sets its percentage of that reserved pool.
+
+A proposer fills the lanes within those limits, and validators enforce the same limits when they validate the proposed block.
 
 This makes the reservation deterministic at the protocol level. It does not depend on a proposer voluntarily leaving space unused.
 
@@ -35,7 +37,7 @@ For example, a payment account could use `NonceKey = 1` for payroll and `NonceKe
 The nonce-key space has three important regions:
 
 - `NonceKey = 0` keeps the standard EVM-compatible nonce behavior.
-- The upper half of the `uint64` range is reserved for protocol use. VIP membership is signaled through this range.
+- The upper half of the `uint64` range is reserved for protocol use. Setting bit 63 signals Enterprise-lane eligibility.
 - `NonceKey = MaxUint64` marks an unordered transaction. `TimeoutTimestamp` provides its replay-protection deadline.
 
 Stable carries these fields in `CustomTx`, transaction type `0x3F`. Existing EVM transaction formats remain available, and the default nonce channel preserves their expected behavior.
@@ -44,25 +46,24 @@ Stable carries these fields in `CustomTx`, transaction type `0x3F`. Existing EVM
 
 Governance controls the lane definitions and gas quotas through one `MsgUpdateParams` proposal. Accepted parameters take effect at the next block.
 
-The defaults contain no reserved lanes. Until governance configures them, the chain behaves as one normal lane. This makes lane configuration additive to existing transaction processing.
+The v1.8.0 Mainnet upgrade seeded `maxBlockspaceGasWeight = 20` and one Enterprise lane with `weight = 50`. It did not seed a transaction-type lane. Governance can change these parameters later.
+
+The `blockspaceLanes()` query on the `StableSystem` precompile returns the active configuration. Both lane arrays are sorted by `id` in ascending order, with lower IDs matched first.
 
 ## Guarantee boundaries
 
-VIP transactions receive deterministic next-block inclusion when all of these conditions hold:
+Enterprise transactions receive deterministic next-block inclusion when all of these conditions hold:
 
-- The transaction is eligible for the VIP lane.
+- The transaction is eligible for the Enterprise lane.
 - The lane has enough reserved gas for the transaction.
 - Validators follow the protocol.
 - The network remains synchronous enough for validators to receive the transaction before proposal.
 
-Stable's mempool-less validator ingress model supplies VIP transactions to validators. Reserved proposal capacity then prevents normal traffic from displacing them.
-
-:::note
-The gas-waiving transaction-type lane is deferred. A lane with `gasPrice = 0` needs trusted admission control; otherwise, an attacker could flood it with free transactions.
-:::
+Stable's Enterprise RPC gateway supplies eligible transactions to validators. Reserved proposal capacity then prevents normal traffic from displacing them.
 
 ## Where to go next
 
 - [**Guaranteed settlement**](/en/explanation/upcoming-use-cases): See the payment pattern that depends on guaranteed blockspace: timed DvP settlement cycles with deterministic inclusion.
-- [**Network upgrades**](/en/reference/network-upgrades): Review the full v1.4.0 release and its rollout status.
+- [**StableSystem precompile**](/en/reference/system-transactions-api): Query the active Enterprise and transaction-type lane definitions.
+- [**Network upgrades**](/en/reference/network-upgrades): Review the v1.8.0 release and activation details.
 - [**Execution**](/en/explanation/execution): Understand how Stable executes the transactions selected for each block.

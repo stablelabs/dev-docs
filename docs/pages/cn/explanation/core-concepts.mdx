@@ -1,58 +1,59 @@
 ---
 source_path: explanation/core-concepts.mdx
-source_sha: 45b22f6b8de51a67dbe1ed9ffb14d57302775f8c
+source_sha: 8af8d2892f4a217e2908aacda0f16699f1a4bc63
 title: "核心概念"
-description: "在构建之前，请先了解 Stable 的四个核心概念：USDT0 作为燃料、有保障的区块空间、转账聚合和 EVM 兼容性。"
+description: "在构建之前了解 Stable 的四个核心概念：USDT0 作为燃料、保障区块空间、转账聚合和 EVM 兼容性。"
 diataxis: "explanation"
 ---
 
 # 核心概念
 
-掌握四个概念即可开始构建。每个部分都定义了概念，展示了它的作用，并链接到完整的参考资料。
+掌握四个概念即可开始构建。每个部分都定义了概念，展示了其工作原理，并提供了完整参考的链接。
 
 ## USDT0 作为燃料
 
-您使用 USDT0 支付交易费用，这是您已经持有并正在交易的资产。无需资助或管理第二种代币。
+您使用 USDT0 支付交易费用，USDT0 是您已持有并进行交易的同一资产。无需为第二个代币注资或管理。
 
-USDT0 既是原生燃料资产（18 位小数，通过 `address(x).balance` 读取），也是 ERC-20 代币（6 位小数，通过 `USDT0.balanceOf(x)` 读取）。这两个接口操作相同的底层余额，协议会自动调和 12 位小数的精度差距。
+USDT0 既是原生燃料资产（18 位小数，通过 `address(x).balance` 读取），也是 ERC-20 代币（6 位小数，通过 `USDT0.balanceOf(x)` 读取）。两个接口操作的是同一个底层余额，协议会自动调和 12 位小数的精度差。
 
 ```solidity
-// 两者读取相同的余额：
+// SAFE: 两次读取都使用 Stable 的规范余额接口。
+// 两者读取的是相同的余额：
 uint256 native = address(user).balance;        // 18 decimals
 uint256 erc20  = IERC20(USDT0).balanceOf(user); // 6 decimals
 ```
 
 :::warning
-余额调和会在储备金地址 `0x5113954bbC0eD721F1C68671EBa3d91e9e9bF7b5` 发出额外的 `Transfer` 事件。重放 `Transfer` 事件的索引器必须过滤进出该地址的转账，否则它们将无声地重复计算余额。
+余额调和会在储备地址 `0x5113954bbC0eD721F1C68671EBa3d91e9e9bF7b5` 发出额外的 `Transfer` 事件。重放 `Transfer` 事件的索引器必须过滤进出此地址的转账，否则会悄无声息地重复计算余额。
 :::
 
-阅读更多：[USDT0 作为燃料](/cn/explanation/usdt-as-gas-token) · [USDT0 在 Stable 上的行为](/cn/explanation/usdt0-behavior)。
+了解更多：[USDT0 作为燃料](/cn/explanation/usdt-as-gas-token) · [Stable 上的 USDT0 行为](/cn/explanation/usdt0-behavior)。
 
-## 有保障的区块空间
+## 保障区块空间
 
-Stable v1.4.0 可以为符合条件的优先工作负载在每个区块内预留燃气配额。在网络拥堵期间，普通流量无法消耗此 VIP 通道容量。
+Stable v1.8.0 在每个区块内为符合条件的优先级工作负载预留了燃料配额。正常流量在拥堵期间无法占用此企业级通道容量。
 
-标准 EVM 交易继续使用默认的 nonce 通道，即 `NonceKey = 0`。符合条件的优先流使用 `CustomTx` 类型 `0x3F` 和协议预留的 `NonceKey`，用以识别 VIP 通道。
+标准 EVM 交易继续使用默认的 Nonce 通道，`NonceKey = 0`。符合条件的优先级流使用 `CustomTx` 类型 `0x3F` 和 `NonceKey` 并设置第 63 位。
 
-治理层配置这些通道和配额。如果没有配置，每个交易都使用一个普通通道。该功能目前处于 v1.4.0 Testnet 发布候选版本中，其主网计划待定。
+治理配置了通道和配额。保障区块空间已在主网和测试网中上线，`StableSystem.blockspaceLanes()` 返回活动配置。
 
-阅读更多：[有保障的区块空间](/cn/explanation/guaranteed-blockspace)。
+了解更多：[保障区块空间](/cn/explanation/guaranteed-blockspace)。
 
 ## USDT 转账聚合器
 
-大批量的 USDT0 转账通过 MapReduce 启发的管道并行批处理和验证。每个账户的失败是隔离的，因此一个不良转账不会中止整个批次。
+大容量 USDT0 转账通过 MapReduce 启发式流水线进行批处理和并行验证。每个账户的失败是隔离的，因此一次错误的转账不会中止批处理。
 
-调用方转账 API 保持不变。您以正常方式提交转账，无需更改代码即可获得吞吐量。
+调用方的转账 API 保持不变。您以常规方式提交转账，无需更改代码即可提高吞吐量。
 
-阅读更多：[USDT 转账聚合器](/cn/explanation/usdt-transfer-aggregator)。
+了解更多：[USDT 转账聚合器](/cn/explanation/usdt-transfer-aggregator)。
 
 ## EVM 兼容性
 
-标准 EVM 工具无需修改即可工作。在 EVM 层面，有三种行为与以太坊不同（USDT0 作为燃料，如上所述，是第四种）。
+标准 EVM 工具无需更改即可工作。在 EVM 层面，有三种行为与以太坊不同（上面已经介绍了 USDT0 作为燃料是第四种）。
 
-**单槽最终性。** 交易一旦包含在区块中即为最终交易。区块大约每 0.7 秒产出一个。
+**单槽最终性。** 交易一旦包含在区块中即为最终交易。区块大约每 0.7 秒生成一次。
 
-**无优先小费。** `maxPriorityFeePerGas` 始终被忽略。有效的燃气价格是协议设定的基础费用。
+**无优先级小费。** `maxPriorityFeePerGas` 始终被忽略。有效燃料价格是协议设置的基础费用。
 
 ```typescript
 import { ethers } from "ethers";
@@ -75,23 +76,23 @@ console.log("Included at gas price:", tx.gasPrice?.toString());
 Included at gas price: 1000000000
 ```
 
-**USDT0 双重角色，移植风险。** 从以太坊移植的合约不应镜像原生余额，应拒绝 `address(0)` 转账，并且不应依赖 `EXTCODEHASH` 进行地址重用检测。
+**双重作用的 USDT0，移植风险。** 从以太坊移植的合约不应镜像原生余额，应拒绝 `address(0)` 转账，并且不应依赖 `EXTCODEHASH` 进行地址重用检测。
 
 :::warning
-在 Stable 上，移植一个在内部变量中镜像原生余额的合约是不安全的。外部的 `USDT0.transferFrom` 调用可以在不调用任何合约代码的情况下耗尽合约的原生余额。在转账时务必通过 `address(this).balance` 进行偿付能力检查。
+移植在内部变量中镜像原生余额的合约在 Stable 上是不安全的。外部 `USDT0.transferFrom` 调用可以耗尽合约的原生余额，而无需调用任何合约代码。在转账时务必使用 `address(this).balance` 进行偿付能力检查。
 :::
 
-阅读更多：[与以太坊的区别](/cn/explanation/ethereum-comparison) · [Stable 上的合约](/cn/explanation/contracts-overview) · [USDT0 迁移清单](/cn/explanation/usdt0-behavior)。
+了解更多：[与以太坊的区别](/cn/explanation/ethereum-comparison) · [Stable 上的合约](/cn/explanation/contracts-overview) · [USDT0 迁移清单](/cn/explanation/usdt0-behavior)。
 
 ## 机密转账（计划中）
 
-Stable 有一个计划中的零知识转账功能，它可以隐藏金额，同时允许授权方进行审计。该功能尚未上线。
+Stable 有一个计划中的零知识转账功能，可以隐藏金额，同时允许授权方进行审计。该功能尚未上线。
 
-阅读更多：[机密转账](/cn/explanation/confidential-transfer)。
+了解更多：[机密转账](/cn/explanation/confidential-transfer)。
 
-## 接下来建议
+## 接下来去哪里
 
 - [**快速入门**](/cn/tutorial/quick-start)：连接到测试网并发送第一笔交易。
-- [**USDT0 行为**](/cn/explanation/usdt0-behavior)：将合约移植到 Stable，避免双重角色陷阱。
-- [**燃气定价**](/cn/reference/gas-pricing-api)：在 Stable 的费用模型上正确构建交易。
+- [**USDT0 行为**](/cn/explanation/usdt0-behavior)：将合约移植到 Stable 而不会遇到双重作用的陷阱。
+- [**燃料定价**](/cn/reference/gas-pricing-api)：在 Stable 的费用模型上正确构建交易。
 - [**生产就绪**](/cn/how-to/production-readiness)：在发布到主网之前验证集成。

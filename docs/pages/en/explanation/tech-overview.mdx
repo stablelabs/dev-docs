@@ -1,16 +1,16 @@
 ---
 title: "Tech overview"
-description: "How Stable's four-layer stack (consensus, execution, storage, and RPC) is tuned end-to-end for stablecoin payment throughput."
+description: "Understand how Stable coordinates consensus, execution, storage, and RPC for stablecoin payments."
 diataxis: "explanation"
 ---
 
 # Tech overview
 
-:::note
-**Release status:** StableBFT, the sequential Stable EVM, and the split-path RPC layer are live on Mainnet. OPE, Selective RecheckTx, MemIAVL, 2D nonce, and guaranteed blockspace are in the v1.4.0 Testnet release candidate. The Mainnet upgrade schedule is pending.
-:::
+Stable's transaction pipeline has four layers: consensus, execution, storage, and RPC. You can use standard EVM tooling while Stable-specific subsystems handle finality, USDT0 gas, state access, and transaction throughput.
 
-You can deploy Solidity or Vyper contracts on Stable today using Hardhat, Foundry, or any standard EVM tooling, and your contracts work without modification. What changes: gas is paid in USDT0, transactions reach single-slot finality, and every layer of the stack is tuned for stablecoin throughput.
+:::note
+**Release status:** Stable v1.8.0 is live on Mainnet. It includes Block-STM execution, Selective RecheckTx, MemIAVL, 2D nonce, and guaranteed blockspace.
+:::
 
 <img
   className="block"
@@ -35,14 +35,14 @@ Stable Blockchain leverages **StableBFT**, a customized PoS consensus protocol b
 **Stable EVM** is Stable's Ethereum-compatible execution layer. Standard Ethereum tools and wallets interact with the chain unchanged. A set of **precompiles** bridges Stable EVM to the Stable SDK, letting EVM smart contracts call into core chain logic atomically.
 
 :::note
-**Included in v1.4.0:** Block-STM adds optimistic parallel execution across CPU cores. Selective RecheckTx reduces post-commit mempool work. See [Execution](/en/explanation/execution).
+**Live in v1.8.0:** Block-STM adds optimistic parallel execution across CPU cores. Selective RecheckTx reduces post-commit mempool work. See [Execution](/en/explanation/execution).
 :::
 
 StableVM\+\+, a possible replacement for the current Go-based EVM implementation, remains a later roadmap item.
 
 ## StableDB
 
-**Status: v1.4.0 release candidate on Testnet**
+**Status: Live on Mainnet in v1.8.0**
 
 MemIAVL replaces LevelDB with a memory-mapped snapshot and an append-only write-ahead log. A RocksDB-backed VersionDB serves historical queries older than the retained snapshots.
 
@@ -61,4 +61,4 @@ A slow RPC layer ruins the user experience even on a fast chain. Stable addresse
 - [**Execution**](/en/explanation/execution): Understand how OPE and Selective RecheckTx remove CPU bottlenecks.
 - [**Storage (StableDB)**](/en/explanation/stable-db): See how MemIAVL changes current and historical state storage.
 - [**Guaranteed blockspace**](/en/explanation/guaranteed-blockspace): Understand the 2D nonce and block-lane model.
-- [**Network upgrades**](/en/reference/network-upgrades): Review v1.4.0 compatibility, rollout, and deferred work.
+- [**Network upgrades**](/en/reference/network-upgrades): Review v1.8.0 compatibility and activation details.

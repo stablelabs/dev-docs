@@ -49,7 +49,7 @@ Two properties keep the event stream trustworthy:
 
 To bound block size, each call processes at most 100 queued system log entries. If a burst exceeds the limit, the remaining entries stay queued for later blocks.
 
-There's a one-block (~700 ms) delay between the SDK event and the EVM emission, which is negligible relative to the 7-day unbonding period itself.
+A queued event normally appears in the next block. This delivery delay is separate from the network's configured staking unbonding period.
 
 ## Where to find the ABI
 

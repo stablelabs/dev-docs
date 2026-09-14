@@ -36,22 +36,29 @@ Precompiles are not a replacement for application contracts. They're a stable in
 
 Declare an interface for the methods you need, then call the precompile as if it were a deployed contract.
 
+Pass the validator's EVM address to staking methods. The precompile does not accept a Bech32 validator-operator string.
+
 ```solidity
 // SAFE: the precompile address is fixed on Stable.
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
+struct Coin {
+    string denom;
+    uint256 amount;
+}
+
 interface IStaking {
     function delegate(
         address delegatorAddress,
-        string calldata validatorAddress,
+        address validatorAddress,
         uint256 amount
     ) external returns (bool success);
 
     function delegation(
         address delegatorAddress,
-        string calldata validatorAddress
-    ) external view returns (uint256 shares, uint256 balance);
+        address validatorAddress
+    ) external view returns (uint256 shares, Coin memory balance);
 }
 
 contract StakingHelper {
@@ -60,7 +67,7 @@ contract StakingHelper {
 
     /// @notice Delegate STABLE tokens to a validator from this contract.
     function delegateToValidator(
-        string calldata validatorAddress,
+        address validatorAddress,
         uint256 amount
     ) external returns (bool) {
         return IStaking(STAKING_PRECOMPILE).delegate(
@@ -71,10 +78,10 @@ contract StakingHelper {
     }
 
     /// @notice Read the current delegation of this contract to a validator.
-    function myDelegation(string calldata validatorAddress)
+    function myDelegation(address validatorAddress)
         external
         view
-        returns (uint256 shares, uint256 balance)
+        returns (uint256 shares, Coin memory balance)
     {
         return IStaking(STAKING_PRECOMPILE).delegation(
             address(this),
@@ -102,17 +109,18 @@ const STAKING_PRECOMPILE = "0x0000000000000000000000000000000000000800";
 const staking = new ethers.Contract(
   STAKING_PRECOMPILE,
   [
-    "function delegation(address delegator, string validator) view returns (uint256 shares, uint256 balance)",
+    "function delegation(address delegator, address validator) view returns (uint256 shares, (string denom, uint256 amount) balance)",
   ],
   provider
 );
 
-const delegator = "0xDelegatorAddress";
-const validator = "stablevaloper1..."; // bech32 validator operator address
+const delegator = "0x1111111111111111111111111111111111111111";
+const validator = "0x2222222222222222222222222222222222222222";
 
 const [shares, balance] = await staking.delegation(delegator, validator);
 console.log("Delegation shares: ", shares.toString());
-console.log("Delegation balance:", ethers.formatUnits(balance, 18), "STABLE");
+console.log("Delegation denomination:", balance.denom);
+console.log("Delegation amount:", balance.amount.toString());
 ```
 
 ```bash
@@ -120,8 +128,9 @@ npx tsx queryDelegation.ts
 ```
 
 ```text
-Delegation shares:  1000000000000000000000
-Delegation balance: 1000.0 STABLE
+Delegation shares:  <share amount>
+Delegation denomination: <staking denomination>
+Delegation amount: <base-unit amount>
 ```
 
 ## Subscribe to system transaction events

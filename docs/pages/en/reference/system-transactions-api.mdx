@@ -106,7 +106,7 @@ A transaction must match every populated matcher field. Entries within one field
 | `nonceKeys` | `uint64[]` | Allowed nonce keys. Empty or an entry of `0` matches any key. |
 | `senders` | `address[]` | Allowed sender addresses. Empty matches any sender. |
 | `weight` | `uint32` | Percentage from 0 to 100 of the reserved blockspace pool assigned to the lane. |
-| `noOverflow` | `bool` | When `true`, unused capacity does not cascade to later lanes. |
+| `noOverflow` | `bool` | When `true`, a transaction that exceeds this lane's quota is not retried in later matching lanes or the normal lane. |
 
 `txTypes` uses these `TxFormat` values:
 

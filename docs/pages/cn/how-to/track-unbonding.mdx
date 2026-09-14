@@ -1,34 +1,34 @@
 ---
 source_path: how-to/track-unbonding.mdx
-source_sha: 5918da4d054d3399391dee083017aa5d5317dbfd
-title: "追踪解除绑定完成情况"
+source_sha: ac966ccc93372799db5a47163a0eaf708278e278
+title: "跟踪解除绑定完成情况"
 description: "通过用户或验证者订阅 UnbondingCompleted，并通过 StableSystem 查询历史事件。"
 diataxis: "how-to"
 ---
 
-# 追踪解除绑定完成情况
+# 跟踪解除绑定完成情况
 
-当解除绑定期完成时，协议通过系统交易，通过 `StableSystem` 预编译 (`0x0000000000000000000000000000000000009999`) 发出一个 `UnbondingCompleted` 事件。这允许 dApp 通知用户并实时更新余额，而无需运行自定义索引器或轮询 REST 端点。
+解除绑定期完成后，协议会通过 `StableSystem` 预编译 (`0x0000000000000000000000000000000000009999`)，经由系统交易发出 `UnbondingCompleted` 事件。这允许 dApp 通知用户并实时更新余额，而无需运行自定义索引器或轮询 REST 端点。
 
 :::note
-**概念**：有关系统事务如何将 SDK 层事件桥接到 EVM 以及其重要性的信息，请参阅[系统事务](/cn/explanation/system-transactions)。
+**概念：** 有关系统交易如何将 SDK 层事件桥接到 EVM 以及其重要性，请参阅[系统交易](/cn/explanation/system-transactions)。
 :::
 
 ## 前提条件
 
-- 了解[系统事务](/cn/explanation/system-transactions)。
+- 理解[系统交易](/cn/explanation/system-transactions)。
 - 熟悉[质押](/cn/explanation/staking-module)，特别是 `undelegate` 和解除绑定过程。
 - 具有使用标准 web3 库（例如 [ethers.js](https://docs.ethers.org/) v6）进行合约事件订阅和过滤的经验。
 
 ## 概述
 
-- **设置合约实例**：为 StableSystem 预编译创建一个合约实例。
+- **设置合约实例**：为 StableSystem 预编译创建合约实例。
 - **在应用程序中处理事件**：根据应用程序逻辑订阅实时事件或查询历史数据。
-- **处理连接问题**：为持久 WebSocket 订阅实现重新连接逻辑。
+- **处理连接问题**：为持久性 WebSocket 订阅实现重新连接逻辑。
 
-## 步骤 1：设置合约实例
+## 第 1 步：设置合约实例
 
-使用 `UnbondingCompleted` 事件 ABI 为 `StableSystem` 预编译创建一个合约实例。
+使用 `UnbondingCompleted` 事件 ABI 为 `StableSystem` 预编译创建合约实例。
 
 ```typescript
 // config.ts
@@ -53,13 +53,13 @@ export const stableSystem = new ethers.Contract(
 No output. The StableSystem contract instance is ready to query or subscribe.
 ```
 
-## 步骤 2：在应用程序中处理事件
+## 第 2 步：在应用程序中处理事件
 
-根据应用程序逻辑订阅实时事件、查询历史数据或两者兼而有之。
+根据您的应用程序逻辑，订阅实时事件、查询历史数据或两者兼而有之。
 
 ### 实时订阅
 
-订阅 `UnbondingCompleted` 事件，以便在任何解除绑定完成时获得实时通知。这对于触发余额更新、发送通知或刷新仪表板统计信息很有用。
+订阅 `UnbondingCompleted` 事件以获取任何解除绑定完成时的实时通知。这对于触发余额更新、发送通知或刷新仪表板统计数据很有用。
 
 ```typescript
 // subscribeBasic.ts
@@ -199,9 +199,9 @@ console.log(history);
 ]
 ```
 
-## 步骤 3：处理连接问题
+## 第 3 步：处理连接问题
 
-事件订阅依赖于持久的 WebSocket 连接。请为生产 dApp 实现重新连接逻辑。
+事件订阅依赖于持久性 WebSocket 连接。以下示例在错误和干净关闭后重新连接。在重试之前，它会删除旧的监听器并关闭之前的提供者。它使用 Node.js 22 和现代浏览器中内置的 `WebSocket`。
 
 ```typescript
 // subscribeWithReconnection.ts
@@ -210,6 +210,17 @@ import { STABLE_SYSTEM_ADDRESS, STABLE_SYSTEM_ABI } from "./config";
 
 let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 5;
+const WS_URL = "wss://rpc.testnet.stable.xyz";
+
+type Connection = {
+  socket: WebSocket;
+  provider: ethers.WebSocketProvider;
+  stableSystem: ethers.Contract;
+};
+
+let activeConnection: Connection | undefined;
+let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
+let stopped = false;
 
 function handleUnbonding(
   delegator: string,
@@ -225,35 +236,83 @@ function handleUnbonding(
   });
 }
 
+async function closeConnection(connection: Connection) {
+  if (activeConnection === connection) activeConnection = undefined;
+  try {
+    await connection.stableSystem.removeAllListeners();
+  } finally {
+    await connection.provider.destroy();
+  }
+}
+
+async function scheduleReconnect(connection: Connection, reason: string) {
+  if (stopped || activeConnection !== connection || reconnectTimer) return;
+
+  console.warn(`WebSocket ${reason}; reconnecting.`);
+  await closeConnection(connection);
+
+  if (stopped) return;
+
+  if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+    console.error("Maximum reconnect attempts reached.");
+    return;
+  }
+
+  const delay = Math.min(1000 * 2 ** reconnectAttempts, 30_000);
+  reconnectAttempts++;
+  reconnectTimer = setTimeout(() => {
+    reconnectTimer = undefined;
+    setupEventListener();
+  }, delay);
+}
+
 function setupEventListener() {
-  const wsProvider = new ethers.WebSocketProvider("wss://rpc.testnet.stable.xyz");
-
-  wsProvider.on("error", (error) => {
-    console.error("Provider error:", error);
-    if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-      reconnectAttempts++;
-      setTimeout(() => setupEventListener(), 5000);
-    }
-  });
-
+  const socket = new WebSocket(WS_URL);
+  const provider = new ethers.WebSocketProvider(socket);
   const stableSystem = new ethers.Contract(
     STABLE_SYSTEM_ADDRESS,
     STABLE_SYSTEM_ABI,
-    wsProvider
+    provider
   );
+  const connection = { socket, provider, stableSystem };
+  activeConnection = connection;
 
-  stableSystem.on("UnbondingCompleted", handleUnbonding);
+  socket.addEventListener("open", () => {
+    if (activeConnection === connection) {
+      reconnectAttempts = 0;
+      console.log("Connected to Stable Testnet WebSocket.");
+    }
+  }, { once: true });
+
+  socket.addEventListener("close", (event) => {
+    void scheduleReconnect(connection, `closed with code ${event.code}`);
+  }, { once: true });
+
+  socket.addEventListener("error", () => {
+    void scheduleReconnect(connection, "reported an error");
+  }, { once: true });
+
+  void stableSystem.on("UnbondingCompleted", handleUnbonding).catch((error) => {
+    console.error("Subscription failed:", error);
+    void scheduleReconnect(connection, "subscription failed");
+  });
 }
 
 setupEventListener();
+
+export async function stopEventListener() {
+  stopped = true;
+  if (reconnectTimer) clearTimeout(reconnectTimer);
+  if (activeConnection) await closeConnection(activeConnection);
+}
 ```
 
 ```text
-No output until an unbonding completes or the provider reports an error.
+Connected to Stable Testnet WebSocket.
 ```
 
 ## 接下来去哪里
 
-- [**系统事务概念**](/cn/explanation/system-transactions)：了解协议级事件如何到达 EVM。
+- [**系统交易概念**](/cn/explanation/system-transactions)：了解协议级事件如何到达 EVM。
 - [**质押模块概念**](/cn/explanation/staking-module)：回顾委托和解除绑定流程。
 - [**质押预编译参考**](/cn/reference/staking-module-api)：查找触发此处跟踪的事件的方法。

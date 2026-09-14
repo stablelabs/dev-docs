@@ -1,14 +1,14 @@
 ---
 source_path: reference/system-transactions-api.mdx
-source_sha: a8f5d4cbdfe52da5101751e74b8efb7a8390d16d
+source_sha: f2feba3033bae449e813b3843b685fafb4fa0f58
 title: "系统交易参考"
-description: "通过 StableSystem 预编译查询有保证的块空间通道并消费协议事件。"
+description: "查询保证的区块空间通道，并通过 StableSystem 预编译合约消费协议事件。"
 diataxis: "reference"
 ---
 
 # 系统交易参考
 
-`StableSystem` 预编译通过固定的 EVM 合约接口暴露 Stable 协议数据和事件。在 v1.8.0 中，任何客户端都可以查询有保证的块空间注册表，而只有协议生成的交易才能发出系统日志。
+`StableSystem` 预编译合约通过固定的 EVM 合约接口暴露 Stable 协议数据和事件。在 v1.8.0 中，任何客户端都可以查询保证区块空间注册表，但只有协议生成的交易才能发出系统日志。
 
 :::note
 有关系统交易流程及其安全模型，请参阅[系统交易](/cn/explanation/system-transactions)。
@@ -16,7 +16,7 @@ diataxis: "reference"
 
 ## 合约
 
-预编译在主网和测试网上使用相同的地址：
+此预编译合约在主网和测试网上使用相同的地址：
 
 `0x0000000000000000000000000000000000009999`
 
@@ -72,7 +72,7 @@ interface IStableSystem {
 
 ## `blockspaceLanes()`
 
-`blockspaceLanes()` 返回在块提案和验证期间使用的由治理控制的通道注册表。它是一个普通的 `eth_call`，而不是自定义的 JSON-RPC 方法，并且不需要企业网关。
+`blockspaceLanes()` 返回在区块提议和验证期间使用的由治理控制的通道注册表。它是一个正常的 `eth_call`，而不是自定义 JSON-RPC 方法，并且不需要企业网关。
 
 两个通道数组都按 `id` 升序排序。较低的 ID 具有较高的匹配优先级。
 
@@ -80,50 +80,50 @@ interface IStableSystem {
 
 | **字段** | **类型** | **描述** |
 | :--- | :--- | :--- |
-| `maxBlockspaceGasWeight` | `uint32` | 所有配置通道中保留的块 gas 限制的百分比，从 0 到 100。 |
+| `maxBlockspaceGasWeight` | `uint32` | 预留给所有已配置通道的区块 Gas 限制的百分比（0 到 100）。 |
 | `enterpriseLanes` | `EnterpriseLane[]` | 企业通道定义。治理最多允许一个企业通道。 |
-| `txTypeLanes` | `TxTypeLane[]` | 匹配规则检查交易字段的通道。 |
+| `txTypeLanes` | `TxTypeLane[]` | 其匹配规则检查交易字段的通道。 |
 
 ### 企业通道
 
-任何 `CustomTx`，其 `NonceKey` 的第 63 位设置，都路由到配置的企业通道，除了 `MaxUint64`。较低的 63 位选择一个独立的 nonce 通道，而不是一个通道。
+任何 `CustomTx` 的 `NonceKey` 设置了第 63 位都会路由到已配置的企业通道，除了 `MaxUint64`。较低的 63 位选择一个独立的 Nonce 通道，而不是一个通道。
 
 | **字段** | **类型** | **描述** |
 | :--- | :--- | :--- |
 | `id` | `uint64` | 耗尽顺序优先级和标识符。 |
 | `name` | `string` | 人类可读的通道名称。 |
-| `weight` | `uint32` | 分配给通道的保留块空间池的百分比，从 0 到 100。 |
+| `weight` | `uint32` | 分配给该通道的预留区块空间池的百分比（0 到 100）。 |
 
 ### 交易类型通道
 
-交易必须匹配所有已填充的匹配器字段。一个字段内的条目是替代项，空匹配器是通配符。
+交易必须匹配所有已填充的匹配器字段。一个字段中的条目是替代项，空匹配器是通配符。
 
 | **字段** | **类型** | **描述** |
 | :--- | :--- | :--- |
 | `id` | `uint64` | 通道优先级和标识符。较低的 ID 优先匹配。 |
 | `name` | `string` | 人类可读的通道名称。 |
-| `toAddrs` | `address[]` | 允许的目标地址。空值匹配任何目标。 |
-| `methods` | `bytes4[]` | 允许的四字节函数选择器。空值匹配任何选择器。 |
-| `txTypes` | `uint8[]` | 允许的交易格式。空值或 `0` 条目匹配任何格式。 |
-| `nonceKeys` | `uint64[]` | 允许的 nonce 键。空值或 `0` 条目匹配任何键。 |
-| `senders` | `address[]` | 允许的发送方地址。空值匹配任何发送方。 |
-| `weight` | `uint32` | 分配给通道的保留块空间池的百分比，从 0 到 100。 |
-| `noOverflow` | `bool` | 当为 `true` 时，未使用的容量不会级联到后续通道。 |
+| `toAddrs` | `address[]` | 允许的目标地址。空则匹配任何目标。 |
+| `methods` | `bytes4[]` | 允许的四字节函数选择器。空则匹配任何选择器。 |
+| `txTypes` | `uint8[]` | 允许的交易格式。空或条目 `0` 匹配任何格式。 |
+| `nonceKeys` | `uint64[]` | 允许的 Nonce 键。空或条目 `0` 匹配任何键。 |
+| `senders` | `address[]` | 允许的发送方地址。空则匹配任何发送方。 |
+| `weight` | `uint32` | 分配给该通道的预留区块空间池的百分比（0 到 100）。 |
+| `noOverflow` | `bool` | 当 `true` 时，超出此通道配额的交易不会在后续匹配通道或普通通道中重试。 |
 
-`txTypes` 使用这些 `TxFormat` 值：
+`txTypes` 使用以下 `TxFormat` 值：
 
 | **值** | **交易格式** | **EVM 类型** |
 | :--- | :--- | :--- |
-| `0` | 通配符 | 任何 |
+| `0` | 通配符 | 任意 |
 | `1` | 传统 | `0x00` |
 | `2` | 访问列表 | `0x01` |
 | `3` | 动态费用 | `0x02` |
 | `4` | 设置代码 | `0x04` |
-| `5` | 二维 nonce | `0x3F` |
+| `5` | 二维 Nonce | `0x3F` |
 
 ### 查询注册表
 
-使用 Foundry 的 `cast` 命令调用预编译：
+使用 Foundry 的 `cast` 命令调用预编译合约：
 
 ```bash
 cast call \
@@ -132,7 +132,7 @@ cast call \
   --rpc-url https://rpc.stable.xyz
 ```
 
-v1.8.0 主网激活时，播种了一个 20% 的保留池和一个企业通道，该通道占用池的 50%。治理可以更改此输出。
+v1.8.0 主网激活时，设置了一个 20% 的预留池，其中一个企业通道占该池的 50%。治理可以更改此输出。
 
 ```text
 (20, [(1, "enterprise", 50)], [])
@@ -140,40 +140,40 @@ v1.8.0 主网激活时，播种了一个 20% 的保留池和一个企业通道�
 
 ## `notifySystemTxLogs()`
 
-`notifySystemTxLogs()` 从状态中读取排队的协议日志条目，每次调用最多处理 100 个。它不接受任何参数，也不返回任何值。
+`notifySystemTxLogs()` 从状态中读取排队的协议日志条目，并每次调用最多处理 100 个。它不接受任何参数，也不返回任何值。
 
-只有发送方为 `0x0000000000000000000000000000000000000001` 的系统交易才能调用此方法。来自用户或合约的调用将回滚。
+只有发送方为 `0x0000000000000000000000000000000000000001` 的系统交易才能调用此方法。用户或合约的调用将被回滚。
 
 当解除绑定完成时，流程如下：
 
 1. 质押模块完成操作并记录其 SDK 事件。
-2. `x/stable` 模块将事件数据及其原始块高排入队列。
-3. 下一个块提议者创建一个调用 `notifySystemTxLogs()` 的系统交易。
-4. 预编译为最多 100 个排队条目发出 EVM 日志。
+2. `x/stable` 模块将事件数据及其原始区块高度排队。
+3. 下一个区块提议者创建调用 `notifySystemTxLogs()` 的系统交易。
+4. 预编译合约为最多 100 个排队的条目发出 EVM 日志。
 5. 客户端通过 `eth_getLogs`、WebSocket 订阅或区块浏览器读取日志。
 
-超出批处理限制的条目将继续排队等待后续区块。
+超出批处理限制的条目将继续排队等待下一个区块。
 
 ## `UnbondingCompleted` 事件
 
 | **参数** | **类型** | **索引** | **描述** |
 | :--- | :--- | :--- | :--- |
 | `delegator` | `address` | 是 | 其委托代币完成解除绑定的地址。 |
-| `validator` | `address` | 是 | 从其验证者操作员地址派生的验证者地址。 |
-| `originBlockHeight` | `uint64` | 是 | SDK 层解除绑定最初完成时的块高。 |
-| `amount` | `uint256` | 否 | 完成解除绑定的数量。 |
+| `validator` | `address` | 是 | 从其验证者操作员地址派生出的验证者地址。 |
+| `originBlockHeight` | `uint64` | 是 | SDK 层解除绑定最初完成时的区块高度。 |
+| `amount` | `uint256` | 否 | 完成解除绑定的金额。 |
 
-EVM 日志出现在包含系统交易的区块中。当您需要原始 SDK 事件的高度时，请使用 `originBlockHeight`。
+EVM 日志显示在包含系统交易的区块中。当需要原始 SDK 事件的高度时，请使用 `originBlockHeight`。
 
 ## 安全模型
 
-- 协议在区块提案期间创建系统交易。
+- 协议在区块提议期间创建系统交易。
 - EVM 状态转换规则为系统交易保留发送方 `0x0000000000000000000000000000000000000001`。
 - 用户交易无法伪造发送方或成功调用 `notifySystemTxLogs()`。
-- `blockspaceLanes()` 有意公开，不能更改状态。
+- `blockspaceLanes()` 是公开的，并且不能更改状态。
 
-## 下一步
+## 接下来去哪里
 
-- [**有保证的块空间**](/cn/explanation/guaranteed-blockspace)：了解返回的权重和匹配器如何控制保留容量。
+- [**保证区块空间**](/cn/explanation/guaranteed-blockspace)：了解返回的权重和匹配器如何控制预留容量。
 - [**跟踪解除绑定完成**](/cn/how-to/track-unbonding)：订阅 `UnbondingCompleted` 并查询历史事件。
 - [**系统交易**](/cn/explanation/system-transactions)：了解协议事件如何成为 EVM 日志。

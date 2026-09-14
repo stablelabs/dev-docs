@@ -1,29 +1,29 @@
 ---
 source_path: how-to/upgrade-node.mdx
-source_sha: e2f8ef3c819976fcf7a91e8ff2841f1368c80108
+source_sha: 29c1d88592bc687eb152ad2579a7e18844ae84f4
 title: "升级节点"
-description: "通过备份身份、替换发布文件和验证同步来安全升级 Stable 节点。"
+description: "通过备份其身份、替换发布文件和验证同步来安全地升级 Stable 节点。"
 diataxis: "how-to"
 ---
 
 # 升级节点
 
-使用此过程升级 Stable 节点，同时保留其节点特定配置和验证器状态。始终从网络历史页面获取版本、二进制文件和激活高度。
+使用此过程升级 Stable 节点，同时保留其节点特定的配置和验证器状态。始终从网络历史页面获取版本、二进制文件和激活高度。
 
 :::warning
-状态中断升级要求每个节点在协调高度切换。在停止或替换任何内容之前，请确认网络、版本和升级高度。
+状态中断升级要求每个节点在协调高度进行切换。在停止或替换任何内容之前，请确认网络、发布和升级高度。
 :::
 
 ## 开始之前
 
 你需要：
 
-- 节点的 Shell 访问权限以及管理其服务的权限。
-- 足以在活动数据目录之外进行受保护备份的磁盘空间。
-- 部署的节点主目录、服务名称和已安装的二进制文件路径。
-- [主网版本历史](/cn/reference/mainnet-version-history) 或 [测试网版本历史](/cn/reference/testnet-version-history) 中的版本条目。
+- 对节点具有 shell 访问权限和管理其服务的权限。
+- 有足够的磁盘空间用于活动数据目录之外的受保护备份。
+- 你的部署的节点主目录、服务名称和已安装的二进制路径。
+- [主网版本历史](/cn/reference/mainnet-version-history)或[测试网版本历史](/cn/reference/testnet-version-history)中的发布条目。
 
-以下示例使用这些路径。将它们更改为与你的部署匹配：
+以下示例使用这些路径。将其更改为与你的部署匹配：
 
 ```bash
 export STABLED_HOME="/var/lib/stabled"
@@ -38,7 +38,7 @@ export STABLED_ARCH="amd64" # 在 ARM 主机上使用 arm64。
 
 ## 1. 检查运行中的节点
 
-在更改节点之前记录当前构建和同步状态：
+在更改节点之前记录当前的构建和同步状态：
 
 ```bash
 "$STABLED_BIN" version --long
@@ -58,7 +58,7 @@ curl -fsS http://localhost:26657/status \
 
 ## 2. 备份身份和配置
 
-保持验证器密钥和签名状态私密。将此备份存储在加密存储上，权限仅限于节点操作员。
+保持验证器密钥和签名状态私有。将此备份存储在加密存储上，权限仅限于节点操作员。
 
 ```bash
 export STABLED_BACKUP="/var/backups/stabled/pre-upgrade"
@@ -75,10 +75,10 @@ printf '备份存储在 %s\n' "$STABLED_BACKUP"
 ```
 
 :::danger
-切勿使用相同的私有验证器密钥运行两个验证器。重复的密钥可能导致双重签名和惩罚。
+切勿使用相同的私有验证器密钥运行两个验证器。重复的密钥可能导致双重签名和罚没。
 :::
 
-## 3. 下载并检查发布版本
+## 3. 下载并检查发布
 
 Stable 主网在区块 `36,976,000` 激活了 v1.8.0。下载适用于你的主机架构的存档，并在安装前检查报告的构建：
 
@@ -99,11 +99,11 @@ tar -xzf "$STABLED_ARCHIVE" -C "$STABLED_STAGE"
 <v1.8.0 的构建信息>
 ```
 
-对于其他版本或测试网，从相应的版本历史表中复制精确的二进制文件 URL。
+对于其他发布或测试网，从相应的版本历史表中复制确切的二进制 URL。
 
 ## 4. 准备 v1.8.0 配置
 
-v1.8.0 在 `config.toml` 和 `app.toml` 中添加了所需设置。将主网模板下载到临时目录：
+v1.8.0 向 `config.toml` 和 `app.toml` 添加了必需的设置。将主网模板下载到临时目录中：
 
 ```bash
 export STABLED_CONFIG_STAGE="/tmp/stable-v1.8.0-config"
@@ -114,26 +114,26 @@ curl -fL \
 curl -fL \
   "https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/configuration/v1.8.0/partners/app.toml" \
   -o "$STABLED_CONFIG_STAGE/app.toml"
-printf '配置暂存到 %s\n' "$STABLED_CONFIG_STAGE"
+printf '配置已暂存到 %s\n' "$STABLED_CONFIG_STAGE"
 ```
 
 ```text
-配置暂存到 /tmp/stable-v1.8.0-config
+配置已暂存到 /tmp/stable-v1.8.0-config
 ```
 
 从这些模板开始，然后从备份中恢复每个节点特定的值。至少检查：
 
 - `moniker` 和 `external_address`。
-- 持久对等点、种子和私有对等点设置。
+- 持久对等节点、种子和私有对等节点设置。
 - API、JSON-RPC、gRPC 和指标设置。
 - 组织特定的超时和资源限制。
 - 归档节点的修剪设置。
 
-分发的 `app.toml` 使用默认修剪。修剪的历史无法从本地节点重建。v1.8.0 还强制关闭 `inter-block-cache`。
+分发的 `app.toml` 使用默认修剪。修剪的历史记录无法从本地节点重建。v1.8.0 还强制关闭 `inter-block-cache`。
 
 ## 5. 停止节点并安装文件
 
-对于协调的未来升级，等待节点在发布的高度停止。v1.8.0 主网高度是历史的，因此较旧的主网节点可以在此安装之前停止。
+对于协调的未来升级，请等到节点在发布的高度停止。v1.8.0 主网高度是历史的，因此可以在安装之前停止较旧的主网节点。
 
 ```bash
 sudo systemctl stop "$STABLED_SERVICE"
@@ -141,10 +141,10 @@ systemctl is-active "$STABLED_SERVICE" || true
 ```
 
 ```text
-非活动
+inactive
 ```
 
-安装暂存的二进制文件和已完成的配置文件：
+安装暂存的二进制文件和完整的配置文件：
 
 ```bash
 sudo install -m 0755 "$STABLED_STAGE/stabled" "$STABLED_BIN"
@@ -172,7 +172,7 @@ curl -fsS http://localhost:26657/status \
 ```
 
 ```text
-活跃
+active
 <v1.8.0 的构建信息>
 {
   "catching_up": false,
@@ -180,26 +180,26 @@ curl -fsS http://localhost:26657/status \
 }
 ```
 
-在将节点恢复正常操作之前，检查服务日志中是否有重复的崩溃、共识失败或配置解析错误。
+在将节点恢复正常操作之前，检查服务日志中是否存在重复的崩溃、共识失败或配置解析错误。
 
-## 使用 Cosmovisor 自动执行未来的升级
+## 使用 Cosmovisor 自动化未来升级
 
-当链上升级处理程序达到其配置的高度时，Cosmovisor 可以切换二进制文件。遵循 [Cosmovisor 文档](https://docs.cosmos.network/main/build/tooling/cosmovisor) 并使用适用治理提案中的升级名称。
+当链上升级处理程序达到其配置的高度时，Cosmovisor 可以切换二进制文件。遵循 [Cosmovisor 文档](https://docs.cosmos.network/sdk/v0.53/build/tooling/cosmovisor)并使用适用治理提案中的升级名称。
 
-除非你的操作策略明确信任配置的源，否则请禁用自动二进制下载。在激活高度之前暂存并验证发布二进制文件。
+除非你的操作策略明确信任配置的来源，否则请禁用自动二进制下载。在激活高度之前暂存并验证发布二进制文件。
 
-## 仅根据特定于版本的说明回滚
+## 仅根据发布特定说明回滚
 
 :::danger
-除非 Stable 的发布说明要求，否则不要删除活动数据目录或恢复旧快照。使用旧的二进制文件对抗由较新版本写入的状态可能会损坏节点或使其跟随错误的链。
+除非 Stable 的发布说明要求，否则不要删除活动数据目录或恢复旧快照。使用旧的二进制文件针对由新版本写入的状态启动可能会损坏节点或使其遵循错误的链。
 :::
 
-如果新进程在执行升级块之前失败，请保持服务停止并检查错误。仅当发布说明表示回滚安全时才恢复以前的二进制文件和配置。
+如果新进程在执行升级块之前失败，请保持服务停止并检查错误。仅当发布说明说明回滚安全时才恢复以前的二进制文件和配置。
 
-如果节点已执行升级块，请与网络操作员协调恢复。恢复可能需要特定于版本的二进制文件或在商定高度的受信任快照。
+如果节点已执行升级块，请与网络操作员协调恢复。恢复可能需要特定于发布的二进制文件或在约定高度的受信任快照。
 
 ## 接下来去哪里
 
 - [**网络升级**](/cn/reference/network-upgrades)：确定每个协议版本的兼容性和操作员影响。
-- [**监控节点**](/cn/how-to/monitor-node)：升级后验证同步、对等点、资源使用和服务运行状况。
-- [**故障排除节点**](/cn/how-to/troubleshoot-node)：诊断启动、网络、共识和存储故障。
+- [**监控节点**](/cn/how-to/monitor-node)：升级后验证同步、对等节点、资源使用和服务运行状况。
+- [**对节点进行故障排除**](/cn/how-to/troubleshoot-node)：诊断启动、网络、共识和存储故障。

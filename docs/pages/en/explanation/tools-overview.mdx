@@ -1,0 +1,39 @@
+---
+title: "Tools and SDK"
+description: "Pick the right Stable tool: the typed TypeScript SDKs, the gas waiver and EIP-7702 service APIs, and the MCP servers for AI clients."
+diataxis: "explanation"
+---
+
+# Tools and SDK
+
+Everything you call Stable with lives here. Building a product on Stable? Start with the [Stable SDK](/en/explanation/sdk-overview) and drop down to a service API when you need a rail the SDK doesn't wrap. Sponsoring gas or relaying transactions from a backend? Start with the [Enterprise SDK](/en/explanation/enterprise-sdk). Wiring Stable into an AI editor or agent? Go to [Develop with AI](/en/how-to/develop-with-ai).
+
+## Build with SDKs
+
+- [**Stable SDK**](/en/explanation/sdk-overview): `@stablechain/sdk`, the typed TypeScript client for transfer, bridge, swap, and vault yield. It wraps viem and handles routing, approvals, decimals, and chain switching.
+- [**SDK quickstart**](/en/tutorial/sdk-quickstart): Install the package, send your first USDT0 transfer on testnet, and preview a mainnet bridge quote.
+- [**SDK reference**](/en/reference/sdk): `createStable`, `createStableReader`, the transfer, bridge, swap, and earn methods, enums, and error classes.
+- [**Enterprise SDK**](/en/explanation/enterprise-sdk): `@stablechain/enterprise`, the server-side client for gas-waived transactions and reserved Enterprise-lane blockspace.
+- [**Enterprise SDK reference**](/en/reference/enterprise-sdk): `createStableEnterprise`, both rails, build helpers, and error classes.
+
+## Use the SDK with your stack
+
+- [**viem**](/en/how-to/sdk-with-viem): Sign three ways: a private-key Account, a browser Transport, or a pre-built viem WalletClient.
+- [**wagmi**](/en/how-to/sdk-with-wagmi): Wire the SDK into a React app with `useWalletClient`, `useAccount`, and `useChainId`.
+- [**Earn yield**](/en/how-to/earn-yield): Deposit USDT0 into a Morpho vault, read APY and position, withdraw, and claim Merkl rewards.
+
+## Service APIs
+
+- [**Gas waiver protocol**](/en/reference/gas-waiver-api): Transaction formats, marker routing, governance controls, and the Waiver Server API you post signed `InnerTx` payloads to.
+- [**EIP-7702**](/en/reference/eip-7702-api): Delegation transaction format and RPC behavior for pointing an EOA's account code at a smart contract.
+
+## AI and agent tooling
+
+- [**Develop with AI**](/en/how-to/develop-with-ai): Add the Docs MCP and Runtime MCP servers to any MCP-compatible client, plus plain-text docs for tools without MCP.
+- [**Pay with MCP server**](/en/how-to/pay-with-mcp): Expose x402-paid APIs as MCP tools so AI clients call and pay for them through prompts.
+
+## Where to go next
+
+- [**Quick start**](/en/tutorial/quick-start): Connect to testnet, fund a wallet, and send your first USDT0 transaction.
+- [**JSON-RPC API**](/en/reference/json-rpc-api): Supported methods across the `eth`, `net`, `web3`, and `debug` namespaces.
+- [**Build**](/en/explanation/build-overview): Accounts, payments, contracts, and agents, organized by what you're shipping.

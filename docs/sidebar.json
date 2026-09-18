@@ -179,62 +179,6 @@
           "link": "/en/tutorial/quick-start"
         },
         {
-          "text": "Stable SDK",
-          "collapsed": true,
-          "items": [
-            {
-              "text": "Overview",
-              "link": "/en/explanation/sdk-overview"
-            },
-            {
-              "text": "Quickstart",
-              "link": "/en/tutorial/sdk-quickstart"
-            },
-            {
-              "text": "Reference",
-              "link": "/en/reference/sdk"
-            },
-            {
-              "text": "Earn Yield",
-              "link": "/en/how-to/earn-yield"
-            },
-            {
-              "text": "Viem Integration",
-              "link": "/en/how-to/sdk-with-viem"
-            },
-            {
-              "text": "Wagmi Integration",
-              "link": "/en/how-to/sdk-with-wagmi"
-            }
-          ]
-        },
-        {
-          "text": "Enterprise SDK",
-          "collapsed": true,
-          "items": [
-            {
-              "text": "Overview",
-              "link": "/en/explanation/enterprise-sdk"
-            },
-            {
-              "text": "Relay Transactions",
-              "link": "/en/how-to/relay-with-gas-waiver"
-            },
-            {
-              "text": "Guaranteed Blockspace",
-              "link": "/en/how-to/send-guaranteed-transactions"
-            },
-            {
-              "text": "Guaranteed Relayed Transactions",
-              "link": "/en/how-to/guaranteed-relayed-transactions"
-            },
-            {
-              "text": "Reference",
-              "link": "/en/reference/enterprise-sdk"
-            }
-          ]
-        },
-        {
           "text": "Onboard users",
           "collapsed": true,
           "items": [
@@ -583,7 +527,73 @@
       ]
     },
     {
-      "text": "Operate",
+      "text": "Tools and SDK",
+      "collapsed": true,
+      "items": [
+        {
+          "text": "Tools and SDK overview",
+          "link": "/en/explanation/tools-overview"
+        },
+        {
+          "text": "Stable SDK",
+          "collapsed": true,
+          "items": [
+            {
+              "text": "Overview",
+              "link": "/en/explanation/sdk-overview"
+            },
+            {
+              "text": "Quickstart",
+              "link": "/en/tutorial/sdk-quickstart"
+            },
+            {
+              "text": "Reference",
+              "link": "/en/reference/sdk"
+            },
+            {
+              "text": "Earn Yield",
+              "link": "/en/how-to/earn-yield"
+            },
+            {
+              "text": "Viem Integration",
+              "link": "/en/how-to/sdk-with-viem"
+            },
+            {
+              "text": "Wagmi Integration",
+              "link": "/en/how-to/sdk-with-wagmi"
+            }
+          ]
+        },
+        {
+          "text": "Enterprise SDK",
+          "collapsed": true,
+          "items": [
+            {
+              "text": "Overview",
+              "link": "/en/explanation/enterprise-sdk"
+            },
+            {
+              "text": "Relay Transactions",
+              "link": "/en/how-to/relay-with-gas-waiver"
+            },
+            {
+              "text": "Guaranteed Blockspace",
+              "link": "/en/how-to/send-guaranteed-transactions"
+            },
+            {
+              "text": "Guaranteed Relayed Transactions",
+              "link": "/en/how-to/guaranteed-relayed-transactions"
+            },
+            {
+              "text": "Reference",
+              "link": "/en/reference/enterprise-sdk"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "Run a Stable node",
       "collapsed": true,
       "items": [
         {

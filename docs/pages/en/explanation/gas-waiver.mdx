@@ -52,6 +52,18 @@ Gas Waiver fits any flow where the end user shouldn't have to hold USDT0 for gas
 
 For flows where the user does hold USDT0 but wants to bundle multiple calls into one signed transaction, see [EIP-7702 delegation](/en/reference/eip-7702-api) instead.
 
+## Choosing an integration path
+
+All three paths produce the same on-chain result. They differ in who holds the waiver key and how much you build.
+
+| Path | Who holds the waiver key | Use when |
+| :--- | :--- | :--- |
+| [Hosted Waiver Server](/en/how-to/integrate-gas-waiver) | Stable, and you authenticate with an API key | You want the shortest path and can depend on Stable's service for submission. |
+| [Enterprise SDK](/en/how-to/relay-with-gas-waiver) | You, registered through governance | You run your own waiver in TypeScript and want one call to build, sign, and broadcast. |
+| [Self-hosted wrappers](/en/how-to/self-hosted-gas-waiver) | You, registered through governance | You construct wrapper transactions yourself, in a language the SDK doesn't cover. |
+
+The hosted server registers and operates the waiver for you, so you never construct a `WrapperTx`. Both self-hosted paths need a governance-registered waiver address, and `@stablechain/enterprise` is the typed client for that model.
+
 ## Next recommended
 
 - [**Enable gas-free transactions**](/en/how-to/integrate-gas-waiver): Integrate the hosted Waiver Server API with API-key submission and NDJSON responses.

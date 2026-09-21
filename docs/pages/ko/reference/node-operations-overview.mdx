@@ -1,71 +1,71 @@
 ---
 source_path: reference/node-operations-overview.mdx
-source_sha: 292d91190bd4c06f8a2e4e87f9253a9bb856c28a
-title: "운영"
-description: "Stable 노드를 실행하세요. 설치, 구성, 모니터링 및 업그레이드."
+source_sha: 834cf7cad55269092423973290344330f70a4a77
+title: "Stable 노드 실행하기"
+description: "Stable 노드를 실행합니다. 설치, 구성, 모니터링, 업그레이드."
 diataxis: "reference"
 ---
 
-# 운영
+# Stable 노드 실행하기
 
-운영은 Stable 노드 실행을 다룹니다: 풀 노드 또는 아카이브 노드, 테스트넷 또는 메인넷, 설치부터 모니터링까지. 노드가 적용하는 체인 수준 동작(수수료 모델, 파이널리티, 가스로서의 USDT0)에 대해서는 [가스 가격 책정](/ko/explanation/gas-pricing), [파이널리티](/ko/explanation/finality), [아키텍처 개요](/ko/explanation/core-optimization-overview)를 참조하세요.
+이 섹션에서는 Stable 노드(풀 노드 또는 아카이브 노드, 테스트넷 또는 메인넷)를 설치부터 모니터링까지 실행하는 방법에 대해 설명합니다. 노드가 적용하는 체인 수준 동작(수수료 모델, 최종성, USDT0를 가스로 사용)에 대해서는 [가스 가격 책정](/ko/explanation/gas-pricing), [최종성](/ko/explanation/finality) 및 [아키텍처 개요](/ko/explanation/core-optimization-overview)를 참조하십시오.
 
 ## 빠른 링크
 
-- **[시스템 요구사항](/ko/reference/node-system-requirements)** - 다양한 노드 유형에 대한 하드웨어 및 소프트웨어 요구사항
+- **[시스템 요구 사항](/ko/reference/node-system-requirements)** - 다양한 노드 유형에 대한 하드웨어 및 소프트웨어 요구 사항
 - **[설치 가이드](/ko/how-to/install-node)** - 다양한 플랫폼에 대한 단계별 설치 지침
-- **[구성](/ko/reference/node-configuration)** - 상세한 구성 옵션 및 모범 사례
+- **[구성](/ko/reference/node-configuration)** - 자세한 구성 옵션 및 모범 사례
 - **[스냅샷 및 동기화](/ko/how-to/use-node-snapshots)** - 스냅샷을 사용한 빠른 동기화 옵션
-- **[밸리데이터 생성](/ko/how-to/run-validator)** - 동기화된 노드를 밸리데이터로 등록하고 자체 위임
+- **[검증인 생성](/ko/how-to/run-validator)** - 동기화된 노드를 검증인으로 등록하고 자체 위임
 - **[업그레이드 가이드](/ko/how-to/upgrade-node)** - 노드 업그레이드 절차 및 버전 기록
-- **[모니터링](/ko/how-to/monitor-node)** - 노드 모니터링을 위한 도구 및 메트릭
-- **[문제 해결](/ko/how-to/troubleshoot-node)** - 일반적인 문제 및 해결책
+- **[모니터링](/ko/how-to/monitor-node)** - 노드 모니터링을 위한 도구 및 지표
+- **[문제 해결](/ko/how-to/troubleshoot-node)** - 일반적인 문제 및 해결 방법
 
-`stabled`를 실행하는 대신 체인에서 밸리데이터 데이터(스테이크, 가동 시간, 투표 기록)를 읽으려면 [밸리데이터 데이터 인덱싱](/ko/how-to/index-validator-data)을 참조하세요.
+`stabled`를 실행하는 대신 체인에서 검증인 데이터(스테이크, 가동 시간, 투표 기록)를 읽으려면 [검증인 데이터 인덱싱](/ko/how-to/index-validator-data)을 참조하십시오.
 
 ## 노드 유형
 
 ### 풀 노드
-풀 노드는 블록체인의 완전한 복사본을 유지하며 모든 트랜잭션과 블록을 검증합니다. 풀 노드는:
-- 모든 트랜잭션과 블록을 검증
-- 전체 블록체인 기록을 유지
-- 다른 노드에 데이터를 제공할 수 있음
-- 네트워크의 탈중앙화를 지원
+풀 노드는 블록체인의 완전한 복사본을 유지하고 모든 트랜잭션과 블록을 검증합니다. 풀 노드는 다음을 수행합니다.
+- 모든 트랜잭션 및 블록 검증
+- 전체 블록체인 기록 유지
+- 다른 노드에 데이터 제공 가능
+- 네트워크의 분산화 지원
 
 ### 아카이브 노드
-아카이브 노드는 모든 상태의 완전한 기록을 저장하며 과거 쿼리를 제공할 수 있습니다. 아카이브 노드는:
-- 모든 과거 상태를 저장
-- 모든 블록 높이에서 과거 쿼리를 지원
-- 상당히 더 많은 스토리지를 요구
+아카이브 노드는 모든 상태의 전체 기록을 저장하고 기록 쿼리를 제공할 수 있습니다. 아카이브 노드는 다음을 수행합니다.
+- 모든 기록 상태 저장
+- 모든 블록 높이에서 기록 쿼리 지원
+- 훨씬 더 많은 저장 공간 필요
 - 블록 탐색기 및 분석에 필수적
 
 ## 네트워크 정보
 
-RPC 엔드포인트, 블록 탐색기, 체인 파라미터를 포함한 전체 네트워크 세부 정보는 다음을 참조하세요:
+RPC 엔드포인트, 블록 탐색기 및 체인 매개변수를 포함한 전체 네트워크 세부 정보는 다음을 참조하십시오.
 - **[메인넷](/ko/reference/mainnet-information)** - 메인넷 세부 정보
 - **[테스트넷](/ko/reference/testnet-information)** - 테스트넷 세부 정보
 
 ## 지원 및 커뮤니티
 
-- **Discord**: [Stable Discord 참여하기](https://discord.gg/stablexyz)
+- **Discord**: [Stable Discord 가입하기](https://discord.gg/stablexyz)
 
 ## 빠른 시작
 
-빠르게 시작하고자 하는 숙련된 운영자를 위해:
+빠르게 시작하려는 숙련된 운영자를 위한 정보:
 
-1. [시스템 요구사항](/ko/reference/node-system-requirements) 확인
+1. [시스템 요구 사항](/ko/reference/node-system-requirements) 확인
 2. [설치 가이드](/ko/how-to/install-node) 따르기
 3. [구성 가이드](/ko/reference/node-configuration)를 사용하여 노드 구성
 4. [스냅샷](/ko/how-to/use-node-snapshots)으로 동기화 속도 향상
 5. [모니터링 가이드](/ko/how-to/monitor-node)로 노드 모니터링
 
-네트워크 파라미터 및 RPC 엔드포인트는 [메인넷 정보](/ko/reference/mainnet-information) 또는 [테스트넷 정보](/ko/reference/testnet-information)를 참조하세요.
+네트워크 매개변수 및 RPC 엔드포인트에 대해서는 [메인넷 정보](/ko/reference/mainnet-information) 또는 [테스트넷 정보](/ko/reference/testnet-information)를 참조하십시오.
 
-## 노드 운영이 체인과 연결되는 방식
+## 노드 운영자가 체인에 연결하는 방법
 
-노드를 실행한다는 것은 Stable의 체인 수준 규칙을 적용한다는 의미입니다. 다음 페이지에서는 노드가 구현하는 동작을 설명합니다:
+노드를 실행한다는 것은 Stable의 체인 수준 규칙을 적용하는 것을 의미합니다. 이 페이지에서는 노드가 구현하는 동작을 설명합니다.
 
-- **[컨트랙트 개요](/ko/explanation/contracts-overview)** 는 노드가 제공하는 수수료 모델, JSON-RPC 표면, 시스템 모듈을 다룹니다.
-- **[파이널리티](/ko/explanation/finality)** 는 단일 슬롯 파이널리티와 합의 계층에서 "확정"이 무엇을 의미하는지 설명합니다.
-- **[아키텍처 개요](/ko/explanation/core-optimization-overview)** 는 합의, 실행, 데이터베이스, RPC 계층을 살펴봅니다.
-- **[가스 가격 책정](/ko/explanation/gas-pricing)** 은 USDT0 단위 수수료가 어떻게 책정되고 징수되는지 설명합니다.
+- **[컨트랙트 개요](/ko/explanation/contracts-overview)**는 수수료 모델, JSON-RPC 인터페이스 및 노드가 제공하는 시스템 모듈을 다룹니다.
+- **[최종성](/ko/explanation/finality)**은 단일 슬롯 최종성과 합의 계층에서 "확정됨"의 의미를 설명합니다.
+- **[아키텍처 개요](/ko/explanation/core-optimization-overview)**는 합의, 실행, 데이터베이스 및 RPC 계층을 설명합니다.
+- **[가스 가격 책정](/ko/explanation/gas-pricing)**은 USDT0으로 표시되는 수수료가 어떻게 책정되고 징수되는지 설명합니다.

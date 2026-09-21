@@ -1,6 +1,6 @@
 ---
 source_path: reference/indexers.mdx
-source_sha: 208d3664597b9263a10478a7fb3ad16384dffb53
+source_sha: 6cc9367a3209b641df9f4a6d11c8de08332c7ce5
 title: "索引器"
 description: "查找支持 Stable 的索引、分析、合规和调查提供商。"
 diataxis: "reference"
@@ -8,25 +8,26 @@ diataxis: "reference"
 
 # 索引器
 
-索引器、分析平台和区块链情报提供商帮助您查询链上数据、衡量活动、监控交易风险，并调查 Stable 上的资金流。Stable 兼容 EVM，因此标准的以太坊索引工具可以无缝工作。
+索引器、分析平台和区块链情报提供商可帮助您在 Stable 上查询链上数据、衡量活动、监控交易风险并调查资金流向。Stable 兼容 EVM，因此标准的以太坊索引工具无需修改即可使用。
 
-本页面列出了可用于 Stable 的索引、分析、合规性及调查的提供商。
+本页面列出了可用于 Stable 上的索引、分析、合规和调查的提供商。
 
 ## 概览表
 
-| **提供商**                                                                | **类别**                  | **文档/入门**                                                                                                              | **备注**                                                          |
+| **提供商**                                                                | **类别**                  | **文档 / 开始使用**                                                                                                              | **备注**                                                          |
 | :-------------------------------------------------------------------------- | :---------------------------- | :---------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------- |
 | [**Stablescan**](https://stablescan.xyz/)                               | 区块链浏览器           | [https://docs.etherscan.io/introduction](https://docs.etherscan.io/introduction)                                                     | 区块链浏览器；交易、区块和合约可见性。 |
 | [**Envio**](https://envio.dev/?utm_source=stable&utm_medium=partner-docs) | 索引器                       | [https://docs.envio.dev/](https://docs.envio.dev/) | 通过单个 GraphQL API 提供实时和历史链上数据。 |
-| [**The Graph**](https://thegraph.com/explorer/participants/indexers) | 索引器                       | [https://thegraph.com/docs/en/developing/creating-a-subgraph/](https://thegraph.com/docs/en/developing/creating-a-subgraph/) | 使用 GraphQL 构建、部署和查询 subgraph。                  |
+| [**The Graph**](https://thegraph.com/explorer/participants/indexers) | 索引器                       | [https://thegraph.com/docs/en/developing/creating-a-subgraph/](https://thegraph.com/docs/en/developing/creating-a-subgraph/) | 使用 GraphQL 构建、部署和查询子图。                  |
 | [**Goldsky**](https://goldsky.com/)                                  | 索引器                       | [https://docs.goldsky.com/introduction](https://docs.goldsky.com/introduction)                                               | 高性能索引和实时数据流。            |
-| [**Ormi Labs**](https://ormilabs.com/)                               | 索引器                       | [https://docs.ormilabs.com/subgraphs/quickstart](https://docs.ormilabs.com/subgraphs/quickstart)                             | 具有实时数据能力的新一代 subgraph 索引器。        |
-| [**Allium**](https://www.allium.so/)                                 | 分析/数据平台     | [https://docs.allium.so/](https://docs.allium.so/)                                                                           | 规范化的区块链数据集和分析工具。                |
-| [**CoinMarketCap**](https://coinmarketcap.com/api/)                  | 市场数据聚合器        | [https://coinmarketcap.com/api/documentation/v1/](https://coinmarketcap.com/api/documentation/v1/)                           | 市场价格、列表和追踪工具。                       |
-| [**CoinGecko**](https://www.coingecko.com/en/api)                    | 市场数据聚合器        | [https://docs.coingecko.com/](https://docs.coingecko.com/)                                                                   | 带有开发者 API 的独立市场数据。                       |
-| [**Dexscreener**](https://docs.dexscreener.com/)                     | DEX 分析                 | [https://docs.dexscreener.com/](https://docs.dexscreener.com/)                                                               | 实时 DEX 图表、流动性分析和仪表盘。         |
-| [**DeBank**](https://debank.com/)                                    | 投资组合/钱包分析  | [https://cloud.debank.com/](https://cloud.debank.com/)                                                                       | EVM 钱包追踪、交易和投资组合洞察。         |
-| [**Chainalysis**](https://www.chainalysis.com/)                      | 合规/调查   | [https://www.chainalysis.com/request-a-demo/](https://www.chainalysis.com/request-a-demo/)                                   | 适用于 Stable 令牌的 KYT 监控、实体筛选和 Reactor 调查。 |
+| [**Ormi Labs**](https://ormilabs.com/)                               | 索引器                       | [https://docs.ormilabs.com/subgraphs/quickstart](https://docs.ormilabs.com/subgraphs/quickstart)                             | 具有实时数据能力的下一代子图索引器。        |
+| [**SQD**](https://sqd.dev/chains/stable/)                            | 索引器                       | [https://docs.sqd.dev/](https://docs.sqd.dev/)                                                                               | 解码的历史和实时流；Stable 数据集按需提供。 |
+| [**Allium**](https://www.allium.so/)                                 | 分析 / 数据平台     | [https://docs.allium.so/](https://docs.allium.so/)                                                                           | 标准化的区块链数据集和分析工具。                |
+| [**CoinMarketCap**](https://coinmarketcap.com/api/)                  | 市场数据聚合器        | [https://coinmarketcap.com/api/documentation/v1/](https://coinmarketcap.com/api/documentation/v1/)                           | 市场价格、列表和跟踪工具。                       |
+| [**CoinGecko**](https://www.coingecko.com/en/api)                    | 市场数据聚合器        | [https://docs.coingecko.com/](https://docs.coingecko.com/)                                                                   | 具有开发者 API 的独立市场数据。                       |
+| [**Dexscreener**](https://docs.dexscreener.com/)                     | DEX 分析                 | [https://docs.dexscreener.com/](https://docs.dexscreener.com/)                                                               | 实时 DEX 图表、流动性分析和仪表板。         |
+| [**DeBank**](https://debank.com/)                                    | 投资组合 / 钱包分析  | [https://cloud.debank.com/](https://cloud.debank.com/)                                                                       | EVM 钱包跟踪、交易和投资组合洞察。         |
+| [**Chainalysis**](https://www.chainalysis.com/)                      | 合规 / 调查   | [https://www.chainalysis.com/request-a-demo/](https://www.chainalysis.com/request-a-demo/)                                   | KYT 监控、实体筛选和针对 Stable 代币的 Reactor 调查。 |
 
 ## 1. 索引器
 
@@ -34,17 +35,17 @@ diataxis: "reference"
 
 ### Envio
 
-Envio 是区块链应用程序的数据层。它通过单个 GraphQL API 提供实时和历史链上数据，具有原始高速访问和 Envio Cloud 上的托管服务。
+Envio 是区块链应用程序的数据层。它通过单个 GraphQL API 提供实时和历史链上数据，具有原始高速访问和在 Envio Cloud 上托管。
 
-**能力**
+**功能**
 
 - 实时和历史链上数据
-- 具有原始高速访问的单个 GraphQL API
-- 在 Envio Cloud 上托管
+- 具有原始高速访问权限的单个 GraphQL API
+- 在 Envio Cloud 上进行托管
 
 **文档**
 
-Envio 的 HyperIndex 天生支持使用您自己的 RPC 作为数据源开箱即用地索引任何 EVM 链，包括 Stable。
+Envio 的 HyperIndex 本机支持索引任何 EVM 链，包括 Stable，开箱即用，使用您自己的 RPC 作为数据源。
 
 [https://docs.envio.dev/](https://docs.envio.dev/)
 
@@ -52,25 +53,25 @@ Envio 的 HyperIndex 天生支持使用您自己的 RPC 作为数据源开箱即
 
 为超过 75,000 个项目提供数据访问的去中心化索引协议。
 
-**能力**
+**功能**
 
-- 适用于 Stable 的 Subgraph
+- Stable 的子图
 - 基于 GraphQL 的查询
 - 分布式索引网络
 
 **文档**
 
-遵循此快速入门指南，在几分钟内创建、部署和查询 subgraph：
+按照此快速入门指南在几分钟内创建、部署和查询子图：
 
 [https://thegraph.com/docs/en/developing/creating-a-subgraph/](https://thegraph.com/docs/en/developing/creating-a-subgraph/)
 
 ### Ormi Labs
 
-Ormi 是一款下一代索引器，旨在大规模交付实时和历史区块链数据。
+Ormi 是下一代索引器，旨在大规模提供实时和历史区块链数据。
 
-**能力**
+**功能**
 
-- 链端索引
+- 链尖索引
 - 亚秒级查询延迟
 - 无代码功能
 
@@ -86,13 +87,13 @@ Ormi 是一款下一代索引器，旨在大规模交付实时和历史区块链
 
 ### Goldsky
 
-具有即时 subgraph 和开发人员工具的高性能索引平台。
+高性能索引平台，提供即时子图和开发者工具。
 
-**能力**
+**功能**
 
-- Subgraph 部署和管理
+- 子图部署和管理
 - 用于实时事件流的 Webhook 创建
-- 多 subgraph 同步到外部数据库
+- 多子图同步到外部数据库
 
 **文档**
 
@@ -100,18 +101,49 @@ Ormi 是一款下一代索引器，旨在大规模交付实时和历史区块链
 
 如需 24/7 支持，请联系 [support@goldsky.com](mailto:support@goldsky.com)。
 
+### SQD
+
+SQD 通过 Portal 提供 Stable 数据，Portal 是一个 HTTP 流 API，它返回解码的、模式类型化的表而不是原始链状态，因此您可以在不运行存档节点的情况下进行索引。需要自定义转换的团队使用 Squid 和 Pipes SDK 构建索引器，可自托管或在 SQD Cloud 上运行。
+
+**功能**
+
+- 通过单个 HTTP 端点进行区块、交易和日志的历史和实时流
+- 覆盖 `stable-mainnet`（链 ID 988）和 `stable-testnet`（链 ID 2201）的已解码、模式化表
+- 用于自定义索引器的 Squid 和 Pipes SDK，具有用于 Postgres、ClickHouse、MongoDB、SQLite 和 Parquet 的连接器
+- 区块在到达 Portal 之前由 SQD Network 工作人员验证
+
+:::note
+Stable 数据集在 SQD 上是私有的。企业客户通过 SQD Private Portal 按请求获得访问权限，而不是通过公共网络。测试网覆盖范围从区块 39,381,701 开始，而不是创世区块。
+:::
+
+**文档**
+
+阅读 Stable 覆盖详情、数据集 slug 和端点：
+
+[https://sqd.dev/chains/stable/](https://sqd.dev/chains/stable/)
+
+从 Portal 流式传输解码数据：
+
+[https://docs.sqd.dev/en/portal/evm/quickstart](https://docs.sqd.dev/en/portal/evm/quickstart)
+
+使用 Pipes SDK 构建自定义索引器：
+
+[https://docs.sqd.dev/en/sdk/pipes-sdk/evm/quickstart](https://docs.sqd.dev/en/sdk/pipes-sdk/evm/quickstart)
+
+**开始使用**：[联系 SQD](https://sqd.dev/contact/) 以获取 Stable 数据集的访问权限，然后从 Portal 流式传输或指向 SDK 索引器。
+
 ## 2. 分析提供商
 
 分析工具可帮助团队跟踪网络活动、实际支付、仪表板、使用流程和合约交互。
 
 ### Allium
 
-一个面向整个区块链生态系统工程师和分析师的基础数据平台。
+面向区块链生态系统中的工程师和分析师的基础数据平台。
 
-**能力**
+**功能**
 
-- 规范化的区块链数据集
-- 分析团队的查询工具
+- 标准化的区块链数据集
+- 面向分析团队的查询工具
 - 企业数据基础设施
 
 **文档**
@@ -120,13 +152,13 @@ Ormi 是一款下一代索引器，旨在大规模交付实时和历史区块链
 
 [https://www.allium.so/](https://www.allium.so/)
 
-**入门**：在 [allium.so](https://www.allium.so/) 注册以获取 API 访问权限，然后使用 REST API 查询规范化的 Stable 链上数据集。
+**开始使用**：在 [allium.so](https://www.allium.so/) 注册以获取 API 访问权限，然后使用 REST API 查询标准化的 Stable 链上数据集。
 
 ### CoinMarketCap
 
 全球最大的加密资产市场跟踪平台。
 
-**能力**
+**功能**
 
 - Stable 资产的价格跟踪
 - 投资组合工具
@@ -138,17 +170,17 @@ Ormi 是一款下一代索引器，旨在大规模交付实时和历史区块链
 
 [https://coinmarketcap.com/api/](https://coinmarketcap.com/api/)
 
-**入门**：在 [coinmarketcap.com/api](https://coinmarketcap.com/api/) 注册 API 密钥，并通过 REST API 查询 Stable 资产价格和市场数据。
+**开始使用**：在 [coinmarketcap.com/api](https://coinmarketcap.com/api/) 注册一个 API 密钥，并通过 REST API 查询 Stable 资产价格和市场数据。
 
 ### CoinGecko
 
-全球最大的独立加密货币数据聚合器。
+全球最大的独立加密数据聚合器。
 
-**能力**
+**功能**
 
 - 市场列表和价格数据
 - 历史分析
-- 开发人员 API 访问
+- 面向开发者的 API 访问
 
 **文档**
 
@@ -156,31 +188,31 @@ Ormi 是一款下一代索引器，旨在大规模交付实时和历史区块链
 
 [https://www.coingecko.com/en/api](https://www.coingecko.com/en/api)
 
-**入门**：从 [coingecko.com/en/api](https://www.coingecko.com/en/api) 获取免费或专业 API 密钥，并通过 REST API 查询 Stable 代币价格和市场数据。
+**开始使用**：从 [coingecko.com/en/api](https://www.coingecko.com/en/api) 获取免费或专业版 API 密钥，并通过 REST API 查询 Stable 代币价格和市场数据。
 
 ### Dexscreener
 
-去中心化市场的实时图表和分析。
+去中心化场所的实时图表和分析。
 
-**能力**
+**功能**
 
 - 实时 DEX 图表
-- 流动性和交易对分析
+- 流动性和配对分析
 - 交易仪表板
 
 **文档**
 
-探索 Dexscreener 的 API 端点和开发人员工具：
+探索 Dexscreener 的 API 端点和开发者工具：
 
 [https://docs.dexscreener.com/](https://docs.dexscreener.com/)
 
-**入门**：浏览 [Dexscreener API 文档](https://docs.dexscreener.com/)，查询基于 Stable 的 DEX 池的实时交易对数据、流动性和交易活动。
+**开始使用**：浏览 [Dexscreener API 文档](https://docs.dexscreener.com/)，查询基于 Stable 的 DEX 池的实时配对数据、流动性和交易活动。
 
 ### DeBank
 
-以太坊和 EVM 生态系统的投资组合跟踪器。
+以太坊和 EVM 生态系统的投资组合追踪器。
 
-**能力**
+**功能**
 
 - 钱包分析
 - 交易摘要
@@ -192,31 +224,31 @@ Ormi 是一款下一代索引器，旨在大规模交付实时和历史区块链
 
 [https://docs.debank.com/](https://docs.debank.com/)
 
-**入门**：注册 [DeBank Cloud](https://cloud.debank.com/) 以获取 API 密钥，并查询 Stable 钱包余额、交易历史和投资组合数据。
+**开始使用**：注册 [DeBank Cloud](https://cloud.debank.com/) 以获取 API 密钥，并查询 Stable 钱包余额、交易历史和投资组合数据。
 
 ## 3. 合规和调查
 
-合规和调查平台帮助团队监控交易风险并追踪链上资金流。
+合规和调查平台可帮助团队监控交易风险并追踪链上资金流向。
 
 ### Chainalysis
 
 Chainalysis 通过其 [KYT](https://www.chainalysis.com/product/kyt/)、实体筛选产品和 [Reactor](https://www.chainalysis.com/product/reactor/) 支持 Stable。
 
-当部署在 Stable 上的新的可替代和不可替代代币遵循主要标准（如 ERC-20 和 ERC-721）时，它们将自动获得覆盖。
+在 Stable 上部署的新可互换代币和不可互换代币（例如遵循 ERC-20 和 ERC-721 等主要标准）会自动覆盖。
 
-**能力**
+**功能**
 
 - 通过 KYT 对 Stable 代币进行持续监控和可操作警报
 - 对 Stable 进行实体筛选
-- 跨 Stable 代币的资金流追踪和交易调查
+- 对 Stable 代币进行资金流向跟踪和交易调查
 - 自动覆盖遵循 ERC-20 和 ERC-721 等标准的新代币
 
 **文档**
 
-阅读 [Stable 集成公告](https://www.chainalysis.com/blog/stable-automatic-token-support/)以获取覆盖详细信息。
+阅读 [Stable 集成公告](https://www.chainalysis.com/blog/stable-automatic-token-support/) 以了解覆盖详情。
 
 [申请 Chainalysis 演示](https://www.chainalysis.com/request-a-demo/)。
 
 ---
 
-是否有集成 Stable 的索引、分析、合规或调查平台？请通过 [bizdev@stable.xyz](mailto:bizdev@stable.xyz) 联系我们。
+是否有集成了 Stable 的索引、分析、合规或调查平台？请通过 [bizdev@stable.xyz](mailto:bizdev@stable.xyz) 联系我们。

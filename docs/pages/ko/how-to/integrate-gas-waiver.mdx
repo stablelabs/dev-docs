@@ -1,27 +1,27 @@
 ---
 source_path: how-to/integrate-gas-waiver.mdx
-source_sha: eaaf45d02173e1ce6279849d803d73014dbb7696
+source_sha: 29f1288293527b18488a9e502ed114dca6f9c690
 title: "가스 없는 트랜잭션 활성화"
-description: "서명된 InnerTx 페이로드를 Waiver Server API에 제출하여 Stable Gas Waiver를 통합하여 가스 없는 트랜잭션을 활성화합니다."
+description: "서명된 InnerTx 페이로드를 Waiver Server API에 제출하여 Stable 가스 면제를 통합하고 가스 없는 트랜잭션을 활성화하세요."
 diataxis: "how-to"
 ---
 
 # 가스 없는 트랜잭션 활성화
 
-Gas Waiver는 Stable에서 가스 없는 트랜잭션을 가능하게 합니다. Gas Waiver를 사용하면 애플리케이션이 사용자를 대신하여 가스 요금을 지불하므로 사용자는 가스 비용으로 USDT0를 보유하지 않고도 컨트랙트와 상호 작용할 수 있습니다.
+가스 면제는 Stable에서 가스 없는 트랜잭션을 가능하게 합니다. 가스 면제를 통해 애플리케이션은 사용자를 대신하여 가스 요금을 부담하므로 사용자는 가스 비용으로 USDT0를 보유할 필요 없이 계약과 상호 작용할 수 있습니다.
 
-이 가이드에서는 Waiver Server API를 통해 통합하는 방법을 다룹니다.
+이 가이드는 Stable이 면제를 운영하고 API 키로 인증하는 호스팅된 Waiver Server API를 다룹니다. 대신 거버넌스를 통해 자체 면제 주소를 등록하려면 [통합 경로 선택](/ko/explanation/gas-waiver#choosing-an-integration-path)을 참조하십시오.
 
 :::note
-**개념:** Gas Waiver가 무엇인지, 왜 존재하는지, 거버넌스 승인된 Waiver가 어떻게 작동하는지에 대해서는 [Gas waiver](/ko/explanation/gas-waiver)를 참조하십시오. 전체 프로토콜 사양(래퍼 트랜잭션 형식, 마커 주소, 실행 의미 체계, 보안 모델)에 대해서는 [Gas waiver protocol](/ko/reference/gas-waiver-api)을 참조하십시오.
+**개념:** 가스 면제가 무엇인지, 왜 존재하는지, 거버넌스 승인 면제가 어떻게 작동하는지에 대한 자세한 내용은 [가스 면제](/ko/explanation/gas-waiver)를 참조하십시오. 전체 프로토콜 사양(래퍼 트랜잭션 형식, 마커 주소, 실행 의미 체계, 보안 모델)은 [가스 면제 프로토콜](/ko/reference/gas-waiver-api)을 참조하십시오.
 :::
 
-## 필수 조건
+## 전제 조건
 
-- Stable 팀이 발급한 Waiver Server용 API 키
-- 대상 컨트랙트 주소는 Waiver의 `AllowedTarget` 정책에 등록되어야 합니다.
+- Stable 팀에서 발급한 Waiver 서버용 API 키
+- 대상 계약 주소는 면제의 `AllowedTarget` 정책에 등록되어야 합니다.
 
-## Waiver Server
+## Waiver 서버
 
 **기본 URL:**
 
@@ -34,19 +34,19 @@ Gas Waiver는 Stable에서 가스 없는 트랜잭션을 가능하게 합니다.
 
 통합 흐름은 세 단계로 구성됩니다.
 
-1.  **InnerTx 빌드**: 사용자는 `gasPrice = 0`으로 트랜잭션에 서명합니다.
-2.  **Waiver Server에 제출**: 서명된 트랜잭션을 Waiver Server API에 제출합니다.
-3.  **응답 처리**: Waiver Server가 트랜잭션을 래핑하고 브로드캐스트합니다. 스트리밍된 결과를 처리하고 트랜잭션 해시를 사용자에게 표시합니다.
+1.  **InnerTx 빌드**: 사용자가 `gasPrice = 0`으로 트랜잭션에 서명합니다.
+2.  **Waiver 서버에 제출**: 서명된 트랜잭션을 Waiver Server API에 제출합니다.
+3.  **응답 처리**: 면제 서버가 트랜잭션을 래핑하고 브로드캐스트합니다. 스트리밍된 결과를 처리하고 트랜잭션 해시를 사용자에게 표시합니다.
 
-## 1단계: 사용자의 InnerTx 생성
+## 1단계: 사용자 InnerTx 생성
 
-사용자는 `gasPrice = 0`으로 표준 트랜잭션에 서명합니다. `to` 주소와 메서드 선택기는 Waiver의 `AllowedTarget` 정책에 의해 허용되어야 합니다.
+사용자는 `gasPrice = 0`으로 표준 트랜잭션에 서명합니다. `to` 주소와 메서드 선택기는 면제의 `AllowedTarget` 정책에 의해 허용되어야 합니다.
 
 ```typescript
 // config.ts
 export const CONFIG = {
   RPC_URL: "https://rpc.testnet.stable.xyz",
-  CHAIN_ID: 2201, // 메인넷의 경우 988
+  CHAIN_ID: 2201, // 988 for mainnet
   WAIVER_SERVER: "https://waiver.testnet.stable.xyz",
   USDT0_ADDRESS: "0x78Cf24370174180738C5B8E352B6D14c83a6c9A9",
 };
@@ -88,10 +88,10 @@ const signedInnerTx = await userWallet.signTransaction(innerTx);
 ```
 
 :::warning
-`gasPrice`는 `0`이어야 합니다. 0이 아닌 경우 Waiver Server는 트랜잭션을 거부합니다.
+`gasPrice`는 `0`이어야 합니다. 0이 아니면 면제 서버에서 트랜잭션을 거부합니다.
 :::
 
-## 2단계: Waiver Server에 제출
+## 2단계: Waiver 서버에 제출
 
 ```typescript
 import { CONFIG } from "./config";
@@ -112,7 +112,7 @@ const response = await fetch(`${CONFIG.WAIVER_SERVER}/v1/submit`, {
 
 ### 배치 제출
 
-단일 요청으로 여러 개의 서명된 트랜잭션을 제출할 수 있습니다.
+단일 요청으로 여러 서명된 트랜잭션을 제출할 수 있습니다.
 
 ```typescript
 body: JSON.stringify({
@@ -120,11 +120,11 @@ body: JSON.stringify({
 })
 ```
 
-각 결과 줄에는 배열 내 트랜잭션의 위치에 해당하는 `index` 필드가 포함됩니다.
+각 결과 라인에는 배열에서 트랜잭션의 위치에 해당하는 `index` 필드가 포함됩니다.
 
 ## 3단계: 응답 처리
 
-응답은 NDJSON(줄바꿈으로 구분된 JSON)으로 스트리밍됩니다. 각 줄은 제출된 하나의 트랜잭션에 해당합니다.
+응답은 NDJSON (줄 바꿈으로 구분된 JSON)으로 스트리밍됩니다. 각 줄은 제출된 하나의 트랜잭션에 해당합니다.
 
 ```typescript
 const reader = response.body.getReader();
@@ -162,16 +162,16 @@ while (true) {
 
 | **코드** | **설명** |
 | :--- | :--- |
-| `PARSE_ERROR` | 트랜잭션 구문 분석 실패 |
+| `PARSE_ERROR` | 트랜잭션 파싱 실패 |
 | `INVALID_REQUEST` | 잘못된 요청 본문 |
 | `BATCH_SIZE_EXCEEDED` | 배치 크기가 허용된 최대치를 초과함 |
-| `VALIDATION_FAILED` | 트랜잭션 유효성 검사 실패 (예: 유효하지 않은 서명, 허용되지 않는 대상) |
-| `BROADCAST_FAILED` | 체인으로 브로드캐스트 실패 |
+| `VALIDATION_FAILED` | 트랜잭션 유효성 검사 실패 (예: 잘못된 서명, 허용되지 않는 대상) |
+| `BROADCAST_FAILED` | 체인에 브로드캐스트 실패 |
 | `RATE_LIMITED` | 속도 제한 초과 |
-| `QUEUE_FULL` | 서버 큐가 용량에 도달함 |
+| `QUEUE_FULL` | 서버 큐가 가득 참 |
 | `TIMEOUT` | 요청 시간 초과 |
 
-## API 레퍼런스
+## API 참조
 
 ### GET `/v1/health`
 
@@ -195,15 +195,15 @@ while (true) {
 
 스트리밍 제출을 위한 WebSocket 인터페이스. 인증: 필수 (Bearer).
 
-## 요점
+## 주요 요점
 
-- Gas Waiver는 서버 측 통합입니다. 백엔드가 서명된 사용자 트랜잭션을 Waiver Server에 제출합니다. 사용자는 Waiver Server와 직접 상호 작용하지 않습니다.
-- 사용자는 항상 InnerTx에 서명하여 서명 무결성을 보존합니다. Waiver는 사용자의 트랜잭션을 수정할 수 없습니다.
-- 대상 컨트랙트는 Waiver의 `AllowedTarget` 목록에 있어야 합니다.
+- 가스 면제는 서버 측 통합입니다. 백엔드가 서명된 사용자 트랜잭션을 Waiver 서버에 제출합니다. 사용자는 Waiver 서버와 직접 상호 작용하지 않습니다.
+- 사용자는 항상 InnerTx에 서명하여 서명 무결성을 유지합니다. 면제는 사용자 트랜잭션을 수정할 수 없습니다.
+- 대상 계약은 면제의 `AllowedTarget` 목록에 있어야 합니다.
 
-## 다음에 권장되는 내용
+## 다음 권장 사항
 
-- [**제로 가스 트랜잭션**](/ko/how-to/zero-gas-transactions): 데모 중심 흐름과 영수증에서 제로 가스를 확인하는 방법을 참조하십시오.
-- [**셀프 호스팅 Gas Waiver**](/ko/how-to/self-hosted-gas-waiver): 호스팅된 API 없이 자체 Waiver를 실행합니다.
-- [**Gas Waiver 프로토콜**](/ko/reference/gas-waiver-api): 전체 래퍼 트랜잭션 사양 및 거버넌스 모델.
-- [**Stable SDK**](/ko/explanation/sdk-overview): 유형이 지정된 클라이언트를 사용하여 Waiver Server에 제출할 사용자 트랜잭션에 서명합니다.
+- [**제로 가스 트랜잭션**](/ko/how-to/zero-gas-transactions): 데모 중심 흐름과 영 가스를 영수증에서 확인하는 방법을 참조하세요.
+- [**자체 호스팅 가스 면제**](/ko/how-to/self-hosted-gas-waiver): 호스팅된 API 없이 자체 면제를 실행하세요.
+- [**가스 면제 프로토콜**](/ko/reference/gas-waiver-api): 전체 래퍼 트랜잭션 사양 및 거버넌스 모델.
+- [**가스 면제로 릴레이**](/ko/how-to/relay-with-gas-waiver): Enterprise SDK를 사용하여 자체 거버넌스 등록 면제에서 가스를 후원하세요.

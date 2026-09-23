@@ -1,71 +1,71 @@
 ---
 source_path: reference/node-operations-overview.mdx
-source_sha: 292d91190bd4c06f8a2e4e87f9253a9bb856c28a
-title: "运维"
-description: "运行 Stable 节点。安装、配置、监控与升级。"
+source_sha: 834cf7cad55269092423973290344330f70a4a77
+title: "运行 Stable 节点"
+description: "运行 Stable 节点。安装、配置、监控和升级。"
 diataxis: "reference"
 ---
 
-# 运维
+# 运行 Stable 节点
 
-运维涵盖运行 Stable 节点的方方面面：全节点或归档节点、测试网或主网，从安装到监控。关于您的节点所强制执行的链级行为（费用模型、最终性、USDT0 作为 gas），请参阅 [Gas 定价](/cn/explanation/gas-pricing)、[最终性](/cn/explanation/finality) 和 [架构概览](/cn/explanation/core-optimization-overview)。
+本节介绍如何运行 Stable 节点：完整节点或归档节点，测试网或主网，从安装到监控。有关您的节点强制执行的链级行为（费用模型、最终性、USDT0 作为燃料），请参阅[燃料定价](/cn/explanation/gas-pricing)、[最终性](/cn/explanation/finality)和[架构概述](/cn/explanation/core-optimization-overview)。
 
 ## 快速链接
 
 - **[系统要求](/cn/reference/node-system-requirements)** - 不同节点类型的硬件和软件要求
-- **[安装指南](/cn/how-to/install-node)** - 各种平台的分步安装说明
+- **[安装指南](/cn/how-to/install-node)** - 针对各种平台的逐步安装说明
 - **[配置](/cn/reference/node-configuration)** - 详细的配置选项和最佳实践
-- **[快照与同步](/cn/how-to/use-node-snapshots)** - 使用快照的快速同步选项
+- **[快照与同步](/cn/how-to/use-node-snapshots)** - 使用快照进行快速同步
 - **[创建验证者](/cn/how-to/run-validator)** - 将已同步的节点注册为验证者并进行自委托
-- **[升级指南](/cn/how-to/upgrade-node)** - 节点升级流程和版本历史
-- **[监控](/cn/how-to/monitor-node)** - 节点监控的工具和指标
-- **[故障排查](/cn/how-to/troubleshoot-node)** - 常见问题和解决方案
+- **[升级指南](/cn/how-to/upgrade-node)** - 节点升级程序和版本历史记录
+- **[监控](/cn/how-to/monitor-node)** - 节点监控工具和指标
+- **[故障排除](/cn/how-to/troubleshoot-node)** - 常见问题和解决方案
 
-如需从链上读取验证者数据（质押、在线时长、投票历史）而不运行 `stabled`，请参阅 [索引验证者数据](/cn/how-to/index-validator-data)。
+要从链中读取验证者数据（权益、正常运行时间、投票历史），而不是运行 `stabled`，请参阅[索引验证者数据](/cn/how-to/index-validator-data)。
 
 ## 节点类型
 
 ### 全节点
 全节点维护区块链的完整副本，并验证所有交易和区块。全节点：
 - 验证所有交易和区块
-- 维护整个区块链历史
-- 可以向其他节点提供数据
+- 维护完整的区块链历史
+- 可以为其他节点提供数据
 - 支持网络的去中心化
 
 ### 归档节点
-归档节点存储所有状态的完整历史，并能提供历史查询。归档节点：
+归档节点存储所有状态的完整历史记录，并可以提供历史查询。归档节点：
 - 存储所有历史状态
-- 支持在任意区块高度进行历史查询
+- 支持任何区块高度的历史查询
 - 需要显著更多的存储空间
-- 对区块浏览器和分析工具至关重要
+- 对于区块浏览器和分析至关重要
 
 ## 网络信息
 
-如需完整的网络详情，包括 RPC 端点、区块浏览器和链参数，请参阅：
+有关完整的网络详细信息，包括 RPC 端点、区块浏览器和链参数，请参阅：
 - **[主网](/cn/reference/mainnet-information)** - 主网详情
 - **[测试网](/cn/reference/testnet-information)** - 测试网详情
 
 ## 支持与社区
 
-- **Discord**：[加入 Stable Discord](https://discord.gg/stablexyz)
+- **Discord**: [加入 Stable Discord](https://discord.gg/stablexyz)
 
-## 快速开始
+## 快速入门
 
-面向希望快速上手的经验丰富的运维人员：
+对于希望快速入门的经验丰富的操作员：
 
-1. 查看 [系统要求](/cn/reference/node-system-requirements)
-2. 遵循 [安装指南](/cn/how-to/install-node)
-3. 使用 [配置指南](/cn/reference/node-configuration) 配置您的节点
-4. 通过 [快照](/cn/how-to/use-node-snapshots) 加快同步
-5. 使用 [监控指南](/cn/how-to/monitor-node) 监控您的节点
+1. 查看[系统要求](/cn/reference/node-system-requirements)
+2. 遵循[安装指南](/cn/how-to/install-node)
+3. 使用[配置指南](/cn/reference/node-configuration)配置您的节点
+4. 使用[快照](/cn/how-to/use-node-snapshots)加快同步
+5. 使用[监控指南](/cn/how-to/monitor-node)监控您的节点
 
-如需了解网络参数和 RPC 端点，请参阅 [主网信息](/cn/reference/mainnet-information) 或 [测试网信息](/cn/reference/testnet-information)。
+有关网络参数和 RPC 端点，请参阅[主网信息](/cn/reference/mainnet-information)或[测试网信息](/cn/reference/testnet-information)。
 
-## 节点运维如何与链关联
+## 节点运营商如何连接到链
 
-运行节点意味着强制执行 Stable 的链级规则。以下页面解释了您的节点所实现的行为：
+运行节点意味着强制执行 Stable 的链级规则。这些页面解释了您的节点实现的行为：
 
-- **[合约概览](/cn/explanation/contracts-overview)** 涵盖费用模型、JSON-RPC 接口以及您的节点所服务的系统模块。
-- **[最终性](/cn/explanation/finality)** 解释单槽最终性以及在共识层"已确认"的含义。
-- **[架构概览](/cn/explanation/core-optimization-overview)** 详细介绍共识、执行、数据库和 RPC 各层。
-- **[Gas 定价](/cn/explanation/gas-pricing)** 解释以 USDT0 计价的费用如何定价和收取。
+- **[合约概述](/cn/explanation/contracts-overview)** 涵盖了您的节点提供的费用模型、JSON-RPC 界面和系统模块。
+- **[最终性](/cn/explanation/finality)** 解释了单槽最终性以及共识层“已确认”的含义。
+- **[架构概述](/cn/explanation/core-optimization-overview)** 介绍了共识、执行、数据库和 RPC 层。
+- **[燃料定价](/cn/explanation/gas-pricing)** 解释了以 USDT0 计价的费用如何定价和收取。

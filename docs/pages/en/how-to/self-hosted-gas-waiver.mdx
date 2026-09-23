@@ -16,6 +16,10 @@ This guide covers registering a waiver address, collecting signed user transacti
 
 For the hosted Waiver Server API integration path, see [Enable gas-free transactions](/en/how-to/integrate-gas-waiver).
 
+:::tip
+`@stablechain/enterprise` does everything below in one call against the same governance-registered waiver. If you're writing TypeScript, use [Relay with gas waiver](/en/how-to/relay-with-gas-waiver) instead of building wrapper transactions by hand.
+:::
+
 ## Prerequisites
 
 - A waiver address registered on-chain via validator governance.

@@ -179,62 +179,6 @@
           "link": "/en/tutorial/quick-start"
         },
         {
-          "text": "Stable SDK",
-          "collapsed": true,
-          "items": [
-            {
-              "text": "Overview",
-              "link": "/en/explanation/sdk-overview"
-            },
-            {
-              "text": "Quickstart",
-              "link": "/en/tutorial/sdk-quickstart"
-            },
-            {
-              "text": "Reference",
-              "link": "/en/reference/sdk"
-            },
-            {
-              "text": "Earn Yield",
-              "link": "/en/how-to/earn-yield"
-            },
-            {
-              "text": "Viem Integration",
-              "link": "/en/how-to/sdk-with-viem"
-            },
-            {
-              "text": "Wagmi Integration",
-              "link": "/en/how-to/sdk-with-wagmi"
-            }
-          ]
-        },
-        {
-          "text": "Enterprise SDK",
-          "collapsed": true,
-          "items": [
-            {
-              "text": "Overview",
-              "link": "/en/explanation/enterprise-sdk"
-            },
-            {
-              "text": "Relay Transactions",
-              "link": "/en/how-to/relay-with-gas-waiver"
-            },
-            {
-              "text": "Guaranteed Blockspace",
-              "link": "/en/how-to/send-guaranteed-transactions"
-            },
-            {
-              "text": "Guaranteed Relayed Transactions",
-              "link": "/en/how-to/guaranteed-relayed-transactions"
-            },
-            {
-              "text": "Reference",
-              "link": "/en/reference/enterprise-sdk"
-            }
-          ]
-        },
-        {
           "text": "Onboard users",
           "collapsed": true,
           "items": [
@@ -583,7 +527,73 @@
       ]
     },
     {
-      "text": "Operate",
+      "text": "Tools and SDK",
+      "collapsed": true,
+      "items": [
+        {
+          "text": "Tools and SDK overview",
+          "link": "/en/explanation/tools-overview"
+        },
+        {
+          "text": "Stable SDK",
+          "collapsed": true,
+          "items": [
+            {
+              "text": "Overview",
+              "link": "/en/explanation/sdk-overview"
+            },
+            {
+              "text": "Quickstart",
+              "link": "/en/tutorial/sdk-quickstart"
+            },
+            {
+              "text": "Reference",
+              "link": "/en/reference/sdk"
+            },
+            {
+              "text": "Earn Yield",
+              "link": "/en/how-to/earn-yield"
+            },
+            {
+              "text": "Viem Integration",
+              "link": "/en/how-to/sdk-with-viem"
+            },
+            {
+              "text": "Wagmi Integration",
+              "link": "/en/how-to/sdk-with-wagmi"
+            }
+          ]
+        },
+        {
+          "text": "Enterprise SDK",
+          "collapsed": true,
+          "items": [
+            {
+              "text": "Overview",
+              "link": "/en/explanation/enterprise-sdk"
+            },
+            {
+              "text": "Relay Transactions",
+              "link": "/en/how-to/relay-with-gas-waiver"
+            },
+            {
+              "text": "Guaranteed Blockspace",
+              "link": "/en/how-to/send-guaranteed-transactions"
+            },
+            {
+              "text": "Guaranteed Relayed Transactions",
+              "link": "/en/how-to/guaranteed-relayed-transactions"
+            },
+            {
+              "text": "Reference",
+              "link": "/en/reference/enterprise-sdk"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "Run a Stable node",
       "collapsed": true,
       "items": [
         {
@@ -725,15 +735,15 @@
               "link": "/ko/explanation/ethereum-compatibility"
             },
             {
-              "text": "완결성",
+              "text": "최종성",
               "link": "/ko/explanation/finality"
             },
             {
-              "text": "가스 가격",
+              "text": "가스 가격 책정",
               "link": "/ko/explanation/gas-pricing"
             },
             {
-              "text": "가스 가격 API",
+              "text": "가스 가격 책정 API",
               "link": "/ko/reference/gas-pricing-api"
             },
             {
@@ -755,7 +765,7 @@
               "link": "/ko/explanation/flow-of-funds"
             },
             {
-              "text": "USDT0 Stable 브리징",
+              "text": "USDT0를 Stable로 브리징",
               "link": "/ko/explanation/usdt0-bridging"
             },
             {
@@ -763,7 +773,7 @@
               "link": "/ko/explanation/bridge-security"
             },
             {
-              "text": "USDT0 가스",
+              "text": "가스로서의 USDT0",
               "link": "/ko/explanation/usdt-as-gas-token"
             },
             {
@@ -779,7 +789,7 @@
               "link": "/ko/explanation/guaranteed-blockspace"
             },
             {
-              "text": "USDT 전송 애그리게이터",
+              "text": "USDT 전송 Aggregator",
               "link": "/ko/explanation/usdt-transfer-aggregator"
             },
             {
@@ -823,25 +833,25 @@
           "collapsed": true,
           "items": [
             {
-              "text": "결제 사용 사례",
+              "text": "사용 사례: 결제",
               "link": "/ko/explanation/use-case-payments"
             },
             {
-              "text": "급여 사용 사례",
+              "text": "사용 사례: 급여",
               "link": "/ko/explanation/use-case-payroll"
             },
             {
-              "text": "스폰서 사용 사례",
+              "text": "사용 사례: 후원",
               "link": "/ko/explanation/use-case-sponsored"
             },
             {
-              "text": "가상 사용 사례",
+              "text": "사용 사례: 비공개",
               "link": "/ko/explanation/use-case-private"
             }
           ]
         },
         {
-          "text": "토큰노믹스",
+          "text": "토큰 경제학",
           "link": "/ko/reference/tokenomics"
         },
         {
@@ -865,62 +875,6 @@
         {
           "text": "빠른 시작",
           "link": "/ko/tutorial/quick-start"
-        },
-        {
-          "text": "Stable SDK",
-          "collapsed": true,
-          "items": [
-            {
-              "text": "개요",
-              "link": "/ko/explanation/sdk-overview"
-            },
-            {
-              "text": "빠른 시작",
-              "link": "/ko/tutorial/sdk-quickstart"
-            },
-            {
-              "text": "참조",
-              "link": "/ko/reference/sdk"
-            },
-            {
-              "text": "수익 창출",
-              "link": "/ko/how-to/earn-yield"
-            },
-            {
-              "text": "viem 통합",
-              "link": "/ko/how-to/sdk-with-viem"
-            },
-            {
-              "text": "wagmi 통합",
-              "link": "/ko/how-to/sdk-with-wagmi"
-            }
-          ]
-        },
-        {
-          "text": "엔터프라이즈 SDK",
-          "collapsed": true,
-          "items": [
-            {
-              "text": "개요",
-              "link": "/ko/explanation/enterprise-sdk"
-            },
-            {
-              "text": "트랜잭션 중계",
-              "link": "/ko/how-to/relay-with-gas-waiver"
-            },
-            {
-              "text": "블록 공간 보장",
-              "link": "/ko/how-to/send-guaranteed-transactions"
-            },
-            {
-              "text": "보장된 중계 트랜잭션",
-              "link": "/ko/how-to/guaranteed-relayed-transactions"
-            },
-            {
-              "text": "참조",
-              "link": "/ko/reference/enterprise-sdk"
-            }
-          ]
         },
         {
           "text": "사용자 온보딩",
@@ -969,21 +923,21 @@
                   "link": "/ko/tutorial/send-usdt0"
                 },
                 {
-                  "text": "가스 없는 트랜잭션",
+                  "text": "무료 가스 트랜잭션",
                   "link": "/ko/how-to/zero-gas-transactions"
                 },
                 {
-                  "text": "USDT0를 가스로 사용",
+                  "text": "가스로서 USDT0 사용",
                   "link": "/ko/how-to/work-with-usdt-gas"
                 },
                 {
-                  "text": "USDT0 Stable 브리징",
+                  "text": "USDT0를 Stable로 브리징",
                   "link": "/ko/tutorial/bridge-usdt0"
                 }
               ]
             },
             {
-              "text": "사용자 요금 청구",
+              "text": "사용자에게 청구",
               "collapsed": true,
               "items": [
                 {
@@ -1025,7 +979,7 @@
                   "link": "/ko/reference/invoices"
                 },
                 {
-                  "text": "호출당 지불",
+                  "text": "통화당 지불",
                   "link": "/ko/reference/pay-per-call"
                 },
                 {
@@ -1083,11 +1037,11 @@
                   "link": "/ko/reference/system-modules-api-overview"
                 },
                 {
-                  "text": "뱅크 모듈",
+                  "text": "은행 모듈",
                   "link": "/ko/explanation/bank-module"
                 },
                 {
-                  "text": "뱅크 모듈 API",
+                  "text": "은행 모듈 API",
                   "link": "/ko/reference/bank-module-api"
                 },
                 {
@@ -1119,7 +1073,7 @@
                   "link": "/ko/how-to/track-unbonding"
                 },
                 {
-                  "text": "검증자 데이터 색인",
+                  "text": "유효성 검사기 데이터 색인",
                   "link": "/ko/how-to/index-validator-data"
                 }
               ]
@@ -1161,7 +1115,7 @@
                   "link": "/ko/reference/mainnet-information"
                 },
                 {
-                  "text": "메인넷 버전 이력",
+                  "text": "메인넷 버전 기록",
                   "link": "/ko/reference/mainnet-version-history"
                 }
               ]
@@ -1175,7 +1129,7 @@
                   "link": "/ko/reference/testnet-information"
                 },
                 {
-                  "text": "테스트넷 버전 이력",
+                  "text": "테스트넷 버전 기록",
                   "link": "/ko/reference/testnet-version-history"
                 },
                 {
@@ -1217,7 +1171,7 @@
               "link": "/ko/reference/bridges"
             },
             {
-              "text": "DEX",
+              "text": "Dex",
               "link": "/ko/reference/dexes"
             },
             {
@@ -1251,7 +1205,7 @@
           ]
         },
         {
-          "text": "운영 준비 태세",
+          "text": "프로덕션 준비성",
           "link": "/ko/how-to/production-readiness"
         },
         {
@@ -1271,7 +1225,73 @@
       ]
     },
     {
-      "text": "운영",
+      "text": "도구 및 SDK",
+      "collapsed": true,
+      "items": [
+        {
+          "text": "도구 및 SDK 개요",
+          "link": "/ko/explanation/tools-overview"
+        },
+        {
+          "text": "Stable SDK",
+          "collapsed": true,
+          "items": [
+            {
+              "text": "개요",
+              "link": "/ko/explanation/sdk-overview"
+            },
+            {
+              "text": "빠른 시작",
+              "link": "/ko/tutorial/sdk-quickstart"
+            },
+            {
+              "text": "참조",
+              "link": "/ko/reference/sdk"
+            },
+            {
+              "text": "수익 창출",
+              "link": "/ko/how-to/earn-yield"
+            },
+            {
+              "text": "viem 통합",
+              "link": "/ko/how-to/sdk-with-viem"
+            },
+            {
+              "text": "wagmi 통합",
+              "link": "/ko/how-to/sdk-with-wagmi"
+            }
+          ]
+        },
+        {
+          "text": "엔터프라이즈 SDK",
+          "collapsed": true,
+          "items": [
+            {
+              "text": "개요",
+              "link": "/ko/explanation/enterprise-sdk"
+            },
+            {
+              "text": "트랜잭션 릴레이",
+              "link": "/ko/how-to/relay-with-gas-waiver"
+            },
+            {
+              "text": "블록 공간 보장",
+              "link": "/ko/how-to/send-guaranteed-transactions"
+            },
+            {
+              "text": "보장된 릴레이 트랜잭션",
+              "link": "/ko/how-to/guaranteed-relayed-transactions"
+            },
+            {
+              "text": "참조",
+              "link": "/ko/reference/enterprise-sdk"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "Stable 노드 실행",
       "collapsed": true,
       "items": [
         {
@@ -1295,7 +1315,7 @@
           "link": "/ko/how-to/use-node-snapshots"
         },
         {
-          "text": "검증자 실행",
+          "text": "유효성 검사기 실행",
           "link": "/ko/how-to/run-validator"
         },
         {
@@ -1325,7 +1345,7 @@
           "link": "/ko/explanation/ai-agents-guides"
         },
         {
-          "text": "x402 및 MPP 통해 지불",
+          "text": "x402 및 MPP로 결제",
           "collapsed": true,
           "items": [
             {
@@ -1341,7 +1361,7 @@
               "link": "/ko/explanation/mpp-sessions"
             },
             {
-              "text": "호출당 지불 구축",
+              "text": "통화당 지불 구축",
               "link": "/ko/how-to/build-pay-per-call"
             },
             {
@@ -1349,7 +1369,7 @@
               "link": "/ko/how-to/build-mpp-endpoint"
             },
             {
-              "text": "MCP로 지불",
+              "text": "MCP로 결제",
               "link": "/ko/how-to/pay-with-mcp"
             }
           ]
@@ -1359,11 +1379,11 @@
           "collapsed": true,
           "items": [
             {
-              "text": "AI를 통한 개발",
+              "text": "AI로 개발",
               "link": "/ko/how-to/develop-with-ai"
             },
             {
-              "text": "에이전트 퍼실리테이터",
+              "text": "에이전트 촉진자",
               "link": "/ko/reference/agentic-facilitators"
             },
             {
@@ -1381,15 +1401,15 @@
       "collapsed": true,
       "items": [
         {
-          "text": "学习总览",
+          "text": "学习概述",
           "link": "/cn/explanation/learn-overview"
         },
         {
-          "text": "总览",
+          "text": "概述",
           "link": "/cn/explanation/overview"
         },
         {
-          "text": "技术总览",
+          "text": "技术概述",
           "link": "/cn/explanation/tech-overview"
         },
         {
@@ -1401,7 +1421,7 @@
               "link": "/cn/explanation/core-concepts"
             },
             {
-              "text": "主要功能",
+              "text": "主要特点",
               "link": "/cn/explanation/key-features"
             },
             {
@@ -1413,7 +1433,7 @@
               "link": "/cn/explanation/ethereum-compatibility"
             },
             {
-              "text": "最终性",
+              "text": "终结性",
               "link": "/cn/explanation/finality"
             },
             {
@@ -1435,19 +1455,19 @@
           "collapsed": true,
           "items": [
             {
-              "text": "USDT0 功能总览",
+              "text": "USDT0 功能概述",
               "link": "/cn/explanation/usdt-features-overview"
             },
             {
-              "text": "资金流",
+              "text": "资金流向",
               "link": "/cn/explanation/flow-of-funds"
             },
             {
-              "text": "将 USDT0 跨链至 Stable",
+              "text": "将 USDT0 桥接到 Stable",
               "link": "/cn/explanation/usdt0-bridging"
             },
             {
-              "text": "跨链桥安全性",
+              "text": "桥接安全",
               "link": "/cn/explanation/bridge-security"
             },
             {
@@ -1467,11 +1487,11 @@
               "link": "/cn/explanation/guaranteed-blockspace"
             },
             {
-              "text": "USDT 交易聚合器",
+              "text": "USDT 传输聚合器",
               "link": "/cn/explanation/usdt-transfer-aggregator"
             },
             {
-              "text": "保密转账",
+              "text": "隐私传输",
               "link": "/cn/explanation/confidential-transfer"
             }
           ]
@@ -1481,7 +1501,7 @@
           "collapsed": true,
           "items": [
             {
-              "text": "核心优化总览",
+              "text": "核心优化概述",
               "link": "/cn/explanation/core-optimization-overview"
             },
             {
@@ -1547,7 +1567,7 @@
       "collapsed": true,
       "items": [
         {
-          "text": "构建总览",
+          "text": "构建概述",
           "link": "/cn/explanation/build-overview"
         },
         {
@@ -1555,67 +1575,11 @@
           "link": "/cn/tutorial/quick-start"
         },
         {
-          "text": "Stable SDK",
-          "collapsed": true,
-          "items": [
-            {
-              "text": "总览",
-              "link": "/cn/explanation/sdk-overview"
-            },
-            {
-              "text": "快速入门",
-              "link": "/cn/tutorial/sdk-quickstart"
-            },
-            {
-              "text": "参考",
-              "link": "/cn/reference/sdk"
-            },
-            {
-              "text": "赚取收益",
-              "link": "/cn/how-to/earn-yield"
-            },
-            {
-              "text": "Viem 集成",
-              "link": "/cn/how-to/sdk-with-viem"
-            },
-            {
-              "text": "Wagmi 集成",
-              "link": "/cn/how-to/sdk-with-wagmi"
-            }
-          ]
-        },
-        {
-          "text": "企业级 SDK",
-          "collapsed": true,
-          "items": [
-            {
-              "text": "总览",
-              "link": "/cn/explanation/enterprise-sdk"
-            },
-            {
-              "text": "中继交易",
-              "link": "/cn/how-to/relay-with-gas-waiver"
-            },
-            {
-              "text": "保证区块空间",
-              "link": "/cn/how-to/send-guaranteed-transactions"
-            },
-            {
-              "text": "保证中继交易",
-              "link": "/cn/how-to/guaranteed-relayed-transactions"
-            },
-            {
-              "text": "参考",
-              "link": "/cn/reference/enterprise-sdk"
-            }
-          ]
-        },
-        {
           "text": "用户引导",
           "collapsed": true,
           "items": [
             {
-              "text": "账户总览",
+              "text": "账户概述",
               "link": "/cn/explanation/accounts-overview"
             },
             {
@@ -1641,7 +1605,7 @@
           "collapsed": true,
           "items": [
             {
-              "text": "支付总览",
+              "text": "支付概述",
               "link": "/cn/explanation/payments-overview"
             },
             {
@@ -1653,7 +1617,7 @@
               "collapsed": true,
               "items": [
                 {
-                  "text": "发送首笔 USDT0",
+                  "text": "发送您的第一个 USDT0",
                   "link": "/cn/tutorial/send-usdt0"
                 },
                 {
@@ -1665,7 +1629,7 @@
                   "link": "/cn/how-to/work-with-usdt-gas"
                 },
                 {
-                  "text": "将 USDT0 跨链到 Stable",
+                  "text": "将 USDT0 桥接到 Stable",
                   "link": "/cn/tutorial/bridge-usdt0"
                 }
               ]
@@ -1683,7 +1647,7 @@
                   "link": "/cn/how-to/subscribe-and-collect"
                 },
                 {
-                  "text": "发票付款",
+                  "text": "使用发票支付",
                   "link": "/cn/how-to/pay-with-invoice"
                 }
               ]
@@ -1697,7 +1661,7 @@
                   "link": "/cn/explanation/erc-3009"
                 },
                 {
-                  "text": "支付用例总览",
+                  "text": "支付用例概述",
                   "link": "/cn/explanation/payment-use-cases-overview"
                 },
                 {
@@ -1725,11 +1689,11 @@
           ]
         },
         {
-          "text": "发布合约",
+          "text": "部署合约",
           "collapsed": true,
           "items": [
             {
-              "text": "合约总览",
+              "text": "合约概述",
               "link": "/cn/explanation/contracts-overview"
             },
             {
@@ -1737,7 +1701,7 @@
               "link": "/cn/explanation/contracts-guides"
             },
             {
-              "text": "部署首个合约",
+              "text": "部署您的第一个合约",
               "collapsed": true,
               "items": [
                 {
@@ -1759,7 +1723,7 @@
               "collapsed": true,
               "items": [
                 {
-                  "text": "系统模块总览",
+                  "text": "系统模块概述",
                   "link": "/cn/explanation/system-modules-overview"
                 },
                 {
@@ -1767,7 +1731,7 @@
                   "link": "/cn/how-to/use-system-modules"
                 },
                 {
-                  "text": "系统模块 API 总览",
+                  "text": "系统模块 API 概述",
                   "link": "/cn/reference/system-modules-api-overview"
                 },
                 {
@@ -1807,7 +1771,7 @@
                   "link": "/cn/how-to/track-unbonding"
                 },
                 {
-                  "text": "验证器数据索引",
+                  "text": "索引验证器数据",
                   "link": "/cn/how-to/index-validator-data"
                 }
               ]
@@ -1825,7 +1789,7 @@
       "collapsed": true,
       "items": [
         {
-          "text": "集成总览",
+          "text": "集成概述",
           "link": "/cn/explanation/integrate-overview"
         },
         {
@@ -1901,7 +1865,7 @@
           "collapsed": true,
           "items": [
             {
-              "text": "跨链桥",
+              "text": "桥接器",
               "link": "/cn/reference/bridges"
             },
             {
@@ -1921,7 +1885,7 @@
               "link": "/cn/reference/network-routing"
             },
             {
-              "text": "法币通道",
+              "text": "入口/出口",
               "link": "/cn/reference/ramps"
             },
             {
@@ -1959,11 +1923,77 @@
       ]
     },
     {
-      "text": "运营",
+      "text": "工具和 SDK",
       "collapsed": true,
       "items": [
         {
-          "text": "节点运营总览",
+          "text": "工具和 SDK 概述",
+          "link": "/cn/explanation/tools-overview"
+        },
+        {
+          "text": "Stable SDK",
+          "collapsed": true,
+          "items": [
+            {
+              "text": "概述",
+              "link": "/cn/explanation/sdk-overview"
+            },
+            {
+              "text": "快速入门",
+              "link": "/cn/tutorial/sdk-quickstart"
+            },
+            {
+              "text": "参考",
+              "link": "/cn/reference/sdk"
+            },
+            {
+              "text": "赚取收益",
+              "link": "/cn/how-to/earn-yield"
+            },
+            {
+              "text": "viem 集成",
+              "link": "/cn/how-to/sdk-with-viem"
+            },
+            {
+              "text": "wagmi 集成",
+              "link": "/cn/how-to/sdk-with-wagmi"
+            }
+          ]
+        },
+        {
+          "text": "企业 SDK",
+          "collapsed": true,
+          "items": [
+            {
+              "text": "概述",
+              "link": "/cn/explanation/enterprise-sdk"
+            },
+            {
+              "text": "中继交易",
+              "link": "/cn/how-to/relay-with-gas-waiver"
+            },
+            {
+              "text": "保证区块空间",
+              "link": "/cn/how-to/send-guaranteed-transactions"
+            },
+            {
+              "text": "保证中继交易",
+              "link": "/cn/how-to/guaranteed-relayed-transactions"
+            },
+            {
+              "text": "参考",
+              "link": "/cn/reference/enterprise-sdk"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "运行 Stable 节点",
+      "collapsed": true,
+      "items": [
+        {
+          "text": "节点操作概述",
           "link": "/cn/reference/node-operations-overview"
         },
         {
@@ -2037,7 +2067,7 @@
               "link": "/cn/how-to/build-mpp-endpoint"
             },
             {
-              "text": "通过 MCP 支付",
+              "text": "使用 MCP 支付",
               "link": "/cn/how-to/pay-with-mcp"
             }
           ]
@@ -2047,7 +2077,7 @@
           "collapsed": true,
           "items": [
             {
-              "text": "利用 AI 开发",
+              "text": "使用 AI 开发",
               "link": "/cn/how-to/develop-with-ai"
             },
             {

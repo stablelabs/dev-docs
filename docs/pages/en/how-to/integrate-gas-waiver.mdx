@@ -8,7 +8,7 @@ diataxis: "how-to"
 
 Gas Waiver enables gas-free transactions on Stable. With Gas Waiver, applications cover gas fees on behalf of users, so users can interact with contracts without holding USDT0 for gas.
 
-This guide covers integrating via the Waiver Server API.
+This guide covers the hosted Waiver Server API, where Stable operates the waiver and you authenticate with an API key. To register your own waiver address through governance instead, see [Choosing an integration path](/en/explanation/gas-waiver#choosing-an-integration-path).
 
 :::note
 **Concept:** For what Gas Waiver is, why it exists, and how governance-authorized waivers work, see [Gas waiver](/en/explanation/gas-waiver). For the full protocol specification (wrapper transaction format, marker address, execution semantics, security model), see [Gas waiver protocol](/en/reference/gas-waiver-api).
@@ -204,4 +204,4 @@ WebSocket interface for streaming submissions. Authentication: required (Bearer)
 - [**Zero gas transactions**](/en/how-to/zero-gas-transactions): See the demo-focused flow and how to verify zero gas on a receipt.
 - [**Self-hosted Gas Waiver**](/en/how-to/self-hosted-gas-waiver): Run your own waiver without the hosted API.
 - [**Gas waiver protocol**](/en/reference/gas-waiver-api): Full wrapper transaction spec and governance model.
-- [**Stable SDK**](/en/explanation/sdk-overview): Use the typed client to sign user transactions you then submit to the Waiver Server.
+- [**Relay with gas waiver**](/en/how-to/relay-with-gas-waiver): Sponsor gas from your own governance-registered waiver with the Enterprise SDK.

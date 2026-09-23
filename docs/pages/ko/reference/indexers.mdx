@@ -1,6 +1,6 @@
 ---
 source_path: reference/indexers.mdx
-source_sha: 208d3664597b9263a10478a7fb3ad16384dffb53
+source_sha: 6cc9367a3209b641df9f4a6d11c8de08332c7ce5
 title: "인덱서"
 description: "Stable을 지원하는 인덱싱, 분석, 규정 준수 및 조사 제공업체를 찾아보세요."
 diataxis: "reference"
@@ -8,49 +8,50 @@ diataxis: "reference"
 
 # 인덱서
 
-인덱서, 분석 플랫폼 및 블록체인 인텔리전스 제공업체는 Stable에서 온체인 데이터를 쿼리하고, 활동을 측정하고, 거래 위험을 모니터링하고, 자금 흐름을 조사하는 데 도움을 줍니다. Stable은 EVM 호환이므로 표준 이더리움 인덱싱 도구가 원활하게 작동합니다.
+인덱서, 분석 플랫폼 및 블록체인 인텔리전스 제공업체는 Stable에서 온체인 데이터를 쿼리하고, 활동을 측정하고, 거래 위험을 모니터링하고, 자금 흐름을 조사하는 데 도움을 줍니다. Stable은 EVM 호환되므로 표준 이더리움 인덱싱 도구는 수정 없이 작동합니다.
 
 이 페이지에는 Stable에서 인덱싱, 분석, 규정 준수 및 조사를 위해 사용할 수 있는 제공업체가 나열되어 있습니다.
 
 ## 개요 표
 
-| **제공업체**                                                                | **카테고리**                | **문서 / 시작하기**                                                                                                        | **참고**                                                      |
-| :-------------------------------------------------------------------------- | :-------------------------- | :------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------- |
-| [**Stablescan**](https://stablescan.xyz/)                               | 블록체인 탐색기             | [https://docs.etherscan.io/introduction](https://docs.etherscan.io/introduction)                                          | 블록체인 탐색기; 거래, 블록 및 계약 가시성.                 |
-| [**Envio**](https://envio.dev/?utm_source=stable&utm_medium=partner-docs) | 인덱서                      | [https://docs.envio.dev/](https://docs.envio.dev/)                                                                         | 단일 GraphQL API를 통한 실시간 및 과거 온체인 데이터.       |
-| [**The Graph**](https://thegraph.com/explorer/participants/indexers) | 인덱서                      | [https://thegraph.com/docs/en/developing/creating-a-subgraph/](https://thegraph.com/docs/en/developing/creating-a-subgraph/) | GraphQL을 사용하여 서브그래프를 구축, 배포 및 쿼리합니다. |
-| [**Goldsky**](https://goldsky.com/)                                  | 인덱서                      | [https://docs.goldsky.com/introduction](https://docs.goldsky.com/introduction)                                           | 고성능 인덱싱 및 실시간 데이터 스트리밍.                    |
-| [**Ormi Labs**](https://ormilabs.com/)                               | 인덱서                      | [https://docs.ormilabs.com/subgraphs/quickstart](https://docs.ormilabs.com/subgraphs/quickstart)                         | 실시간 데이터 기능을 갖춘 차세대 서브그래프 인덱서.         |
-| [**Allium**](https://www.allium.so/)                                 | 분석 / 데이터 플랫폼        | [https://docs.allium.so/](https://docs.allium.so/)                                                                         | 정규화된 블록체인 데이터셋 및 분석 도구.                    |
-| [**CoinMarketCap**](https://coinmarketcap.com/api/)                  | 시장 데이터 수집기          | [https://coinmarketcap.com/api/documentation/v1/](https://coinmarketcap.com/api/documentation/v1/)                       | 시장 가격, 목록 및 추적 도구.                               |
-| [**CoinGecko**](https://www.coingecko.com/en/api)                    | 시장 데이터 수집기          | [https://docs.coingecko.com/](https://docs.coingecko.com/)                                                                 | 개발자 API를 통한 독립적인 시장 데이터.                     |
-| [**Dexscreener**](https://docs.dexscreener.com/)                     | DEX 분석                    | [https://docs.dexscreener.com/](https://docs.dexscreener.com/)                                                             | 실시간 DEX 차트, 유동성 분석 및 대시보드.                  |
-| [**DeBank**](https://debank.com/)                                    | 포트폴리오 / 지갑 분석      | [https://cloud.debank.com/](https://cloud.debank.com/)                                                                     | EVM 지갑 추적, 거래 및 포트폴리오 통찰력.                   |
-| [**Chainalysis**](https://www.chainalysis.com/)                      | 규정 준수 / 조사            | [https://www.chainalysis.com/request-a-demo/](https://www.chainalysis.com/request-a-demo/)                                 | KYT 모니터링, 엔티티 스크리닝 및 Stable 토큰에 대한 리액터 조사. |
+| **제공업체**                                                                | **카테고리**                  | **문서 / 시작하기**                                                                                                              | **참고**                                                          |
+| :-------------------------------------------------------------------------- | :---------------------------- | :---------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------- |
+| [**Stablescan**](https://stablescan.xyz/)                               | 블록체인 탐색기           | [https://docs.etherscan.io/introduction](https://docs.etherscan.io/introduction)                                                     | 블록체인 탐색기; 트랜잭션, 블록, 계약 가시성. |
+| [**Envio**](https://envio.dev/?utm_source=stable&utm_medium=partner-docs) | 인덱서                       | [https://docs.envio.dev/](https://docs.envio.dev/) | 단일 GraphQL API를 통한 실시간 및 과거 온체인 데이터. |
+| [**The Graph**](https://thegraph.com/explorer/participants/indexers) | 인덱서                       | [https://thegraph.com/docs/en/developing/creating-a-subgraph/](https://thegraph.com/docs/en/developing/creating-a-subgraph/) | GraphQL을 사용하여 서브그래프를 빌드, 배포 및 쿼리합니다.                  |
+| [**Goldsky**](https://goldsky.com/)                                  | 인덱서                       | [https://docs.goldsky.com/introduction](https://docs.goldsky.com/introduction)                                               | 고성능 인덱싱 및 실시간 데이터 스트리밍.            |
+| [**Ormi Labs**](https://ormilabs.com/)                               | 인덱서                       | [https://docs.ormilabs.com/subgraphs/quickstart](https://docs.ormilabs.com/subgraphs/quickstart)                             | 실시간 데이터 기능을 갖춘 차세대 서브그래프 인덱서.        |
+| [**SQD**](https://sqd.dev/chains/stable/)                            | 인덱서                       | [https://docs.sqd.dev/](https://docs.sqd.dev/)                                                                               | 디코딩된 과거 및 실시간 스트림; Stable 데이터 세트는 요청 시 제공됩니다. |
+| [**Allium**](https://www.allium.so/)                                 | 분석 / 데이터 플랫폼     | [https://docs.allium.so/](https://docs.allium.so/)                                                                           | 정규화된 블록체인 데이터 세트 및 분석 도구.                |
+| [**CoinMarketCap**](https://coinmarketcap.com/api/)                  | 시장 데이터 수집기        | [https://coinmarketcap.com/api/documentation/v1/](https://coinmarketcap.com/api/documentation/v1/)                           | 시장 가격, 상장 및 추적 도구.                       |
+| [**CoinGecko**](https://www.coingecko.com/en/api)                    | 시장 데이터 수집기        | [https://docs.coingecko.com/](https://docs.coingecko.com/)                                                                   | 개발자 API를 통한 독립적인 시장 데이터.                       |
+| [**Dexscreener**](https://docs.dexscreener.com/)                     | DEX 분석                 | [https://docs.dexscreener.com/](https://docs.dexscreener.com/)                                                               | 실시간 DEX 차트, 유동성 분석 및 대시보드.         |
+| [**DeBank**](https://debank.com/)                                    | 포트폴리오 / 지갑 분석  | [https://cloud.debank.com/](https://cloud.debank.com/)                                                                       | EVM 지갑 추적, 거래 및 포트폴리오 인사이트.         |
+| [**Chainalysis**](https://www.chainalysis.com/)                      | 규정 준수 / 조사   | [https://www.chainalysis.com/request-a-demo/](https://www.chainalysis.com/request-a-demo/)                                   | Stable 토큰에 대한 KYT 모니터링, 엔티티 스크리닝 및 Reactor 조사. |
 
 ## 1. 인덱서
 
-인덱서는 원시 블록체인 데이터를 검색 및 쿼리 가능한 형식으로 변환합니다. 인덱서는 대시보드, 분석, 월렛, 블록 탐색기 및 애플리케이션 백엔드를 지원합니다.
+인덱서는 원시 블록체인 데이터를 검색 및 쿼리 가능한 형식으로 변환합니다. 이는 대시보드, 분석, 지갑, 블록 탐색기 및 애플리케이션 백엔드를 지원합니다.
 
 ### Envio
 
-Envio는 블록체인 앱을 위한 데이터 레이어입니다. 단일 GraphQL API를 통해 실시간 및 과거 온체인 데이터를 제공하며, 원시 고속 액세스 및 Envio Cloud에서 관리형 호스팅을 지원합니다.
+Envio는 블록체인 앱을 위한 데이터 레이어입니다. 단일 GraphQL API를 통해 실시간 및 과거 온체인 데이터를 제공하며, 원시 고속 액세스 및 Envio Cloud에서 관리형 호스팅을 제공합니다.
 
 **기능**
 
 - 실시간 및 과거 온체인 데이터
-- 원시 고속 액세스를 지원하는 단일 GraphQL API
+- 원시 고속 액세스를 통한 단일 GraphQL API
 - Envio Cloud에서 관리형 호스팅
 
 **문서**
 
-Envio의 HyperIndex는 RPC를 데이터 소스로 사용하여 Stable을 포함한 모든 EVM 체인을 기본적으로 인덱싱합니다.
+Envio의 HyperIndex는 자체 RPC를 데이터 소스로 사용하여 Stable을 포함한 모든 EVM 체인을 즉시 인덱싱하는 것을 기본적으로 지원합니다.
 
 [https://docs.envio.dev/](https://docs.envio.dev/)
 
 ### The Graph
 
-75,000개 이상의 프로젝트에 데이터 액세스를 제공하는 분산형 인덱싱 프로토콜입니다.
+75,000개 이상의 프로젝트에 대한 데이터 액세스를 지원하는 분산형 인덱싱 프로토콜.
 
 **기능**
 
@@ -60,7 +61,7 @@ Envio의 HyperIndex는 RPC를 데이터 소스로 사용하여 Stable을 포함�
 
 **문서**
 
-다음 빠른 시작 가이드를 따라 몇 분 안에 서브그래프를 생성, 배포 및 쿼리하십시오.
+다음 빠른 시작 가이드를 통해 몇 분 안에 서브그래프를 생성, 배포 및 쿼리하십시오.
 
 [https://thegraph.com/docs/en/developing/creating-a-subgraph/](https://thegraph.com/docs/en/developing/creating-a-subgraph/)
 
@@ -70,35 +71,66 @@ Ormi는 실시간 및 과거 블록체인 데이터를 대규모로 제공하도
 
 **기능**
 
-- 체인 끝 부분 인덱싱
+- 체인 팁 인덱싱
 - 1초 미만의 쿼리 지연 시간
 - 코드 없는 기능
 
 **문서**
 
-Ormi로 실시간 데이터 쿼리를 시작하세요:
+Ormi로 실시간 데이터 쿼리를 시작하십시오.
 
 [https://docs.ormilabs.com/subgraphs/quickstart](https://docs.ormilabs.com/subgraphs/quickstart)
 
-Stable에서 USDT0 데이터를 실시간으로 쿼리하는 방법을 알아보세요.
+Stable에서 USDT0 데이터를 실시간으로 쿼리하는 방법을 알아보십시오.
 
 [https://docs.ormilabs.com/subgraphs/tutorials/query-usdt0](https://docs.ormilabs.com/subgraphs/tutorials/query-usdt0)
 
 ### Goldsky
 
-즉각적인 서브그래프 및 개발자 도구를 갖춘 고성능 인덱싱 플랫폼입니다.
+인스턴트 서브그래프 및 개발자 도구를 갖춘 고성능 인덱싱 플랫폼.
 
 **기능**
 
 - 서브그래프 배포 및 관리
 - 실시간 이벤트 스트리밍을 위한 웹훅 생성
-- 외부 데이터베이스로의 다중 서브그래프 동기화
+- 외부 데이터베이스로 다중 서브그래프 동기화
 
 **문서**
 
 [https://docs.goldsky.com/introduction](https://docs.goldsky.com/introduction)
 
-24시간 연중무휴 지원을 받으려면 [support@goldsky.com](mailto:support@goldsky.com)으로 문의하십시오.
+24시간 지원을 받으려면 [support@goldsky.com](mailto:support@goldsky.com)으로 문의하십시오.
+
+### SQD
+
+SQD는 원시 체인 상태 대신 디코딩된 스키마 형식의 테이블을 반환하는 HTTP 스트리밍 API인 Portal을 통해 Stable 데이터를 제공하므로 아카이브 노드를 실행하지 않고도 인덱싱할 수 있습니다. 사용자 지정 변환이 필요한 팀은 Squid 및 Pipes SDK를 사용하여 인덱서를 구축하고 자체 호스팅하거나 SQD Cloud에서 실행할 수 있습니다.
+
+**기능**
+
+- 단일 HTTP 엔드포인트를 통한 블록, 트랜잭션 및 로그의 과거 및 실시간 스트리밍
+- `stable-mainnet` (체인 ID 988) 및 `stable-testnet` (체인 ID 2201)을 포함하는 디코딩된 스키마 형식의 테이블
+- Postgres, ClickHouse, MongoDB, SQLite 및 Parquet용 커넥터가 있는 사용자 지정 인덱서용 Squid 및 Pipes SDK
+- 블록은 Portal에 도달하기 전에 SQD 네트워크 작업자에 의해 검증됩니다.
+
+:::note
+Stable 데이터 세트는 SQD에서 비공개입니다. 액세스는 공개 네트워크를 통하는 것이 아니라 SQD Private Portal을 통해 엔터프라이즈 고객의 요청에 따라 프로비저닝됩니다. 테스트넷 적용 범위는 제네시스가 아닌 블록 39,381,701부터 시작됩니다.
+:::
+
+**문서**
+
+Stable 적용 범위 세부 정보, 데이터 세트 슬러그 및 엔드포인트를 읽어보세요.
+
+[https://sqd.dev/chains/stable/](https://sqd.dev/chains/stable/)
+
+Portal에서 디코딩된 데이터를 스트리밍하세요.
+
+[https://docs.sqd.dev/en/portal/evm/quickstart](https://docs.sqd.dev/en/portal/evm/quickstart)
+
+Pipes SDK로 사용자 지정 인덱서를 구축하세요.
+
+[https://docs.sqd.dev/en/sdk/pipes-sdk/evm/quickstart](https://docs.sqd.dev/en/sdk/pipes-sdk/evm/quickstart)
+
+**시작하기**: Stable 데이터 세트에 대한 액세스를 프로비저닝하려면 [SQD에 문의](https://sqd.dev/contact/)한 다음 Portal에서 스트리밍하거나 SDK 인덱서를 가리키십시오.
 
 ## 2. 분석 제공업체
 
@@ -106,21 +138,21 @@ Stable에서 USDT0 데이터를 실시간으로 쿼리하는 방법을 알아보
 
 ### Allium
 
-블록체인 생태계 전반의 엔지니어 및 분석가를 위한 기본 데이터 플랫폼입니다.
+블록체인 생태계 전반의 엔지니어 및 분석가를 위한 기반 데이터 플랫폼입니다.
 
 **기능**
 
-- 정규화된 블록체인 데이터셋
+- 정규화된 블록체인 데이터 세트
 - 분석 팀을 위한 쿼리 도구
 - 엔터프라이즈 데이터 인프라
 
 **문서**
 
-Allium의 데이터 플랫폼 및 API 리소스 시작하기:
+Allium의 데이터 플랫폼 및 API 리소스를 시작하십시오.
 
 [https://www.allium.so/](https://www.allium.so/)
 
-**시작하기**: [allium.so](https://www.allium.so/)에서 가입하여 API 액세스를 받은 다음 REST API를 사용하여 정규화된 Stable 온체인 데이터셋을 쿼리합니다.
+**시작하기**: [allium.so](https://www.allium.so/)에서 가입하여 API 액세스 권한을 얻은 다음 REST API를 사용하여 정규화된 Stable 온체인 데이터 세트를 쿼리하십시오.
 
 ### CoinMarketCap
 
@@ -128,17 +160,17 @@ Allium의 데이터 플랫폼 및 API 리소스 시작하기:
 
 **기능**
 
-- Stable 자산에 대한 가격 추적
+- Stable 자산의 가격 추적
 - 포트폴리오 도구
 - 시장 데이터 API
 
 **문서**
 
-CMC API 및 통합 리소스 탐색:
+CMC API 및 통합 리소스를 살펴보십시오.
 
 [https://coinmarketcap.com/api/](https://coinmarketcap.com/api/)
 
-**시작하기**: [coinmarketcap.com/api](https://coinmarketcap.com/api/)에서 API 키를 등록하고 REST API를 통해 Stable 자산 가격 및 시장 데이터를 쿼리합니다.
+**시작하기**: [coinmarketcap.com/api](https://coinmarketcap.com/api/)에서 API 키를 등록하고 REST API를 통해 Stable 자산 가격 및 시장 데이터를 쿼리하십시오.
 
 ### CoinGecko
 
@@ -146,39 +178,39 @@ CMC API 및 통합 리소스 탐색:
 
 **기능**
 
-- 시장 목록 및 가격 데이터
+- 시장 상장 및 가격 데이터
 - 과거 분석
-- 개발자를 위한 API 액세스
+- 개발자용 API 액세스
 
 **문서**
 
-CoinGecko의 API 문서 액세스:
+CoinGecko의 API 문서를 액세스하십시오.
 
 [https://www.coingecko.com/en/api](https://www.coingecko.com/en/api)
 
-**시작하기**: [coingecko.com/en/api](https://www.coingecko.com/en/api)에서 무료 또는 Pro API 키를 얻고 REST API를 통해 Stable 토큰 가격 및 시장 데이터를 쿼리합니다.
+**시작하기**: [coingecko.com/en/api](https://www.coingecko.com/en/api)에서 무료 또는 Pro API 키를 얻고 REST API를 통해 Stable 토큰 가격 및 시장 데이터를 쿼리하십시오.
 
 ### Dexscreener
 
-분산형 거래소를 위한 실시간 차트 및 분석.
+탈중앙화 장소를 위한 실시간 차트 및 분석.
 
 **기능**
 
-- 라이브 DEX 차트
+- 실시간 DEX 차트
 - 유동성 및 페어 분석
-- 거래 대시보드
+- 트레이딩 대시보드
 
 **문서**
 
-Dexscreener의 API 엔드포인트 및 개발자 도구 탐색:
+Dexscreener의 API 엔드포인트 및 개발자 도구를 살펴보십시오.
 
 [https://docs.dexscreener.com/](https://docs.dexscreener.com/)
 
-**시작하기**: [Dexscreener API 문서](https://docs.dexscreener.com/)를 탐색하여 Stable 기반 DEX 풀에 대한 실시간 페어 데이터, 유동성 및 거래 활동을 쿼리합니다.
+**시작하기**: [Dexscreener API 문서](https://docs.dexscreener.com/)를 탐색하여 Stable 기반 DEX 풀의 실시간 페어 데이터, 유동성 및 거래 활동을 쿼리하십시오.
 
 ### DeBank
 
-이더리움 및 EVM 생태계를 위한 포트폴리오 트래커입니다.
+이더리움 및 EVM 생태계를 위한 포트폴리오 추적기.
 
 **기능**
 
@@ -188,11 +220,11 @@ Dexscreener의 API 엔드포인트 및 개발자 도구 탐색:
 
 **문서**
 
-DeBank의 API 참조 및 통합 문서 읽기:
+DeBank의 API 참조 및 통합 문서를 읽어보십시오.
 
 [https://docs.debank.com/](https://docs.debank.com/)
 
-**시작하기**: [DeBank Cloud](https://cloud.debank.com/)에 가입하여 API 키에 액세스하고 Stable 지갑 잔액, 거래 내역 및 포트폴리오 데이터를 쿼리합니다.
+**시작하기**: [DeBank Cloud](https://cloud.debank.com/)에 가입하여 API 키에 액세스하고 Stable 지갑 잔액, 거래 내역 및 포트폴리오 데이터를 쿼리하십시오.
 
 ## 3. 규정 준수 및 조사
 
@@ -200,9 +232,9 @@ DeBank의 API 참조 및 통합 문서 읽기:
 
 ### Chainalysis
 
-Chainalysis는 KYT, 엔티티 스크리닝 제품 및 Reactor를 통해 Stable을 지원합니다.
+Chainalysis는 [KYT](https://www.chainalysis.com/product/kyt/), 엔티티 스크리닝 제품 및 [Reactor](https://www.chainalysis.com/product/reactor/)를 통해 Stable을 지원합니다.
 
-Stable에 배포된 새로운 대체 가능 및 대체 불가능 토큰은 ERC-20 및 ERC-721과 같은 주요 표준을 따르는 경우 자동으로 적용됩니다.
+Stable에 배포된 새로운 대체 가능 및 비대체 가능 토큰은 ERC-20 및 ERC-721과 같은 주요 표준을 따르는 경우 자동으로 적용됩니다.
 
 **기능**
 
@@ -213,10 +245,10 @@ Stable에 배포된 새로운 대체 가능 및 대체 불가능 토큰은 ERC-2
 
 **문서**
 
-적용 범위 세부 정보는 [Stable 통합 발표](https://www.chainalysis.com/blog/stable-automatic-token-support/)를 참조하십시오.
+적용 범위 세부 정보는 [Stable 통합 발표](https://www.chainalysis.com/blog/stable-automatic-token-support/)를 읽어보십시오.
 
 [Chainalysis 데모 요청](https://www.chainalysis.com/request-a-demo/).
 
 ---
 
-Stable을 통합하는 인덱싱, 분석, 규정 준수 또는 조사 플랫폼이 있으신가요? [bizdev@stable.xyz](mailto:bizdev@stable.xyz)로 문의해 주십시오.
+Stable을 통합하는 인덱싱, 분석, 규정 준수 또는 조사 플랫폼을 가지고 계신가요? [bizdev@stable.xyz](mailto:bizdev@stable.xyz)로 문의해 주세요.

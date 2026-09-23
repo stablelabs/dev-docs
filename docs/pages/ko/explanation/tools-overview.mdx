@@ -1,0 +1,41 @@
+---
+source_path: explanation/tools-overview.mdx
+source_sha: 6eecb794f859527309d0c200ea29e33c6223cb74
+title: "도구 및 SDK"
+description: "안정적인 도구를 선택하세요: 유형이 지정된 TypeScript SDK, 가스 면제 및 EIP-7702 서비스 API, AI 클라이언트를 위한 MCP 서버."
+diataxis: "explanation"
+---
+
+# 도구 및 SDK
+
+Stable을 사용하여 호출하는 모든 것이 여기에 있습니다. Stable에서 제품을 구축하시겠습니까? [Stable SDK](/ko/explanation/sdk-overview)로 시작하고, SDK가 래핑하지 않는 레일이 필요할 때 서비스 API로 내려가세요. 가스를 후원하거나 백엔드에서 트랜잭션을 중계하시겠습니까? [Enterprise SDK](/ko/explanation/enterprise-sdk)로 시작하세요. Stable을 AI 편집기 또는 에이전트에 연결하시겠습니까? [AI로 개발하기](/ko/how-to/develop-with-ai)로 이동하세요.
+
+## SDK로 구축하기
+
+- [**Stable SDK**](/ko/explanation/sdk-overview): `@stablechain/sdk`, 전송, 브릿지, 스왑 및 볼트 수익률을 위한 타입스크립트 클라이언트. viem을 래핑하고 라우팅, 승인, 소수점 및 체인 전환을 처리합니다.
+- [**SDK 빠른 시작**](/ko/tutorial/sdk-quickstart): 패키지를 설치하고, 테스트넷에서 첫 USDT0 전송을 보내고, 메인넷 브릿지 견적을 미리 봅니다.
+- [**SDK 참조**](/ko/reference/sdk): `createStable`, `createStableReader`, 전송, 브릿지, 스왑 및 수익 메서드, 열거형 및 오류 클래스.
+- [**Enterprise SDK**](/ko/explanation/enterprise-sdk): `@stablechain/enterprise`, 가스 면제 트랜잭션 및 예약된 Enterprise-레인 블록 공간을 위한 서버 측 클라이언트.
+- [**Enterprise SDK 참조**](/ko/reference/enterprise-sdk): `createStableEnterprise`, 두 레일, 빌드 도우미 및 오류 클래스.
+
+## 스택과 함께 SDK 사용하기
+
+- [**viem**](/ko/how-to/sdk-with-viem): 세 가지 방식으로 서명합니다: 개인 키 계정, 브라우저 전송 또는 사전 구축된 viem WalletClient.
+- [**wagmi**](/ko/how-to/sdk-with-wagmi): `useWalletClient`, `useAccount` 및 `useChainId`를 사용하여 SDK를 React 앱에 연결합니다.
+- [**수익 창출**](/ko/how-to/earn-yield): Morpho 볼트에 USDT0를 예치하고, APY 및 포지션을 읽고, 인출하고, Merkl 보상을 청구합니다.
+
+## 서비스 API
+
+- [**가스 면제 프로토콜**](/ko/reference/gas-waiver-api): 트랜잭션 형식, 마커 라우팅, 거버넌스 제어 및 서명된 `InnerTx` 페이로드를 게시하는 Waiver Server API.
+- [**EIP-7702**](/ko/reference/eip-7702-api): EOA의 계정 코드를 스마트 계약으로 지정하기 위한 위임 트랜잭션 형식 및 RPC 동작.
+
+## AI 및 에이전트 도구
+
+- [**AI로 개발하기**](/ko/how-to/develop-with-ai): Docs MCP 및 Runtime MCP 서버를 모든 MCP 호환 클라이언트에 추가하고, MCP가 없는 도구를 위한 일반 텍스트 문서를 추가합니다.
+- [**MCP 서버로 결제하기**](/ko/how-to/pay-with-mcp): x402 결제 API를 MCP 도구로 노출하여 AI 클라이언트가 프롬프트를 통해 호출하고 결제할 수 있도록 합니다.
+
+## 다음 단계
+
+- [**빠른 시작**](/ko/tutorial/quick-start): 테스트넷에 연결하고, 지갑에 자금을 지원하고, 첫 USDT0 트랜잭션을 보냅니다.
+- [**JSON-RPC API**](/ko/reference/json-rpc-api): `eth`, `net`, `web3` 및 `debug` 네임스페이스에서 지원되는 메서드.
+- [**구축**](/ko/explanation/build-overview): 계정, 결제, 계약 및 에이전트를 배포하는 내용별로 정리했습니다.

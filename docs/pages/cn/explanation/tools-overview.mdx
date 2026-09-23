@@ -1,0 +1,42 @@
+---
+source_path: explanation/tools-overview.mdx
+source_sha: 6eecb794f859527309d0c200ea29e33c6223cb74
+title: "工具和 SDK"
+description: "选择合适的 Stable 工具：类型化的 TypeScript SDK、Gas 费用豁免和 EIP-7702 服务 API，以及用于 AI 客户端的 MCP 服务器。"
+diataxis: "explanation"
+---
+
+# 工具和 SDK
+
+所有你用来调用 Stable 的东西都在这里。要在 Stable 上构建产品？从 [Stable SDK](/cn/explanation/sdk-overview) 开始，当你需要 SDK 未封装的功能时，可以使用服务 API。为后端赞助 Gas 费用或中继交易？从 [Enterprise SDK](/cn/explanation/enterprise-sdk) 开始。将 Stable 集成到 AI 编辑器或代理中？请访问 [使用 AI 进行开发](/cn/how-to/develop-with-ai)。
+
+## 使用 SDK 进行构建
+
+- [**Stable SDK**](/cn/explanation/sdk-overview)：`@stablechain/sdk`，用于转账、跨链桥接、兑换和 Vault 收益的类型化 TypeScript 客户端。它封装了 viem 并处理路由、批准、小数位和链切换。
+- [**SDK 快速入门**](/cn/tutorial/sdk-quickstart)：安装软件包，在测试网上发送你的第一笔 USDT0 转账，并预览主网跨链桥报价。
+- [**SDK 参考**](/cn/reference/sdk)
+  ：`createStable`、`createStableReader`、转账、跨链桥接、兑换和赚取方法、枚举和错误类。
+- [**Enterprise SDK**](/cn/explanation/enterprise-sdk)：`@stablechain/enterprise`，用于免 Gas 交易和预留企业专用区块空间的服务器端客户端。
+- [**Enterprise SDK 参考**](/cn/reference/enterprise-sdk)：`createStableEnterprise`、两种轨道、构建助手和错误类。
+
+## 将 SDK 与你的技术栈结合使用
+
+- [**viem**](/cn/how-to/sdk-with-viem)：三种签名方式：私钥账户、浏览器传输或预构建的 viem WalletClient。
+- [**wagmi**](/cn/how-to/sdk-with-wagmi)：使用 `useWalletClient`、`useAccount` 和 `useChainId` 将 SDK 连接到 React 应用中。
+- [**赚取收益**](/cn/how-to/earn-yield)：将 USDT0 存入 Morpho Vault，读取 APY 和仓位，提款，并领取 Merkl 奖励。
+
+## 服务 API
+
+- [**Gas 费用豁免协议**](/cn/reference/gas-waiver-api)：交易格式、标记路由、治理控制以及你向其发布已签名 `InnerTx` 负载的 Waiver Server API。
+- [**EIP-7702**](/cn/reference/eip-7702-api)：委托交易格式和 RPC 行为，用于将 EOA 的账户代码指向智能合约。
+
+## AI 和代理工具
+
+- [**使用 AI 进行开发**](/cn/how-to/develop-with-ai)：将 Docs MCP 和 Runtime MCP 服务器添加到任何 MCP 兼容客户端，以及适用于不带 MCP 的工具的纯文本文档。
+- [**使用 MCP 服务器支付**](/cn/how-to/pay-with-mcp)：将 x402 支付的 API 作为 MCP 工具公开，以便 AI 客户端通过提示调用和支付它们。
+
+## 下一步
+
+- [**快速入门**](/cn/tutorial/quick-start)：连接到测试网，为钱包充值，并发送你的第一笔 USDT0 交易。
+- [**JSON-RPC API**](/cn/reference/json-rpc-api)：`eth`、`net`、`web3` 和 `debug` 命名空间中支持的方法。
+- [**构建**](/cn/explanation/build-overview)：账户、支付、合约和代理，按你正在发布的内容组织。

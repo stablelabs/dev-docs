@@ -6,7 +6,7 @@ diataxis: "reference"
 
 # Indexers
 
-Indexers, analytics platforms, and blockchain intelligence providers help you query on-chain data, measure activity, monitor transaction risk, and investigate fund flows on Stable. Stable is EVM-compatible, so standard Ethereum indexing tools work seamlessly.
+Indexers, analytics platforms, and blockchain intelligence providers help you query on-chain data, measure activity, monitor transaction risk, and investigate fund flows on Stable. Stable is EVM-compatible, so standard Ethereum indexing tools work without modification.
 
 This page lists the providers available for indexing, analytics, compliance, and investigations on Stable.
 
@@ -19,6 +19,7 @@ This page lists the providers available for indexing, analytics, compliance, and
 | [**The Graph**](https://thegraph.com/explorer/participants/indexers) | Indexer                       | [https://thegraph.com/docs/en/developing/creating-a-subgraph/](https://thegraph.com/docs/en/developing/creating-a-subgraph/) | Build, deploy, and query subgraphs using GraphQL.                  |
 | [**Goldsky**](https://goldsky.com/)                                  | Indexer                       | [https://docs.goldsky.com/introduction](https://docs.goldsky.com/introduction)                                               | High-performance indexing and real-time data streaming.            |
 | [**Ormi Labs**](https://ormilabs.com/)                               | Indexer                       | [https://docs.ormilabs.com/subgraphs/quickstart](https://docs.ormilabs.com/subgraphs/quickstart)                             | Next-gen subgraph indexer with real-time data capabilities.        |
+| [**SQD**](https://sqd.dev/chains/stable/)                            | Indexer                       | [https://docs.sqd.dev/](https://docs.sqd.dev/)                                                                               | Decoded historical and real-time streams; Stable datasets are by request. |
 | [**Allium**](https://www.allium.so/)                                 | Analytics / Data Platform     | [https://docs.allium.so/](https://docs.allium.so/)                                                                           | Normalized blockchain datasets & analytics tooling.                |
 | [**CoinMarketCap**](https://coinmarketcap.com/api/)                  | Market Data Aggregator        | [https://coinmarketcap.com/api/documentation/v1/](https://coinmarketcap.com/api/documentation/v1/)                           | Market prices, listings, and tracking tools.                       |
 | [**CoinGecko**](https://www.coingecko.com/en/api)                    | Market Data Aggregator        | [https://docs.coingecko.com/](https://docs.coingecko.com/)                                                                   | Independent market data with developer APIs.                       |
@@ -97,6 +98,37 @@ High-performance indexing platform with instant subgraphs and developer tooling.
 [https://docs.goldsky.com/introduction](https://docs.goldsky.com/introduction)
 
 For 24/7 support, contact [support@goldsky.com](mailto:support@goldsky.com).
+
+### SQD
+
+SQD serves Stable data through Portal, an HTTP streaming API that returns decoded, schema-typed tables rather than raw chain state, so you can index without running an archive node. Teams that need custom transforms use the Squid and Pipes SDKs to build an indexer, self-hosted or run on SQD Cloud.
+
+**Capabilities**
+
+- Historical and real-time streaming of blocks, transactions, and logs over a single HTTP endpoint
+- Decoded, schema-typed tables covering `stable-mainnet` (chain ID 988) and `stable-testnet` (chain ID 2201)
+- Squid and Pipes SDKs for custom indexers, with connectors for Postgres, ClickHouse, MongoDB, SQLite, and Parquet
+- Blocks are validated by SQD Network workers before they reach the Portal
+
+:::note
+Stable datasets are private on SQD. Access is provisioned by request for enterprise customers through SQD Private Portal, not through the public network. Testnet coverage starts at block 39,381,701 rather than genesis.
+:::
+
+**Docs**
+
+Read the Stable coverage details, dataset slugs, and endpoints:
+
+[https://sqd.dev/chains/stable/](https://sqd.dev/chains/stable/)
+
+Stream decoded data from the Portal:
+
+[https://docs.sqd.dev/en/portal/evm/quickstart](https://docs.sqd.dev/en/portal/evm/quickstart)
+
+Build a custom indexer with the Pipes SDK:
+
+[https://docs.sqd.dev/en/sdk/pipes-sdk/evm/quickstart](https://docs.sqd.dev/en/sdk/pipes-sdk/evm/quickstart)
+
+**Get started**: [Contact SQD](https://sqd.dev/contact/) to provision access to the Stable datasets, then stream them from the Portal or point an SDK indexer at them.
 
 ## 2. Analytics providers
 

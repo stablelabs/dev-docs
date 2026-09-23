@@ -137,11 +137,15 @@ Gas Waiver introduces a service dependency if partners route submissions through
 
 ## Integration
 
-You integrate by:
+Three paths produce the same on-chain result, differing in who holds the waiver key. See [Choosing an integration path](/en/explanation/gas-waiver#choosing-an-integration-path).
+
+Against the hosted Waiver Server:
 
 1. Collect a signed `InnerTx` from the user (`gasPrice = 0`).
 2. Submit the signed inner transaction to the Waiver Server API.
-3. Handle streamed results and surfacing transaction hashes to end users.
+3. Handle the streamed results and surface transaction hashes to end users.
+
+From a waiver address you registered yourself, `@stablechain/enterprise` builds, signs, and broadcasts the `WrapperTx` in one call. See [Relay with gas waiver](/en/how-to/relay-with-gas-waiver), or [Self-hosted gas waiver](/en/how-to/self-hosted-gas-waiver) to construct wrappers directly.
 
 ## Waiver server
 
@@ -274,4 +278,5 @@ async function createInnerTx(userWallet, contractAddress, callData, nonce) {
 - [**Zero gas transactions**](/en/how-to/zero-gas-transactions): Demo-focused walkthrough with a receipt showing zero gas fee.
 - [**Enable gas-free transactions**](/en/how-to/integrate-gas-waiver): Full hosted-API integration guide with batch submissions and error handling.
 - [**Self-hosted Gas Waiver**](/en/how-to/self-hosted-gas-waiver): Run your own waiver infrastructure without the hosted API.
+- [**Relay with gas waiver**](/en/how-to/relay-with-gas-waiver): Sponsor gas from your own waiver with the typed Enterprise SDK client.
 

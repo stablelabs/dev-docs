@@ -14,6 +14,7 @@ RPC and developer infrastructure providers supporting Stable.
 | :--- | :--- | :--- | :--- |
 | [**Alchemy**](https://dashboard.alchemy.com/?utm_source=chain_partner&utm_medium=referral&utm_campaign=stable) | RPC + developer platform | [Get started with Alchemy](https://dashboard.alchemy.com/?utm_source=chain_partner&utm_medium=referral&utm_campaign=stable) | RPC, WebSocket, monitoring, SDKs |
 | [**Chainstack**](https://chainstack.com/) | RPC + node infrastructure | [Get started with Chainstack](https://console.chainstack.com/) | Managed RPC, WebSocket, full and archive nodes |
+| [**Goldsky Edge RPC**](https://docs.goldsky.com/edge-rpc/introduction) | Managed RPC | [Edge RPC quickstart](https://docs.goldsky.com/edge-rpc/quickstart) | HTTPS RPC, caching, usage dashboards |
 | [**Tenderly**](https://tenderly.co/) | Simulation + debugging | [tenderly.co](https://tenderly.co/) | Real-time simulation, tracing, transaction workflows |
 
 ## Alchemy
@@ -39,6 +40,18 @@ Chainstack provides managed RPC nodes for Stable. You can connect to a deployed 
 - Full and archive node access
 
 **Get started**: Create a project in the [Chainstack console](https://console.chainstack.com/), select Stable, and deploy a node. Copy its HTTPS or WebSocket endpoint into your application.
+
+## Goldsky Edge RPC
+
+Goldsky Edge RPC is a managed RPC endpoint for Stable Mainnet and Testnet, served from several regions. It is built on [eRPC](https://github.com/erpc/erpc), an open-source RPC proxy that you can also run yourself.
+
+**Capabilities**
+
+- HTTPS JSON-RPC endpoints (no WebSocket)
+- Caching of chain data
+- Usage, latency, and error dashboards
+
+**Get started**: Create an API key in the [Goldsky dashboard](https://app.goldsky.com), then send JSON-RPC requests to `https://edge.goldsky.com/standard/evm/988?key=YOUR_KEY`. Use chain ID `2201` for Testnet.
 
 ## Tenderly
 

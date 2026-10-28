@@ -1,6 +1,6 @@
 ---
 source_path: reference/rpc-providers.mdx
-source_sha: 053330617bc5b1bb9e6ba5b346607d31d991aae0
+source_sha: 6a1c7a887fed2577f7022495b909a4ffff606ccf
 title: "RPC 提供商"
 description: "Stable 上可用的 RPC 提供商、模拟平台和开发者基础设施。"
 diataxis: "reference"
@@ -12,16 +12,17 @@ diataxis: "reference"
 
 ## 概览表
 
-| **提供商** | **类别** | **文档 / 开始使用** | **说明** |
+| **提供商** | **类别** | **文档 / 开始使用** | **备注** |
 | :--- | :--- | :--- | :--- |
-| [**Alchemy**](https://dashboard.alchemy.com/?utm_source=chain_partner&utm_medium=referral&utm_campaign=stable) | RPC + 开发者平台 | [开始使用 Alchemy](https://dashboard.alchemy.com/?utm_source=chain_partner&utm_medium=referral&utm_campaign=stable) | RPC、WebSocket、监控、SDK |
-| [**Chainstack**](https://chainstack.com/) | RPC + 节点基础设施 | [开始使用 Chainstack](https://console.chainstack.com/) | 托管 RPC、WebSocket、完整节点和归档节点 |
+| [**Alchemy**](https://dashboard.alchemy.com/?utm_source=chain_partner&utm_medium=referral&utm_campaign=stable) | RPC + 开发平台 | [开始使用 Alchemy](https://dashboard.alchemy.com/?utm_source=chain_partner&utm_medium=referral&utm_campaign=stable) | RPC、WebSocket、监控、SDK |
+| [**Chainstack**](https://chainstack.com/) | RPC + 节点基础设施 | [开始使用 Chainstack](https://console.chainstack.com/) | 托管 RPC、WebSocket、完整和归档节点 |
+| [**Goldsky Edge RPC**](https://docs.goldsky.com/edge-rpc/introduction) | 托管 RPC | [Edge RPC 快速入门](https://docs.goldsky.com/edge-rpc/quickstart) | HTTPS RPC、缓存、使用情况仪表板 |
 | [**PublicNode**](https://publicnode.com) | 免费公共 RPC | [stable.publicnode.com](https://stable.publicnode.com) | EVM RPC 和 WebSocket、Cosmos RPC、REST 和 gRPC-Web |
 | [**Tenderly**](https://tenderly.co/) | 模拟 + 调试 | [tenderly.co](https://tenderly.co/) | 实时模拟、追踪、交易工作流 |
 
 ## Alchemy
 
-一个全球信赖的完整区块链开发平台。[开始使用 Alchemy](https://dashboard.alchemy.com/?utm_source=chain_partner&utm_medium=referral&utm_campaign=stable)
+一个受全球信任的完整区块链开发平台。[开始使用 Alchemy](https://dashboard.alchemy.com/?utm_source=chain_partner&utm_medium=referral&utm_campaign=stable)
 
 **功能**
 
@@ -29,19 +30,31 @@ diataxis: "reference"
 - 监控仪表板
 - 开发者 API 和 SDK
 
-**开始使用**：在 [Alchemy 仪表板](https://dashboard.alchemy.com/?utm_source=chain_partner&utm_medium=referral&utm_campaign=stable)中创建一个 Stable 应用来获取 RPC URL，然后将其用作你的 JSON-RPC 端点。
+**开始使用**：在 [Alchemy 仪表板](https://dashboard.alchemy.com/?utm_source=chain_partner&utm_medium=referral&utm_campaign=stable)中创建 Stable 应用以获取 RPC URL，然后将其用作您的 JSON-RPC 端点。
 
 ## Chainstack
 
-Chainstack 为 Stable 提供托管 RPC 节点。你可以通过 HTTPS 或 WebSocket 连接到已部署的节点。
+Chainstack 为 Stable 提供托管 RPC 节点。您可以通过 HTTPS 或 WebSocket 连接到已部署的节点。
 
 **功能**
 
 - 托管 RPC 节点
 - HTTPS 和 WebSocket 端点
-- 完整节点和归档节点访问
+- 完整和归档节点访问
 
-**开始使用**：在 [Chainstack 控制台](https://console.chainstack.com/)中创建一个项目，选择 Stable，然后部署一个节点。将其 HTTPS 或 WebSocket 端点复制到你的应用中。
+**开始使用**：在 [Chainstack 控制台](https://console.chainstack.com/)中创建项目，选择 Stable，然后部署节点。将其 HTTPS 或 WebSocket 端点复制到您的应用程序中。
+
+## Goldsky Edge RPC
+
+Goldsky Edge RPC 是用于 Stable Mainnet 和 Testnet 的托管 RPC 端点，从多个区域提供服务。它基于 [eRPC](https://github.com/erpc/erpc) 构建，这是一个开源 RPC 代理，您也可以自行运行。
+
+**功能**
+
+- HTTPS JSON-RPC 端点（不支持 WebSocket）
+- 链数据缓存
+- 使用情况、延迟和错误仪表板
+
+**开始使用**：在 [Goldsky 仪表板](https://app.goldsky.com)中创建 API 密钥，然后向 `https://edge.goldsky.com/standard/evm/988?key=YOUR_KEY` 发送 JSON-RPC 请求。Testnet 使用链 ID `2201`。
 
 ## PublicNode
 
@@ -49,15 +62,15 @@ PublicNode by Allnodes 为 Stable 提供免费公共 RPC 端点，无需创建�
 
 **功能**
 
-- EVM JSON-RPC 和 WebSocket 端点，免费无需注册
+- EVM JSON-RPC 和 WebSocket 端点，无需注册即可免费使用
 - Cosmos RPC、REST 和 gRPC-Web 端点
-- 修剪和归档节点快照位于 [publicnode.com/snapshots](https://www.publicnode.com/snapshots#stable)
+- 在 [publicnode.com/snapshots](https://www.publicnode.com/snapshots#stable) 提供修剪和归档节点快照
 
-**开始使用**：从 [stable.publicnode.com](https://stable.publicnode.com) 复制一个端点到你的应用中，例如 `https://stable-evm-rpc.publicnode.com` 用于 EVM JSON-RPC。
+**开始使用**：从 [stable.publicnode.com](https://stable.publicnode.com) 复制端点到您的应用程序，例如使用 `https://stable-evm-rpc.publicnode.com` 作为 EVM JSON-RPC 端点。
 
 ## Tenderly
 
-一个全栈开发者平台，提供模拟、调试、监控和执行工具。
+一个提供模拟、调试、监控和执行工具的全栈开发平台。
 
 **功能**
 
@@ -65,14 +78,14 @@ PublicNode by Allnodes 为 Stable 提供免费公共 RPC 端点，无需创建�
 - 调试和追踪
 - 开发者交易工作流
 
-**开始使用**：在 [Tenderly 仪表板](https://tenderly.co/)中设置一个 Stable 项目，以访问你的合约的模拟、调试和交易追踪功能。
+**开始使用**：在 [Tenderly 仪表板](https://tenderly.co/)中设置 Stable 项目，以访问用于您合约的模拟、调试和交易追踪功能。
 
 ---
 
-如果你有与 Stable 相关的 RPC 或基础设施集成，请联系 [bizdev@stable.xyz](mailto:bizdev@stable.xyz)。
+有与 Stable 相关的 RPC 或基础设施集成？请通过 [bizdev@stable.xyz](mailto:bizdev@stable.xyz) 联系我们。
 
 ## 后续步骤
 
-- [**连接到 Stable**](/cn/reference/connect)：将 Stable Mainnet 或 Testnet 添加到你的应用。
+- [**连接到 Stable**](/cn/reference/connect)：将 Stable Mainnet 或 Testnet 添加到您的应用程序。
 - [**使用 JSON-RPC API**](/cn/reference/json-rpc-api)：查找 Stable 上可用的 RPC 方法。
-- [**为生产环境做准备**](/cn/how-to/production-readiness)：在启动前添加 RPC 冗余和运维检查。
+- [**为生产做准备**](/cn/how-to/production-readiness)：在上线前添加 RPC 冗余和运营检查。

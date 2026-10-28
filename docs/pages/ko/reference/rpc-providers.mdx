@@ -1,6 +1,6 @@
 ---
 source_path: reference/rpc-providers.mdx
-source_sha: 053330617bc5b1bb9e6ba5b346607d31d991aae0
+source_sha: 6a1c7a887fed2577f7022495b909a4ffff606ccf
 title: "RPC 제공자"
 description: "Stable에서 사용 가능한 RPC 제공자, 시뮬레이션 플랫폼 및 개발자 인프라."
 diataxis: "reference"
@@ -8,16 +8,17 @@ diataxis: "reference"
 
 # RPC 제공자
 
-Stable을 지원하는 RPC 및 개발자 인프라 제공자.
+Stable을 지원하는 RPC 및 개발자 인프라 제공자입니다.
 
-## 개요 테이블
+## 개요 표
 
 | **제공자** | **카테고리** | **문서 / 시작하기** | **참고** |
 | :--- | :--- | :--- | :--- |
 | [**Alchemy**](https://dashboard.alchemy.com/?utm_source=chain_partner&utm_medium=referral&utm_campaign=stable) | RPC + 개발자 플랫폼 | [Alchemy 시작하기](https://dashboard.alchemy.com/?utm_source=chain_partner&utm_medium=referral&utm_campaign=stable) | RPC, WebSocket, 모니터링, SDK |
 | [**Chainstack**](https://chainstack.com/) | RPC + 노드 인프라 | [Chainstack 시작하기](https://console.chainstack.com/) | 관리형 RPC, WebSocket, 풀 노드 및 아카이브 노드 |
+| [**Goldsky Edge RPC**](https://docs.goldsky.com/edge-rpc/introduction) | 관리형 RPC | [Edge RPC 빠른 시작](https://docs.goldsky.com/edge-rpc/quickstart) | HTTPS RPC, 캐싱, 사용 대시보드 |
 | [**PublicNode**](https://publicnode.com) | 무료 공개 RPC | [stable.publicnode.com](https://stable.publicnode.com) | EVM RPC 및 WebSocket, Cosmos RPC, REST 및 gRPC-Web |
-| [**Tenderly**](https://tenderly.co/) | 시뮬레이션 + 디버깅 | [tenderly.co](https://tenderly.co/) | 실시간 시뮬레이션, 트레이싱, 트랜잭션 워크플로우 |
+| [**Tenderly**](https://tenderly.co/) | 시뮬레이션 + 디버깅 | [tenderly.co](https://tenderly.co/) | 실시간 시뮬레이션, 추적, 트랜잭션 워크플로우 |
 
 ## Alchemy
 
@@ -29,7 +30,7 @@ Stable을 지원하는 RPC 및 개발자 인프라 제공자.
 - 모니터링 대시보드
 - 개발자 API 및 SDK
 
-**시작하기**: [Alchemy 대시보드](https://dashboard.alchemy.com/?utm_source=chain_partner&utm_medium=referral&utm_campaign=stable)에서 Stable 앱을 생성하여 RPC URL을 얻은 다음 JSON-RPC 엔드포인트로 사용합니다.
+**시작하기**: [Alchemy 대시보드](https://dashboard.alchemy.com/?utm_source=chain_partner&utm_medium=referral&utm_campaign=stable)에서 Stable 앱을 생성하여 RPC URL을 받은 후 JSON-RPC 엔드포인트로 사용하세요.
 
 ## Chainstack
 
@@ -39,21 +40,33 @@ Chainstack은 Stable을 위한 관리형 RPC 노드를 제공합니다. HTTPS �
 
 - 관리형 RPC 노드
 - HTTPS 및 WebSocket 엔드포인트
-- 풀 노드 및 아카이브 노드 접근
+- 풀 노드 및 아카이브 노드 액세스
 
-**시작하기**: [Chainstack 콘솔](https://console.chainstack.com/)에서 프로젝트를 생성하고 Stable을 선택한 다음 노드를 배포합니다. HTTPS 또는 WebSocket 엔드포인트를 애플리케이션에 복사합니다.
+**시작하기**: [Chainstack 콘솔](https://console.chainstack.com/)에서 프로젝트를 생성하고 Stable을 선택한 후 노드를 배포하세요. HTTPS 또는 WebSocket 엔드포인트를 복사하여 애플리케이션에 붙여넣으세요.
 
-## PublicNode
+## Goldsky Edge RPC
 
-Allnodes의 PublicNode는 계정이 필요 없는 Stable용 무료 공개 RPC 엔드포인트를 제공합니다.
+Goldsky Edge RPC는 여러 지역에서 제공되는 Stable Mainnet 및 Testnet용 관리형 RPC 엔드포인트입니다. 직접 실행할 수도 있는 오픈소스 RPC 프록시인 [eRPC](https://github.com/erpc/erpc)를 기반으로 구축되었습니다.
 
 **기능**
 
-- 가입 없이 무료로 사용 가능한 EVM JSON-RPC 및 WebSocket 엔드포인트
+- HTTPS JSON-RPC 엔드포인트 (WebSocket 미지원)
+- 체인 데이터 캐싱
+- 사용 현황, 지연시간 및 오류 대시보드
+
+**시작하기**: [Goldsky 대시보드](https://app.goldsky.com)에서 API 키를 생성한 후 `https://edge.goldsky.com/standard/evm/988?key=YOUR_KEY`로 JSON-RPC 요청을 전송하세요. Testnet의 경우 chain ID `2201`을 사용하세요.
+
+## PublicNode
+
+Allnodes의 PublicNode는 계정 없이 사용할 수 있는 Stable용 무료 공개 RPC 엔드포인트를 제공합니다.
+
+**기능**
+
+- EVM JSON-RPC 및 WebSocket 엔드포인트, 가입 없이 무료
 - Cosmos RPC, REST 및 gRPC-Web 엔드포인트
 - [publicnode.com/snapshots](https://www.publicnode.com/snapshots#stable)에서 프루닝된 노드 및 아카이브 노드 스냅샷
 
-**시작하기**: [stable.publicnode.com](https://stable.publicnode.com)에서 엔드포인트를 복사하여 애플리케이션에 붙여넣습니다. 예를 들어 EVM JSON-RPC의 경우 `https://stable-evm-rpc.publicnode.com`을 사용합니다.
+**시작하기**: [stable.publicnode.com](https://stable.publicnode.com)에서 엔드포인트를 복사하여 애플리케이션에 붙여넣으세요. 예를 들어 EVM JSON-RPC의 경우 `https://stable-evm-rpc.publicnode.com`을 사용하세요.
 
 ## Tenderly
 
@@ -62,17 +75,17 @@ Allnodes의 PublicNode는 계정이 필요 없는 Stable용 무료 공개 RPC �
 **기능**
 
 - 실시간 컨트랙트 시뮬레이션
-- 디버깅 및 트레이싱
+- 디버깅 및 추적
 - 개발자를 위한 트랜잭션 워크플로우
 
-**시작하기**: [Tenderly 대시보드](https://tenderly.co/)에서 Stable 프로젝트를 설정하여 컨트랙트의 시뮬레이션, 디버깅 및 트랜잭션 트레이싱에 접근합니다.
+**시작하기**: [Tenderly 대시보드](https://tenderly.co/)에서 Stable 프로젝트를 설정하여 컨트랙트에 대한 시뮬레이션, 디버깅 및 트랜잭션 추적 기능을 이용하세요.
 
 ---
 
-Stable과의 RPC 또는 인프라 통합이 있으신가요? [bizdev@stable.xyz](mailto:bizdev@stable.xyz)로 연락하시기 바랍니다.
+Stable과의 RPC 또는 인프라 통합이 있으신가요? [bizdev@stable.xyz](mailto:bizdev@stable.xyz)로 문의해 주세요.
 
 ## 다음 단계
 
-- [**Stable에 연결**](/ko/reference/connect): 애플리케이션에 Stable Mainnet 또는 Testnet을 추가합니다.
-- [**JSON-RPC API 사용**](/ko/reference/json-rpc-api): Stable에서 사용 가능한 RPC 메서드를 확인합니다.
-- [**프로덕션 준비**](/ko/how-to/production-readiness): 출시 전에 RPC 이중화 및 운영 점검 사항을 추가합니다.
+- [**Stable에 연결**](/ko/reference/connect): 애플리케이션에 Stable Mainnet 또는 Testnet을 추가하세요.
+- [**JSON-RPC API 사용**](/ko/reference/json-rpc-api): Stable에서 사용 가능한 RPC 메서드를 확인하세요.
+- [**프로덕션 준비**](/ko/how-to/production-readiness): 출시 전에 RPC 이중화 및 운영 점검 사항을 추가하세요.

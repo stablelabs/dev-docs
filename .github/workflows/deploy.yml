@@ -34,11 +34,27 @@ jobs:
       - name: Build docs
         run: npm run docs:build
 
+      # Label the deployment with the commit so the Cloudflare dashboard
+      # shows what was shipped instead of "Manually deployed".
+      # For GitHub merge commits, use "#<PR> <PR title>" from the commit body.
+      - name: Prepare deployment message
+        id: meta
+        run: |
+          sha="$(git rev-parse --short=7 HEAD)"
+          subject="$(git log -1 --format=%s)"
+          if [[ "$subject" =~ ^Merge\ pull\ request\ (#[0-9]+) ]]; then
+            title="$(git log -1 --format=%b | sed '/^[[:space:]]*$/d' | head -n1)"
+            subject="${BASH_REMATCH[1]} ${title:-$subject}"
+          fi
+          msg="$(printf '%s %s' "$sha" "$subject" | tr -d '"\\`$' | cut -c1-90)"
+          echo "message=$msg" >> "$GITHUB_OUTPUT"
+
+      # The message reaches the shell via env, never via ${{ }} in the script,
+      # so characters in a commit subject cannot break or inject commands.
+      # wrangler v4: wrangler.jsonc needs >= 3.91.
       - name: Deploy to Cloudflare Workers
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          # wrangler.jsonc needs wrangler >= 3.91; the action defaults to 3.90.0
-          wranglerVersion: '4'
-          command: deploy
+        run: npx --yes wrangler@4 deploy --message "$DEPLOY_MESSAGE"
+        env:
+          DEPLOY_MESSAGE: ${{ steps.meta.outputs.message }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

@@ -39,4 +39,6 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # wrangler.jsonc needs wrangler >= 3.91; the action defaults to 3.90.0
+          wranglerVersion: '4'
           command: deploy

@@ -1,6 +1,6 @@
 ---
 source_path: tutorial/bridge-usdt0.mdx
-source_sha: 2b750e931c88f42b40b598c46cf882e413b4777b
+source_sha: f897a263648161dbe205b7bc07126e9d67b67c8f
 title: "USDT0를 Stable로 브릿징하기"
 description: "LayerZero의 OFT 프로토콜을 사용하여 이더리움 Sepolia에서 Stable 테스트넷으로 USDT0를 브릿징하는 단계별 튜토리얼입니다."
 type: "tutorial"
@@ -80,6 +80,7 @@ const PRIVATE_KEY = process.env.PRIVATE_KEY!;
 const SEPOLIA_RPC_URL = process.env.SEPOLIA_RPC_URL || "https://rpc.sepolia.org";
 
 // Contract addresses
+const SEPOLIA_TOKEN_DECIMALS = 6;
 const SEPOLIA_USDT0 = "0xc4DCC311c028e341fd8602D8eB89c5de94625927";
 const SEPOLIA_OFT_ADAPTER = "0xc099cD946d5efCC35A99D64E808c1430cEf08126";
 const STABLE_USDT0 = "0x78Cf24370174180738C5B8E352B6D14c83a6c9A9";
@@ -113,7 +114,7 @@ async function main() {
   const usdt0 = new Contract(SEPOLIA_USDT0, ERC20_ABI, wallet);
   const oftAdapter = new Contract(SEPOLIA_OFT_ADAPTER, OFT_ADAPTER_ABI, wallet);
 
-  const amount = ethers.parseEther("1"); // 1 USDT0 (18 decimals)
+  const amount = ethers.parseUnits("1", SEPOLIA_TOKEN_DECIMALS); // 1 USDT0
 
   // 여기에 함수 호출을 추가할 것입니다.
 }
@@ -130,13 +131,13 @@ Sepolia의 테스트 USDT0 컨트랙트는 공개 `mint` 함수를 노출합니�
 
 ```ts
 async function mint(usdt0: Contract, receiver: string, amount: bigint) {
-  console.log(`Sepolia에서 ${ethers.formatEther(amount)} USDT0 발행 중...`);
+  console.log(`Sepolia에서 ${ethers.formatUnits(amount, SEPOLIA_TOKEN_DECIMALS)} USDT0 발행 중...`);
   const tx = await usdt0.mint(receiver, amount);
   await tx.wait();
   console.log(`발행 트랜잭션: ${tx.hash} 확인됨`);
 
   const balance = await usdt0.balanceOf(receiver);
-  console.log(`USDT0 잔액: ${ethers.formatEther(balance)}`);
+  console.log(`USDT0 잔액: ${ethers.formatUnits(balance, SEPOLIA_TOKEN_DECIMALS)}`);
 }
 ```
 
@@ -170,7 +171,7 @@ async function approve(usdt0: Contract, spender: string, owner: string, amount: 
   console.log(`승인 트랜잭션: ${tx.hash} 확인됨`);
 
   const allowance = await usdt0.allowance(owner, spender);
-  console.log(`허용량: ${ethers.formatEther(allowance)}`);
+  console.log(`허용량: ${ethers.formatUnits(allowance, SEPOLIA_TOKEN_DECIMALS)}`);
 }
 ```
 
@@ -192,6 +193,8 @@ async function approve(usdt0: Contract, spender: string, owner: string, amount: 
 ## 6. 수수료 견적 및 브릿지 트랜잭션 전송
 
 `quoteSend` 호출은 SepoliaETH의 LayerZero 메시징 수수료를 반환하며, 이를 `msg.value`로 `send`에 전달합니다. 다음 함수를 `main` 위에 추가하십시오:
+
+어댑터는 Sepolia 지갑에 연결되어 있으므로 ethers가 해당 지갑 주소를 호출자로 사용합니다. 공급자만 연결된 컨트랙트로 예제를 바꾼다면 견적 호출의 `from`에 대상 체인의 수신자가 아닌 Sepolia 송신자 주소를 지정합니다.
 
 ```ts
 async function send(oftAdapter: Contract, receiver: string, amount: bigint) {
@@ -233,43 +236,36 @@ async function send(oftAdapter: Contract, receiver: string, amount: bigint) {
 
 ## 7. Stable 테스트넷 도착 확인
 
-전송 후 스크립트는 토큰이 도착할 때까지 Stable 테스트넷 RPC를 폴링할 수 있습니다. 다음 함수를 `main` 위에 추가하십시오:
+6단계에서 출력된 LayerZero Scan 링크를 열어 해당 소스 트랜잭션의 메시지를 추적합니다. Sepolia 트랜잭션이 확인됐다고 해서 메시지가 전달된 것은 아닙니다. 상태가 `DELIVERED`로 바뀌면 대상 체인 트랜잭션 링크에서 자신의 주소로 전송된 USDT0를 확인합니다. 메시지가 아직 전송 중이면 소스 트랜잭션 해시를 보관하고 나중에 다시 확인합니다. 전달이 늦어진다는 이유만으로 다시 보내지 마세요.
+
+대상 체인의 ERC-20 잔액도 확인하려면 `main` 위에 다음 함수를 추가합니다. 잔액은 별도의 확인 항목이며 특정 트랜잭션의 전달 완료를 증명하지 않습니다.
 
 ```ts
-async function verify(receiver: string) {
-  console.log("DVN 검증 대기 중 (약 2분)...");
+async function showStableBalance(receiver: string) {
   const stableProvider = new JsonRpcProvider("https://rpc.testnet.stable.xyz");
-  const stableUsdt0 = new Contract(STABLE_USDT0,
-    ["function balanceOf(address) view returns (uint256)"], stableProvider);
-
-  const before: bigint = await stableUsdt0.balanceOf(receiver);
-  for (let i = 0; i < 24; i++) {
-    await new Promise((r) => setTimeout(r, 5000));
-    const current: bigint = await stableUsdt0.balanceOf(receiver);
-    if (current > before) {
-      console.log(`\nStable의 USDT0: ${ethers.formatEther(current)}`);
-      console.log(`탐색기: https://testnet.stablescan.xyz/address/${receiver}`);
-      return;
-    }
-    process.stdout.write(".");
-  }
-  console.log("\n토큰이 아직 도착하지 않았습니다. 수동으로 확인하십시오:");
-  console.log(`탐색기: https://testnet.stablescan.xyz/address/${receiver}`);
+  const stableUsdt0 = new Contract(STABLE_USDT0, [
+    "function balanceOf(address) view returns (uint256)",
+    "function decimals() view returns (uint8)",
+  ], stableProvider);
+  const [balance, decimals] = await Promise.all([
+    stableUsdt0.balanceOf(receiver),
+    stableUsdt0.decimals(),
+  ]);
+  console.log(`USDT0 on Stable: ${ethers.formatUnits(balance, decimals)}`);
 }
 ```
 
-`send` 다음에 `main`에 호출을 추가하십시오:
+잔액만 확인하려면 `main`에서 발행, 승인, 전송 호출을 다음 한 줄로 바꿉니다.
 
 ```ts
-  // await mint(usdt0, wallet.address, amount);
-  // await approve(usdt0, SEPOLIA_OFT_ADAPTER, wallet.address, amount);
-  // await send(oftAdapter, wallet.address, amount);
-  await verify(wallet.address);
+  await showStableBalance(wallet.address);
 ```
 
 ## 8. 전체 브릿지 실행
 
 `main` 함수는 이제 다음과 같아야 합니다:
+
+이 버전은 새 전송을 시작할 때만 실행합니다. 6단계에서 이미 전송했다면 예제를 다시 실행하지 말고 기존 트랜잭션을 추적하세요.
 
 ```ts
 async function main() {
@@ -279,12 +275,11 @@ async function main() {
   const usdt0 = new Contract(SEPOLIA_USDT0, ERC20_ABI, wallet);
   const oftAdapter = new Contract(SEPOLIA_OFT_ADAPTER, OFT_ADAPTER_ABI, wallet);
 
-  const amount = ethers.parseEther("1"); // 1 USDT0 (18 decimals)
+  const amount = ethers.parseUnits("1", SEPOLIA_TOKEN_DECIMALS); // 1 USDT0
 
   await mint(usdt0, wallet.address, amount);
   await approve(usdt0, SEPOLIA_OFT_ADAPTER, wallet.address, amount);
   await send(oftAdapter, wallet.address, amount);
-  await verify(wallet.address);
 }
 ```
 
@@ -296,7 +291,7 @@ npx tsx --env-file=.env bridge.ts
 
 ---
 
-**체크포인트:** 다음과 같은 출력이 보여야 합니다:
+**체크포인트:** 새 전송의 소스 체인 출력은 다음과 비슷합니다.
 
 ```text
 Minting 1.0 USDT0 on Sepolia...
@@ -311,12 +306,9 @@ Sending bridge transaction...
 Bridge tx: 0xa94f...8c11  confirmed
 Sepolia Etherscan: https://sepolia.etherscan.io/tx/0xa94f...8c11
 LayerZero Scan: https://testnet.layerzeroscan.com/tx/0xa94f...8c11
-Waiting for DVN verification (~2 minutes)...
-......
-USDT0 on Stable: 1.0
 ```
 
-[Stable 테스트넷 탐색기](https://testnet.stablescan.xyz)에서 지갑 주소를 검색하여 발행 이벤트를 확인할 수도 있습니다.
+LayerZero Scan 링크를 열고 7단계에 따라 전달을 확인합니다.
 
 ---
 

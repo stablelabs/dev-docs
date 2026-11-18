@@ -1,6 +1,6 @@
 ---
 source_path: tutorial/bridge-usdt0.mdx
-source_sha: 2b750e931c88f42b40b598c46cf882e413b4777b
+source_sha: f897a263648161dbe205b7bc07126e9d67b67c8f
 title: "将 USDT0 跨链到 Stable"
 description: "一个分步教程，讲解如何使用 LayerZero 的 OFT 协议将 USDT0 从以太坊 Sepolia 跨链到 Stable 测试网。"
 type: "tutorial"
@@ -80,6 +80,7 @@ const PRIVATE_KEY = process.env.PRIVATE_KEY!;
 const SEPOLIA_RPC_URL = process.env.SEPOLIA_RPC_URL || "https://rpc.sepolia.org";
 
 // 合约地址
+const SEPOLIA_TOKEN_DECIMALS = 6;
 const SEPOLIA_USDT0 = "0xc4DCC311c028e341fd8602D8eB89c5de94625927";
 const SEPOLIA_OFT_ADAPTER = "0xc099cD946d5efCC35A99D64E808c1430cEf08126";
 const STABLE_USDT0 = "0x78Cf24370174180738C5B8E352B6D14c83a6c9A9";
@@ -113,7 +114,7 @@ async function main() {
   const usdt0 = new Contract(SEPOLIA_USDT0, ERC20_ABI, wallet);
   const oftAdapter = new Contract(SEPOLIA_OFT_ADAPTER, OFT_ADAPTER_ABI, wallet);
 
-  const amount = ethers.parseEther("1"); // 1 USDT0 (18 位小数)
+  const amount = ethers.parseUnits("1", SEPOLIA_TOKEN_DECIMALS); // 1 USDT0
 
   // 你将在这里添加函数调用。
 }
@@ -130,13 +131,13 @@ Sepolia 上的测试 USDT0 合约暴露了一个公共 `mint` 函数。将以下
 
 ```ts
 async function mint(usdt0: Contract, receiver: string, amount: bigint) {
-  console.log(`在 Sepolia 上铸造 ${ethers.formatEther(amount)} USDT0...`);
+  console.log(`在 Sepolia 上铸造 ${ethers.formatUnits(amount, SEPOLIA_TOKEN_DECIMALS)} USDT0...`);
   const tx = await usdt0.mint(receiver, amount);
   await tx.wait();
   console.log(`铸造交易: ${tx.hash} 已确认`);
 
   const balance = await usdt0.balanceOf(receiver);
-  console.log(`USDT0 余额: ${ethers.formatEther(balance)}`);
+  console.log(`USDT0 余额: ${ethers.formatUnits(balance, SEPOLIA_TOKEN_DECIMALS)}`);
 }
 ```
 
@@ -170,7 +171,7 @@ async function approve(usdt0: Contract, spender: string, owner: string, amount: 
   console.log(`批准交易: ${tx.hash} 已确认`);
 
   const allowance = await usdt0.allowance(owner, spender);
-  console.log(`授权额度: ${ethers.formatEther(allowance)}`);
+  console.log(`授权额度: ${ethers.formatUnits(allowance, SEPOLIA_TOKEN_DECIMALS)}`);
 }
 ```
 
@@ -192,6 +193,8 @@ async function approve(usdt0: Contract, spender: string, owner: string, amount: 
 ## 6. 估算费用并发送桥接交易
 
 `quoteSend` 调用返回 SepoliaETH 中的 LayerZero 消息费用，你将其作为 `msg.value` 传递给 `send`。将此函数添加到 `main` 上方：
+
+适配器连接到了 Sepolia 钱包，因此 ethers 会使用该钱包地址作为调用方。如果改用仅连接 provider 的合约，请在报价调用的 `from` 中传入 Sepolia 发送方地址，而不是目标链收款地址。
 
 ```ts
 async function send(oftAdapter: Contract, receiver: string, amount: bigint) {
@@ -233,43 +236,36 @@ async function send(oftAdapter: Contract, receiver: string, amount: bigint) {
 
 ## 7. 验证 Stable 测试网上的到账情况
 
-发送后，脚本可以轮询 Stable 测试网 RPC，直到代币到达。将此函数添加到 `main` 上方：
+打开第 6 步输出的 LayerZero Scan 链接，跟踪该源链交易对应的消息。Sepolia 交易确认并不代表消息已经送达。等待状态变为 `DELIVERED`，再通过目标链交易链接核对发送至你地址的 USDT0 转账。如果消息仍在传输中，请保留源链交易哈希，稍后再次查看；不要仅因等待时间较长而重新发送。
+
+如需查看目标链上的 ERC-20 余额，请在 `main` 上方添加以下函数。余额是单独的检查项，不能证明某笔交易已送达。
 
 ```ts
-async function verify(receiver: string) {
-  console.log("等待 DVN 验证 (~2 分钟)...");
+async function showStableBalance(receiver: string) {
   const stableProvider = new JsonRpcProvider("https://rpc.testnet.stable.xyz");
-  const stableUsdt0 = new Contract(STABLE_USDT0,
-    ["function balanceOf(address) view returns (uint256)"], stableProvider);
-
-  const before: bigint = await stableUsdt0.balanceOf(receiver);
-  for (let i = 0; i < 24; i++) {
-    await new Promise((r) => setTimeout(r, 5000));
-    const current: bigint = await stableUsdt0.balanceOf(receiver);
-    if (current > before) {
-      console.log(`\nStable 上的 USDT0: ${ethers.formatEther(current)}`);
-      console.log(`浏览器: https://testnet.stablescan.xyz/address/${receiver}`);
-      return;
-    }
-    process.stdout.write(".");
-  }
-  console.log("\n代币尚未到账。请手动检查:");
-  console.log(`浏览器: https://testnet.stablescan.xyz/address/${receiver}`);
+  const stableUsdt0 = new Contract(STABLE_USDT0, [
+    "function balanceOf(address) view returns (uint256)",
+    "function decimals() view returns (uint8)",
+  ], stableProvider);
+  const [balance, decimals] = await Promise.all([
+    stableUsdt0.balanceOf(receiver),
+    stableUsdt0.decimals(),
+  ]);
+  console.log(`USDT0 on Stable: ${ethers.formatUnits(balance, decimals)}`);
 }
 ```
 
-在 `main` 中的 `send` 后添加调用：
+如果只想查询余额，请将 `main` 中的铸造、授权和发送调用替换为以下一行：
 
 ```ts
-  // await mint(usdt0, wallet.address, amount);
-  // await approve(usdt0, SEPOLIA_OFT_ADAPTER, wallet.address, amount);
-  // await send(oftAdapter, wallet.address, amount);
-  await verify(wallet.address);
+  await showStableBalance(wallet.address);
 ```
 
 ## 8. 运行完整的桥接
 
 你的 `main` 函数现在应该如下所示：
+
+仅在发起新转账时运行此版本。如果已在第 6 步发送，请跟踪原交易，不要重复运行此示例。
 
 ```ts
 async function main() {
@@ -279,12 +275,11 @@ async function main() {
   const usdt0 = new Contract(SEPOLIA_USDT0, ERC20_ABI, wallet);
   const oftAdapter = new Contract(SEPOLIA_OFT_ADAPTER, OFT_ADAPTER_ABI, wallet);
 
-  const amount = ethers.parseEther("1"); // 1 USDT0 (18 位小数)
+  const amount = ethers.parseUnits("1", SEPOLIA_TOKEN_DECIMALS); // 1 USDT0
 
   await mint(usdt0, wallet.address, amount);
   await approve(usdt0, SEPOLIA_OFT_ADAPTER, wallet.address, amount);
   await send(oftAdapter, wallet.address, amount);
-  await verify(wallet.address);
 }
 ```
 
@@ -296,7 +291,7 @@ npx tsx --env-file=.env bridge.ts
 
 ---
 
-**检查点：** 你应该看到如下输出：
+**检查点：** 新转账的源链输出应类似如下：
 
 ```text
 Minting 1.0 USDT0 on Sepolia...
@@ -311,12 +306,9 @@ Sending bridge transaction...
 Bridge tx: 0xa94f...8c11  confirmed
 Sepolia Etherscan: https://sepolia.etherscan.io/tx/0xa94f...8c11
 LayerZero Scan: https://testnet.layerzeroscan.com/tx/0xa94f...8c11
-Waiting for DVN verification (~2 minutes)...
-......
-USDT0 on Stable: 1.0
 ```
 
-你还可以在 [Stable 测试网浏览器](https://testnet.stablescan.xyz)上搜索你的钱包地址以确认铸造事件。
+打开 LayerZero Scan 链接，按第 7 步确认消息送达。
 
 ---
 

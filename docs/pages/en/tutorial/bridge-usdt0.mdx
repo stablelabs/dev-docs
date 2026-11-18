@@ -78,6 +78,7 @@ const PRIVATE_KEY = process.env.PRIVATE_KEY!;
 const SEPOLIA_RPC_URL = process.env.SEPOLIA_RPC_URL || "https://rpc.sepolia.org";
 
 // Contract addresses
+const SEPOLIA_TOKEN_DECIMALS = 6;
 const SEPOLIA_USDT0 = "0xc4DCC311c028e341fd8602D8eB89c5de94625927";
 const SEPOLIA_OFT_ADAPTER = "0xc099cD946d5efCC35A99D64E808c1430cEf08126";
 const STABLE_USDT0 = "0x78Cf24370174180738C5B8E352B6D14c83a6c9A9";
@@ -111,7 +112,7 @@ async function main() {
   const usdt0 = new Contract(SEPOLIA_USDT0, ERC20_ABI, wallet);
   const oftAdapter = new Contract(SEPOLIA_OFT_ADAPTER, OFT_ADAPTER_ABI, wallet);
 
-  const amount = ethers.parseEther("1"); // 1 USDT0 (18 decimals)
+  const amount = ethers.parseUnits("1", SEPOLIA_TOKEN_DECIMALS); // 1 USDT0
 
   // You will add function calls here.
 }
@@ -128,13 +129,13 @@ The test USDT0 contract on Sepolia exposes a public `mint` function. Add the fol
 
 ```ts
 async function mint(usdt0: Contract, receiver: string, amount: bigint) {
-  console.log(`Minting ${ethers.formatEther(amount)} USDT0 on Sepolia...`);
+  console.log(`Minting ${ethers.formatUnits(amount, SEPOLIA_TOKEN_DECIMALS)} USDT0 on Sepolia...`);
   const tx = await usdt0.mint(receiver, amount);
   await tx.wait();
   console.log(`Mint tx: ${tx.hash}  confirmed`);
 
   const balance = await usdt0.balanceOf(receiver);
-  console.log(`USDT0 balance: ${ethers.formatEther(balance)}`);
+  console.log(`USDT0 balance: ${ethers.formatUnits(balance, SEPOLIA_TOKEN_DECIMALS)}`);
 }
 ```
 
@@ -168,7 +169,7 @@ async function approve(usdt0: Contract, spender: string, owner: string, amount: 
   console.log(`Approve tx: ${tx.hash}  confirmed`);
 
   const allowance = await usdt0.allowance(owner, spender);
-  console.log(`Allowance: ${ethers.formatEther(allowance)}`);
+  console.log(`Allowance: ${ethers.formatUnits(allowance, SEPOLIA_TOKEN_DECIMALS)}`);
 }
 ```
 
@@ -190,6 +191,8 @@ Run the script. You can comment out the `await mint(...)` call if you already ha
 ## 6. Quote the fee and send the bridge transaction
 
 The `quoteSend` call returns the LayerZero messaging fee in SepoliaETH, which you pass as `msg.value` to `send`. Add this function above `main`:
+
+The adapter is connected to the Sepolia wallet, so ethers supplies the wallet address as the caller. If you adapt this example to use a provider-only contract, pass the intended Sepolia sender as the quote’s `from` override, not the destination recipient.
 
 ```ts
 async function send(oftAdapter: Contract, receiver: string, amount: bigint) {
@@ -231,43 +234,36 @@ Add the call in `main` after `approve`:
 
 ## 7. Verify arrival on Stable Testnet
 
-After sending, the script can poll the Stable Testnet RPC until the tokens arrive. Add this function above `main`:
+Open the LayerZero Scan link printed in step 6 to track the message for that exact source transaction. A confirmed Sepolia transaction does not mean the message was delivered. Wait for `DELIVERED`, then use the destination transaction link to check the USDT0 transfer to your address. If the message is still in flight, keep the source hash and check it again later; do not resend just because delivery is taking longer than expected.
+
+To also check your destination ERC-20 balance, add this function above `main`. The balance is a separate check, not proof of delivery for a specific transaction.
 
 ```ts
-async function verify(receiver: string) {
-  console.log("Waiting for DVN verification (~2 minutes)...");
+async function showStableBalance(receiver: string) {
   const stableProvider = new JsonRpcProvider("https://rpc.testnet.stable.xyz");
-  const stableUsdt0 = new Contract(STABLE_USDT0,
-    ["function balanceOf(address) view returns (uint256)"], stableProvider);
-
-  const before: bigint = await stableUsdt0.balanceOf(receiver);
-  for (let i = 0; i < 24; i++) {
-    await new Promise((r) => setTimeout(r, 5000));
-    const current: bigint = await stableUsdt0.balanceOf(receiver);
-    if (current > before) {
-      console.log(`\nUSDT0 on Stable: ${ethers.formatEther(current)}`);
-      console.log(`Explorer: https://testnet.stablescan.xyz/address/${receiver}`);
-      return;
-    }
-    process.stdout.write(".");
-  }
-  console.log("\nTokens have not arrived yet. Check manually:");
-  console.log(`Explorer: https://testnet.stablescan.xyz/address/${receiver}`);
+  const stableUsdt0 = new Contract(STABLE_USDT0, [
+    "function balanceOf(address) view returns (uint256)",
+    "function decimals() view returns (uint8)",
+  ], stableProvider);
+  const [balance, decimals] = await Promise.all([
+    stableUsdt0.balanceOf(receiver),
+    stableUsdt0.decimals(),
+  ]);
+  console.log(`USDT0 on Stable: ${ethers.formatUnits(balance, decimals)}`);
 }
 ```
 
-Add the call in `main` after `send`:
+To run only the balance check, replace the mint, approve, and send calls in `main` with this line:
 
 ```ts
-  // await mint(usdt0, wallet.address, amount);
-  // await approve(usdt0, SEPOLIA_OFT_ADAPTER, wallet.address, amount);
-  // await send(oftAdapter, wallet.address, amount);
-  await verify(wallet.address);
+  await showStableBalance(wallet.address);
 ```
 
 ## 8. Run the complete bridge
 
 Your `main` function should now look like this:
+
+Use this version for a new transfer only. If you already sent in step 6, track that transaction instead of running this example again.
 
 ```ts
 async function main() {
@@ -277,12 +273,11 @@ async function main() {
   const usdt0 = new Contract(SEPOLIA_USDT0, ERC20_ABI, wallet);
   const oftAdapter = new Contract(SEPOLIA_OFT_ADAPTER, OFT_ADAPTER_ABI, wallet);
 
-  const amount = ethers.parseEther("1"); // 1 USDT0 (18 decimals)
+  const amount = ethers.parseUnits("1", SEPOLIA_TOKEN_DECIMALS); // 1 USDT0
 
   await mint(usdt0, wallet.address, amount);
   await approve(usdt0, SEPOLIA_OFT_ADAPTER, wallet.address, amount);
   await send(oftAdapter, wallet.address, amount);
-  await verify(wallet.address);
 }
 ```
 
@@ -294,7 +289,7 @@ npx tsx --env-file=.env bridge.ts
 
 ---
 
-**Checkpoint:** You should see output like this:
+**Checkpoint:** For a new transfer, the source output should look like this:
 
 ```text
 Minting 1.0 USDT0 on Sepolia...
@@ -309,12 +304,9 @@ Sending bridge transaction...
 Bridge tx: 0xa94f...8c11  confirmed
 Sepolia Etherscan: https://sepolia.etherscan.io/tx/0xa94f...8c11
 LayerZero Scan: https://testnet.layerzeroscan.com/tx/0xa94f...8c11
-Waiting for DVN verification (~2 minutes)...
-......
-USDT0 on Stable: 1.0
 ```
 
-You can also search your wallet address on the [Stable Testnet explorer](https://testnet.stablescan.xyz) to confirm the mint event.
+Open the LayerZero Scan link to confirm delivery as described in step 7.
 
 ---
 

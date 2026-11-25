@@ -1,14 +1,14 @@
 ---
 source_path: explanation/sdk-overview.mdx
-source_sha: de079c165ba2efc991a66b7134e00a6e9b5073f4
+source_sha: 1996ac1a811505c0de7916b07d191f6b7c2c47c0
 title: "Stable SDK"
-description: "몇 줄의 코드로 Stable에서 USDT0 전송, 체인 간 브릿지, 토큰 스왑, 볼트 수익 창출을 위해 타입이 지정된 TypeScript SDK를 사용하세요."
+description: "몇 줄의 코드로 Stable에서 타입이 지정된 TypeScript SDK를 사용하여 USDT0를 전송하고, 체인 간 브리지를 연결하고, 토큰을 스왑하고, 볼트 수익을 얻으세요."
 diataxis: "explanation"
 ---
 
 # Stable SDK
 
-`@stablechain/sdk`는 Stable의 공식 TypeScript 클라이언트입니다. 이 클라이언트는 viem을 래핑하며, USDT0 전송, 체인 간 브릿지, 토큰 스왑, Stable에서 수익 창출과 같이 가장 많이 사용하는 작업에 대해 작고 타입이 지정된 API를 제공합니다. 라우팅, 승인, 소수점 자릿수 및 체인 전환은 자동으로 처리됩니다.
+`@stablechain/sdk`는 Stable의 공식 TypeScript 클라이언트입니다. 가장 많이 사용하는 작업(USDT0 전송, 체인 간 브리지 연결, 토큰 스왑, Stable에서 수익 창출)을 위한 작고, 타입이 지정된 API로 viem을 래핑합니다. 라우팅, 승인, 소수점 이하 자릿수 및 체인 전환은 자동으로 처리됩니다.
 
 ```ts
 import { createStable, Network } from "@stablechain/sdk";
@@ -32,32 +32,65 @@ txHash: 0x8f3a...2d41
 
 ## SDK의 기능
 
-- **`transfer`**: 기본 USDT0 또는 Stable의 모든 ERC-20을 전송합니다. 가스비는 USDT0으로 자동으로 지불됩니다.
-- **`quoteBridge` / `bridge`**: LI.FI를 통해 크로스체인 전송을 수행하며, LI.FI가 브릿지 경로를 선택합니다. 승인 및 체인 전환은 내부적으로 처리됩니다.
-- **`quoteSwap` / `swap`**: LI.FI를 통해 동일 체인 토큰 스왑을 수행하며, ERC-20 승인은 내부적으로 처리됩니다.
-- **`earn`**: Morpho V2 볼트에 USDT0을 공급하여 수익을 얻고, 출금 또는 상환하며, Merkl 인센티브 보상을 청구합니다. 승인 및 어댑터 할당 해제는 자동으로 처리됩니다.
-- **`createStableReader`**: 볼트 APY, 포지션, 예상 수익 및 즉시 인출 가능성 확인을 위한 읽기 전용 클라이언트입니다. 서명자가 필요하지 않습니다.
+- **`transfer`**: Stable에서 기본 USDT0 또는 모든 ERC-20을 전송합니다. 가스비는 USDT0로 자동으로 지불됩니다.
+- **`quoteBridge` / `bridge`**: 기본 USDT0 브리지 또는 LI.FI 애그리게이터를 통한 크로스체인 전송. 라우트는 자동으로 선택되거나 강제로 하나를 지정할 수 있습니다. 승인 및 체인 전환은 내부적으로 처리됩니다.
+- **`quoteSwap` / `swap`**: 슬리피지 보호 및 ERC-20 승인이 내부적으로 처리되는 Stable의 표준 Uniswap v3 배포에서 동일 체인 토큰 스왑. 애그리게이터 수수료 없음.
+- **`earn`**: Morpho V2 볼트에 USDT0를 공급하여 수익을 얻고, 인출 또는 상환하고, Merkl 인센티브 보상을 청구합니다. 승인 및 어댑터 할당 해제가 자동으로 처리됩니다.
+- **`createStableReader`**: 볼트 APY, 포지션, 수익 예측 및 즉시 인출 가능성 확인을 위한 읽기 전용 클라이언트. 서명자 필요 없음.
 
-SDK는 [`@stablechain/sdk`](https://www.npmjs.com/package/@stablechain/sdk)라는 이름으로 npm에 게시되어 있으며 피어 의존성으로 `viem >= 2.0.0`을 필요로 합니다.
+SDK는 npm에 [`@stablechain/sdk`](https://www.npmjs.com/package/@stablechain/sdk)로 게시되어 있으며, 피어 종속성으로 `viem >= 2.0.0`을 필요로 합니다.
 
-## 언제 사용해야 하는가 (그리고 언제 사용하지 말아야 하는가)
-
-라우팅 및 승인 상용구를 숨기는 타입이 지정되고 견고한 클라이언트를 원할 때 SDK를 사용하세요. 트랜잭션 구성, 맞춤형 가스 전략 또는 전송/브릿지/스왑 외부의 컨트랙트 호출에 대한 직접적인 제어가 필요할 때는 원시 viem 또는 ethers로 전환하세요.
+## 두 가지 브리지 경로
 
 :::note
-SDK는 모든 viem 호환 서명자로 서명합니다: 개인 키 `Account`, `custom(window.ethereum)`과 같은 브라우저 `Transport`, 또는 미리 구성된 `WalletClient` (예: wagmi의 `useWalletClient`가 반환하는 클라이언트).
+네이티브 USDT0 경로는 버전 1.0.4에서 추가되었습니다. 이전에는 모든 브리지가 LI.FI를 통해 이루어졌습니다.
 :::
 
-## 여기에서 시작하기
+`bridge`는 네이티브 USDT0 경로와 직접 통신합니다. 소스 체인에서 LayerZero의 OFT 어댑터를 호출하여 USDT0를 소각하고 대상 체인에 발행하므로 프로토콜 수수료 없이 1:1로 전체 금액을 받습니다. 소스 가스비와 LayerZero 메시징 수수료를 지불하고 DVN 확인을 기다려야 합니다. LI.FI 경로는 대안입니다. 모든 토큰 쌍을 처리하고 더 빠르게 정산되지만, 애그리게이터가 수수료를 받습니다.
 
-- [**빠른 시작**](/ko/tutorial/sdk-quickstart): SDK를 설치하고 테스트넷에서 첫 번째 전송, 브릿지 및 스왑을 실행합니다.
-- [**SDK로 수익 창출**](/ko/how-to/earn-yield): 볼트에 예치하고, APY와 포지션을 확인하고, 인출하고, 보상을 청구합니다.
-- [**SDK 레퍼런스**](/ko/reference/sdk): 모든 메서드, 구성 옵션, 열거형 및 오류 클래스.
-- [**viem과 함께 사용하기**](/ko/how-to/sdk-with-viem): 서버 측 계정, 브라우저 지갑 및 자체 `WalletClient` 가져오기.
-- [**wagmi와 함께 사용하기**](/ko/how-to/sdk-with-wagmi): `useWalletClient` 및 훅을 사용하여 SDK를 React 앱에 연결합니다.
+기본적으로 SDK가 자동으로 경로를 선택합니다. 양쪽 체인에 OFT 어댑터가 있고 각 체인의 토큰이 USDT0인 경우 USDT0 경로를 사용하고, 그렇지 않으면 LI.FI로 폴백합니다. `route`를 설정하여 재정의할 수 있습니다.
 
-## 다음에 권장하는 항목
+```ts
+import { Chain } from "@stablechain/sdk";
+
+const { txHash } = await stable.bridge({
+  fromChain: Chain.Ethereum,
+  toChain: Chain.Stable,
+  fromToken: "0x6C96dE32CEa08842dcc4058c14d3aaAD7Fa41dee", // 이더리움의 USDT0
+  toToken: "0x779Ded0c9e1022225f8E0630b35a9b54bE713736", // Stable의 USDT0
+  amount: 100,
+  route: "usdt0",
+});
+```
+
+```text
+{ txHash: "0xabcd...7890", toAmount: 100 }
+```
+
+쌍에 어댑터가 없는 경우 수수료를 부과하는 경로로 조용히 폴백하는 대신 `"usdt0"`를 강제하면 `StableValidationError`가 발생합니다. 속도가 필요하거나 USDT0 이외의 토큰이 필요한 경우 `"lifi"`를 강제하는 것이 비상 탈출구입니다. 체인별 지원 테이블 및 인용문이 반환하는 수수료 필드에 대해서는 [SDK 참조](/ko/reference/sdk#bridgeroute)를 참조하십시오.
+
+:::note
+`Chain.Base` 및 `Chain.BSC`에는 USDT0 OFT 어댑터가 없으므로 항상 LI.FI를 통해 라우팅됩니다. USDT0 경로는 LI.FI가 메인넷 체인만 지원하므로 테스트넷에서 작동하는 유일한 경로이기도 합니다.
+:::
+
+## 언제 사용하고 언제 사용하지 않아야 하는가
+
+라우팅 및 승인 상용구를 숨기는 타입이 지정된, 독단적인 클라이언트를 원할 때 SDK를 사용하십시오. 트랜잭션 구성, 사용자 지정 가스 전략 또는 전송/브리지/스왑 외부의 계약 호출을 직접 제어해야 할 때는 원시 viem 또는 ethers로 내려가십시오.
+
+:::note
+SDK는 모든 viem 호환 서명자로 서명합니다. 프라이빗 키 `Account`, `custom(window.ethereum)`과 같은 브라우저 `Transport`, 또는 미리 빌드된 `WalletClient`(예: wagmi의 `useWalletClient`에서 반환된 클라이언트) 등이 있습니다.
+:::
+
+## 여기서 시작
+
+- [**빠른 시작**](/ko/tutorial/sdk-quickstart): SDK를 설치하고 테스트넷에서 첫 번째 전송, 브리지 및 스왑을 실행합니다.
+- [**SDK로 수익 창출**](/ko/how-to/earn-yield): 볼트에 예치하고, APY 및 포지션을 읽고, 인출하고, 보상을 청구합니다.
+- [**SDK 참조**](/ko/reference/sdk): 모든 메서드, 구성 옵션, 열거형 및 오류 클래스.
+- [**viem과 함께 사용**](/ko/how-to/sdk-with-viem): 서버 측 계정, 브라우저 지갑 및 자체 `WalletClient` 가져오기.
+- [**wagmi와 함께 사용**](/ko/how-to/sdk-with-wagmi): `useWalletClient` 및 훅을 사용하여 SDK를 React 앱에 연결합니다.
+
+## 다음 권장 사항
 
 - [**npm에서 설치**](https://www.npmjs.com/package/@stablechain/sdk): npmjs.com에서 패키지를 보고 최신 버전을 확인합니다.
-- [**Stable에 연결**](/ko/reference/connect): 메인넷 및 테스트넷의 체인 ID, RPC 엔드포인트 및 익스플로러.
-- [**테스트넷 지갑에 자금 조달**](/ko/how-to/use-faucet): 빠른 시작을 실행하기 전에 수도꼭지에서 테스트넷 USDT0을 얻습니다.
+- [**Stable에 연결**](/ko/reference/connect): 메인넷 및 테스트넷의 체인 ID, RPC 엔드포인트 및 탐색기.
+- [**테스트넷 지갑에 자금 공급**](/ko/how-to/use-faucet): 빠른 시작을 실행하기 전에 수도꼭지에서 테스트넷 USDT0를 받으세요.

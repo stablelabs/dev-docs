@@ -70,7 +70,7 @@ Transport mode covers `transfer` only, because `transfer` takes an explicit `fro
 :::
 
 :::warning
-`transfer`, `bridge`, and `swap` call `switchChain` to put the wallet on the right network. If the user rejects, the SDK throws `StableTransactionError` with `phase: "switch_chain"`. Catch it and surface a retry to the user.
+With a browser wallet, `transfer`, `bridge`, and `swap` call `switchChain` to put the wallet on the right network. If the user rejects, the SDK throws `StableTransactionError` with `phase: "switch_chain"`. Catch it and surface a retry to the user. A private-key `account` skips the switch and signs for the chain the transaction names.
 :::
 
 ## Bring your own `WalletClient`

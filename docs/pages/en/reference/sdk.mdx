@@ -21,7 +21,7 @@ added 2 packages, audited 3 packages in 2s
 `viem >= 2.0.0` is a peer dependency. The package is published as [`@stablechain/sdk`](https://www.npmjs.com/package/@stablechain/sdk).
 
 :::note
-The native USDT0 bridge route and the `route` param require version 1.0.4 or later. On earlier versions, `bridge` and `quoteBridge` always go through LI.FI and `route` is ignored. Run `npm ls @stablechain/sdk` to check what you have.
+The native USDT0 bridge route and the `route` param on `bridge` require version 1.0.4 or later. Uniswap v3 swaps require version 1.1.0 or later. On earlier versions, `bridge`, `quoteSwap`, and `swap` always go through LI.FI. Run `npm ls @stablechain/sdk` to check what you have.
 :::
 
 ## `createStable(config)`
@@ -142,45 +142,82 @@ On the USDT0 route, `bridge` approves the source USDT0 for the OFT adapter when 
 
 ### `quoteSwap(params)`
 
-Fetch a LI.FI swap quote on Stable. Returns a pre-built transaction request and the approval address.
+Quote a swap on Stable without sending a transaction. By default, the SDK prices the trade on the [canonical Uniswap v3 deployment](/en/reference/dexes), the contracts behind [Stable Swap](https://swap.stable.xyz). It calls `QuoterV2` for every fee tier on the direct pool, plus two-pool routes through USDT0, and keeps the best output. You pay the pool fee and gas, with no aggregator fee.
 
 ```ts
 const quote = await stable.quoteSwap({
-  fromToken: "0x8a2B28364102Bea189D99A475C494330Ef2bDD0B",
-  toToken: "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
+  fromToken: "0x779Ded0c9e1022225f8E0630b35a9b54bE713736", // USDT0
+  toToken: "0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb", // XAUt0
   amount: 100,
-  fromDecimals: 6,
+  slippageBps: 50, // 0.5%, the default
 });
 ```
 
 ```text
-{ toAmount: 99.81, fromAmount: 100000000n, fromToken: "0x8a2B...", approvalAddress: "0x...", transactionRequest: { ... } }
+{ route: "uniswap", toAmount: 0.0241, toAmountMin: 0.0239, path: [{ tokenIn: "0x779D...", tokenOut: "0xB8CE...", fee: 500 }], fromAmount: 100000000n, fromToken: "0x779D...", approvalAddress: "0x32ea...", transactionRequest: { ... } }
 ```
 
+The quote holds the unsigned transaction and the spender to approve. A backend can quote and hand `transactionRequest` to a wallet or the [gas waiver](/en/explanation/gas-waiver). The transaction's deadline is 20 minutes after quoting.
+
+Returns `SwapQuote`:
+
+| **Field** | **Type** | **Description** |
+| :--- | :--- | :--- |
+| `route` | `"uniswap" \| "lifi"` | Venue the quote was built for. |
+| `toAmount` | `number` | Expected output, formatted with the `toToken` decimals. |
+| `toAmountMin` | `number?` | Minimum output accepted after slippage. Uniswap route only. |
+| `path` | `{ tokenIn, tokenOut, fee }[]?` | Pools the trade goes through. Uniswap route only. |
+| `fromAmount` | `bigint` | Raw source amount. |
+| `fromToken` | `string` | ERC-20 to approve. |
+| `approvalAddress` | `string?` | Spender for the ERC-20 approval (`SwapRouter02` on the Uniswap route). |
+| `transactionRequest` | `{ to, data, value, gasLimit, chainId }` | Unsigned swap transaction. `gasLimit` is `""` on the Uniswap route: the wallet estimates gas after the approval lands. |
+
+A pair with no pool holding liquidity throws `StableQuoteError` with `provider: "uniswap"` and `providerCode: "no_route"`.
+
 :::note
-Swap routes depend on LI.FI's DEX coverage on Stable, which is still limited. When no route exists for a pair, `quoteSwap` and `swap` throw `StableQuoteError` with "No available quotes for the requested transfer".
+Liquidity on Stable's Uniswap v3 pools is still thin for many pairs. Check `toAmount` against a reference price before you show it to a user, and keep `slippageBps` tight.
 :::
 
 ### `swap(params)`
 
-Swap tokens on Stable via LI.FI. Handles ERC-20 approval automatically and switches the wallet's chain when needed.
+Swap tokens on Stable. Uses the same routing as `quoteSwap`, approves the router for the exact amount when the allowance is short, and waits for the receipt. Pass a pre-fetched `quote` to skip quoting. To move tokens to another chain, use [`bridge`](#bridgeparams).
 
 ```ts
-const { txHash, toAmount } = await stable.swap({ ...swapParams, quote });
+const quote = await stable.quoteSwap({ fromToken, toToken, amount: 100 });
+const { txHash, toAmount } = await stable.swap({ fromToken, toToken, amount: 100, quote });
 ```
 
 ```text
-{ txHash: "0xabcd...", toAmount: 99.81 }
+{ txHash: "0xabcd...", toAmount: 0.0241 }
 ```
 
 | **Param** | **Type** | **Default** | **Description** |
 | :--- | :--- | :--- | :--- |
-| `fromToken` | `string` |  | Source token address. |
-| `toToken` | `string` |  | Destination token address. |
+| `fromToken` | `string` |  | Source ERC-20 address on Stable. For native USDT0, use the USDT0 ERC-20 address. |
+| `toToken` | `string` |  | Destination ERC-20 address on Stable. |
 | `amount` | `number` |  | Human-readable amount. |
-| `fromDecimals` | `number?` | `6` | Source token decimals. |
+| `fromDecimals` | `number?` | on-chain | Source token decimals. Read from the token on the Uniswap route. Defaults to `6` on the LI.FI route. |
 | `toAddress` | `string?` | signer | Recipient address. |
-| `quote` | `SwapQuote?` |  | Pre-fetched quote. Skips LI.FI call. |
+| `route` | `SwapRoute?` | `"auto"` | Venue. See [`SwapRoute`](#swaproute). |
+| `slippageBps` | `number?` | `50` | Max slippage in basis points. Sets `toAmountMin`. Uniswap route only. |
+| `quote` | `SwapQuote?` |  | Pre-fetched quote. Skips quoting. A `route` that contradicts the quote's `route` throws `StableValidationError`. |
+
+## `SwapRoute`
+
+`type SwapRoute = "auto" | "uniswap" | "lifi"`. Set it on `swap` and `quoteSwap` through the `route` param.
+
+| **Value** | **Behavior** |
+| :--- | :--- |
+| `"auto"` | Default. Same as `"uniswap"`. |
+| `"uniswap"` | Stable's canonical Uniswap v3 deployment. Quotes on-chain with `QuoterV2` and swaps through `SwapRouter02` with a `slippageBps` limit and a 20-minute deadline. Works on mainnet and testnet. |
+| `"lifi"` | The LI.FI aggregator. Adds LI.FI's fee (0.25% by default), serves mainnet only, and has limited DEX coverage on Stable. |
+
+The SDK uses these deployments:
+
+| **Network** | **`QuoterV2`** | **`SwapRouter02`** |
+| :--- | :--- | :--- |
+| Mainnet | `0xb070179E7032CdA868b53e6C1742F80c9e940d1A` | `0x32eaf9B5d5F2CD7361c5012890C943D7de84C22a` |
+| Testnet | `0x8034456f896C0FcC7559D7641BDA4560fEabFBCb` | `0x42657399bD6ACcd22f67568AAf7Bf523c0271737` |
 
 ## `BridgeRoute`
 
@@ -595,7 +632,7 @@ All SDK errors extend `StableError`, which extends viem's `BaseError`. Errors ca
 | **Class** | **Thrown when** | **Useful fields** |
 | :--- | :--- | :--- |
 | `StableValidationError` | A parameter fails validation (bad address, non-finite amount, unsupported chain, `route: "usdt0"` on a pair with no adapter or non-USDT0 tokens). | `field`, `value` |
-| `StableQuoteError` | A quote request fails. `provider` is `"lifi"` or `"layerzero"`. | `provider`, `httpStatus`, `providerCode`, `body` |
+| `StableQuoteError` | A quote request fails. `provider` is `"lifi"`, `"layerzero"`, or `"uniswap"`. | `provider`, `httpStatus`, `providerCode`, `body` |
 | `StableTransactionError` | On-chain step fails: chain switch, approval, send, or revert. | `phase`, `txHash`, `chainId`, `revertReason` |
 | `StableNetworkError` | An underlying HTTP/RPC call fails (e.g. the Morpho or Merkl API). | `url` |
 | `StableBulkError` | A `bulkDeposit` or `bulkWithdraw` run with `stopOnError: true` hits its first failure. | `results`, `succeeded`, `failed` |

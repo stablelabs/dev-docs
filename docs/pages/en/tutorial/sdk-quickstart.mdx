@@ -122,10 +122,25 @@ Had you quoted USDT0 to USDT0 instead, the SDK would have taken the native USDT0
 
 ## 5. Swaps
 
-Same-chain swaps follow the same pattern: `stable.quoteSwap` returns the expected output and a pre-built transaction, and `stable.swap({ ...params, quote })` executes it with ERC-20 approval handled internally.
+Same-chain swaps follow the same pattern. `stable.quoteSwap` prices the trade on Stable's [Uniswap v3 pools](/en/reference/dexes) and returns the expected output and a pre-built transaction. `stable.swap({ ...params, quote })` executes it, with ERC-20 approval handled internally. The example quotes on mainnet with the `stableMainnet` client from step 4. Like `quoteBridge`, it's read-only. Swaps also work on testnet, against the testnet Uniswap v3 deployment. Append:
+
+```ts
+const swapQuote = await stableMainnet.quoteSwap({
+  fromToken: "0x779Ded0c9e1022225f8E0630b35a9b54bE713736", // USDT0
+  toToken: "0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb", // XAUt0
+  amount: 100,
+});
+console.log("Receive:", swapQuote.toAmount, "at least", swapQuote.toAmountMin);
+```
+
+```text
+Receive: 0.0241 at least 0.0239
+```
+
+`toAmountMin` is the output after the default 0.5% slippage limit. Set `slippageBps` to change it.
 
 :::note
-Swap routes depend on LI.FI's DEX coverage on Stable, which is still limited. When no route exists for a pair, `quoteSwap` and `swap` throw `StableQuoteError` with "No available quotes for the requested transfer". See [`quoteSwap` in the SDK reference](/en/reference/sdk#quoteswapparams) for the full API.
+When no pool holds liquidity for a pair, `quoteSwap` and `swap` throw `StableQuoteError` with `providerCode: "no_route"`. See [`quoteSwap` in the SDK reference](/en/reference/sdk#quoteswapparams) for the full API.
 :::
 
 ## Next recommended

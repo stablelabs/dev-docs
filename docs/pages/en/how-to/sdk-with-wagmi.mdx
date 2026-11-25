@@ -92,7 +92,7 @@ Sent: 0x8f3a...2d41
 
 ## 4. Bridge and swap from React
 
-The same `stable` instance handles bridge and swap. Fetch the quote in an effect or a `useQuery`, then execute on click. Catch `StableQuoteError`: LI.FI's DEX coverage on Stable is still limited, and pairs without a route throw "No available quotes for the requested transfer".
+The same `stable` instance handles bridge and swap. Fetch the quote in an effect or a `useQuery`, then execute on click. Swaps go through Stable's Uniswap v3 pools. Catch `StableQuoteError`: a pair with no liquid pool throws with `providerCode: "no_route"`.
 
 ```tsx
 const stable = useStable(Network.Mainnet);
@@ -100,16 +100,14 @@ const stable = useStable(Network.Mainnet);
 const onSwap = async () => {
   if (!stable) return;
   const quote = await stable.quoteSwap({
-    fromToken: "0x8a2B28364102Bea189D99A475C494330Ef2bDD0B",
-    toToken: "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
+    fromToken: "0x779Ded0c9e1022225f8E0630b35a9b54bE713736", // USDT0
+    toToken: "0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb", // XAUt0
     amount: 100,
-    fromDecimals: 6,
   });
   const { txHash, toAmount } = await stable.swap({
     fromToken: quote.fromToken,
-    toToken: "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
+    toToken: "0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb",
     amount: 100,
-    fromDecimals: 6,
     quote,
   });
   console.log({ txHash, toAmount });
@@ -117,7 +115,7 @@ const onSwap = async () => {
 ```
 
 ```text
-{ txHash: "0xabcd...", toAmount: 99.81 }
+{ txHash: "0xabcd...", toAmount: 0.0241 }
 ```
 
 :::note

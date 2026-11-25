@@ -67,7 +67,7 @@ cast call 0xb070179E7032CdA868b53e6C1742F80c9e940d1A \
 (amountOut, sqrtPriceX96After, initializedTicksCrossed, gasEstimate)
 ```
 
-Replace `<TOKEN_IN>`, `<TOKEN_OUT>`, `<AMOUNT_IN>`, and `<FEE>` (one of `100`, `500`, `3000`, `10000`) with the values for the pool you're quoting. For application integration, prefer the [Uniswap v3 SDK](https://docs.uniswap.org/sdk/v3/overview) or the [Universal Router](https://docs.uniswap.org/contracts/universal-router/overview) pointed at the addresses above.
+Replace `<TOKEN_IN>`, `<TOKEN_OUT>`, `<AMOUNT_IN>`, and `<FEE>` (one of `100`, `500`, `3000`, `10000`) with the values for the pool you're quoting. For application integration, prefer the [Uniswap v3 SDK](https://docs.uniswap.org/sdk/v3/overview) or the [Universal Router](https://docs.uniswap.org/contracts/universal-router/overview) pointed at the addresses above. In TypeScript, [`stable.quoteSwap` and `stable.swap`](/en/reference/sdk#quoteswapparams) from `@stablechain/sdk` quote every fee tier and two-pool routes through USDT0 against these contracts for you.
 
 ---
 

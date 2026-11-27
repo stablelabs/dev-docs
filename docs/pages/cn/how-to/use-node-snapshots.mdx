@@ -1,19 +1,19 @@
 ---
 source_path: how-to/use-node-snapshots.mdx
-source_sha: 993d315124d0c2d5137403d7a1b0197467c89247
+source_sha: 3f863d840eb4cee85b4d4288dfdc4c922f339665
 title: 快照与同步指南
-description: "通过基于快照的同步方法，快速启动 Stable 全节点和归档节点。"
+description: "用于快速引导 Stable 全节点和归档节点的基于快照的同步方法。"
 diataxis: "how-to"
 ---
 
-本指南涵盖了使用快照和状态同步快速同步 Stable 节点的各种方法。
+本指南介绍了使用快照和状态同步快速同步 Stable 节点的各种方法。
 
 ## 同步方法概述
 
 | 方法 | 同步时间 | 所需存储空间 | 用例 |
-|---|---|---|---|
-| **修剪快照 (Pruned Snapshot)** | 约10分钟 | < 5 GiB | 常规全节点 |
-| **归档快照 (Archive Snapshot)** | 约3小时 | 约700 GB | 归档节点、区块浏览器 |
+|--------|-----------|------------------|----------|
+| **修剪快照** | 约10分钟 | < 5 GiB | 常规全节点 |
+| **归档快照** | 约3小时 | 约2 TB | 归档节点、区块浏览器 |
 
 ## 官方快照
 
@@ -23,99 +23,103 @@ Stable 提供每日更新（UTC 时间 00:00）的官方快照。
 
 ### 主网
 
-| 类型 | 压缩方式 | 大小 | URL | 更新频率 |
-|---|---|---|---|---|
-| **修剪快照** | LZ4 | < 5 GiB | [下载](https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/snapshots/snapshot.tar.lz4) | 每日 |
-| **归档快照** | ZSTD | 约700 GB | [下载](https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/snapshots/stable_archive.tar.zst) | 每周 |
+| 类型 | 压缩 | 大小 | URL | 更新频率 |
+|------|-----------------|-------------|------|-----|
+| **修剪** | LZ4 | < 5 GiB | [下载](https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/snapshots/snapshot.tar.lz4) | 每日 |
+| **归档** | ZSTD | 约600 GB | [下载](https://data-dist.stable.xyz/mainnet/snapshots/stable_archive.tar.zst) | 每月 |
 
 ### 测试网
 
-| 类型 | 压缩方式 | 大小 | URL | 更新频率 |
-|---|---|---|---|---|
-| **修剪快照** | LZ4 | < 5 GiB | [下载](https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/snapshots/snapshot.tar.lz4) | 每日 |
-| **归档快照** | ZSTD | 约1.2 TB | [下载](https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/snapshots/stable_archive.tar.zst) | 每周 |
+| 类型 | 压缩 | 大小 | URL | 更新频率 |
+|------|-----------------|-------------|------|-----|
+| **修剪** | LZ4 | < 5 GiB | [下载](https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/snapshots/snapshot.tar.lz4) | 每日 |
+| **归档** | ZSTD | 约750 GB | [下载](https://data-dist.stable.xyz/testnet/snapshots/stable_archive.tar.zst) | 每月 |
+
+:::note
+归档快照在解压后需要约 1.5 TB（主网）/ 约 2 TB（测试网）的可用磁盘空间。
+:::
 
 ## 使用修剪快照
 
-修剪快照包含最近的区块链状态（最近100-1000个区块）。
+修剪快照包含最近的区块链状态（最近 100-1000 个区块）。
 
 ### 步骤 1：设置环境变量
 
 ```bash
-# Set service name (default: stable)
+# 设置服务名称 (默认: stable)
 export SERVICE_NAME=stable
 ```
 
 ### 步骤 2：停止节点服务
 
 ```bash
-# Stop the running node
+# 停止正在运行的节点
 sudo systemctl stop ${SERVICE_NAME}
 
-# Verify it's stopped
+# 验证其是否已停止
 sudo systemctl status ${SERVICE_NAME}
 ```
 
 ### 步骤 3：备份当前数据（可选）
 
 ```bash
-# Create backup directory
+# 创建备份目录
 mkdir -p ~/stable-backup
 
-# Backup current state (optional, requires significant space)
+# 备份当前状态（可选，需要大量空间）
 cp -r ~/.stabled/data ~/stable-backup/
 ```
 
-### 步骤 4：下载并解压修剪快照
+### 4：下载并解压修剪快照
 
 :::code-group
 ```bash [Mainnet]
-# Install dependencies
+# 安装依赖项
 sudo apt install -y wget zstd pv
 
-# Create snapshot directory
+# 创建快照目录
 mkdir -p ~/snapshot
 cd ~/snapshot
 
-# Download pruned snapshot with progress
+# 下载修剪快照并显示进度
 wget -c https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/snapshots/snapshot.tar.lz4
 
-# Remove old data
+# 移除旧数据
 rm -rf ~/.stabled/data/*
 
-# Extract snapshot with progress indicator
+# 解压快照并显示进度指示器
 pv stable_pruned.tar.zst | zstd -d -c | tar -xf - -C ~/.stabled/
 
-# Alternative extraction without pv
+# 替代解压方式，不带pv
 zstd -d stable_pruned.tar.zst -c | tar -xvf - -C ~/.stabled/
 
-# Clean up
+# 清理
 rm stable_pruned.tar.zst
 ```
 ```bash [Testnet]
-# Install dependencies
+# 安装依赖项
 sudo apt install -y wget lz4 pv
 
-# Create snapshot directory
+# 创建快照目录
 mkdir -p ~/snapshot
 cd ~/snapshot
 
-# Download pruned snapshot with progress
+# 下载修剪快照并显示进度
 wget -c https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/snapshots/snapshot.tar.lz4
 
-# Alternative: Download with resume support
+# 替代方法：支持断点续传的下载
 curl -C - -o snapshot.tar.lz4 https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/snapshots/snapshot.tar.lz4
 
-# Remove old data
+# 移除旧数据
 rm -rf ~/.stabled/data/*
 
-# Extract snapshot with progress indicator
+# 解压快照并显示进度指示器
 pv snapshot.tar.lz4 | tar -I lz4 -xf - -C ~/.stabled/
 
-# Alternative extraction without pv
+# 替代解压方式，不带pv
 tar -I lz4 -xvf snapshot.tar.lz4 -C ~/.stabled/
 
-# Clean up
+# 清理
 rm snapshot.tar.lz4
 ```
 :::
@@ -123,30 +127,30 @@ rm snapshot.tar.lz4
 ### 步骤 5：重启节点
 
 ```bash
-# Start the node
+# 启动节点
 sudo systemctl start ${SERVICE_NAME}
 
-# Check status
+# 检查状态
 sudo systemctl status ${SERVICE_NAME}
 
-# Monitor logs
+# 监控日志
 sudo journalctl -u stabled -f
 ```
 
 ## 使用归档快照
 
-归档快照包含完整的区块链历史。
+归档快照包含完整的区块链历史记录。
 
 ### 步骤 1：准备系统
 
 ```bash
-# Stop node
+# 停止节点
 sudo systemctl stop ${SERVICE_NAME}
 
-# Install dependencies
+# 安装依赖项
 sudo apt install -y wget zstd pv
 
-# Check available disk space (need 2x snapshot size)
+# 检查可用磁盘空间（需要快照大小的2倍）
 df -h ~/.stabled
 ```
 
@@ -154,54 +158,54 @@ df -h ~/.stabled
 
 :::code-group
 ```bash [Mainnet]
-# Create working directory
+# 创建工作目录
 mkdir -p ~/snapshot
 cd ~/snapshot
 
-# Download archive snapshot
-wget -c https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/snapshots/stable_archive.tar.zst
+# 下载归档快照
+wget -c https://data-dist.stable.xyz/mainnet/snapshots/stable_archive.tar.zst
 
-# Clear old data
+# 清除旧数据
 rm -rf ~/.stabled/data/*
 
-# Extract with high memory for better performance
+# 以高内存解压以获得更好性能
 pv stable_archive.tar.zst | zstd -d --long=31 --memory=2048MB -c - | tar -xf - -C ~/.stabled/
 
-# Alternative: Standard extraction
+# 替代方法：标准解压
 zstd -d --long=31 stable_archive.tar.zst -c | tar -xvf - -C ~/.stabled/
 
-# Clean up
+# 清理
 rm stable_archive.tar.zst
 ```
 ```bash [Testnet]
-# Create working directory
+# 创建工作目录
 mkdir -p ~/snapshot
 cd ~/snapshot
 
-# Download archive snapshot
-wget -c https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/snapshots/stable_archive.tar.zst
+# 下载归档快照
+wget -c https://data-dist.stable.xyz/testnet/snapshots/stable_archive.tar.zst
 
-# Clear old data
+# 清除旧数据
 rm -rf ~/.stabled/data/*
 
-# Extract with high memory for better performance
-pv archive.tar.zst | zstd -d --long=31 --memory=2048MB -c - | tar -xf - -C ~/.stabled/
+# 以高内存解压以获得更好性能
+pv stable_archive.tar.zst | zstd -d --long=31 --memory=2048MB -c - | tar -xf - -C ~/.stabled/
 
-# Alternative: Standard extraction
-zstd -d --long=31 archive.tar.zst -c | tar -xvf - -C ~/.stabled/
+# 替代方法：标准解压
+zstd -d --long=31 stable_archive.tar.zst -c | tar -xvf - -C ~/.stabled/
 
-# Clean up
-rm archive.tar.zst
+# 清理
+rm stable_archive.tar.zst
 ```
 :::
 
 ### 步骤 3：启动节点
 
 ```bash
-# Start service
+# 启动服务
 sudo systemctl start ${SERVICE_NAME}
 
-# Verify sync status
+# 验证同步状态
 curl -s localhost:26657/status | jq '.result.sync_info'
 ```
 
@@ -210,17 +214,17 @@ curl -s localhost:26657/status | jq '.result.sync_info'
 ### 手动创建快照
 
 ```bash
-# Stop node
+# 停止节点
 sudo systemctl stop ${SERVICE_NAME}
 
-# Create snapshot archive
+# 创建快照存档
 cd ~/.stabled
 tar -cf - data/ | lz4 -9 > ~/stable-snapshot-$(date +%Y%m%d).tar.lz4
 
-# Create checksum
+# 创建校验和
 sha256sum ~/stable-snapshot-*.tar.lz4 > checksums.txt
 
-# Restart node
+# 重启节点
 sudo systemctl start ${SERVICE_NAME}
 ```
 
@@ -228,24 +232,24 @@ sudo systemctl start ${SERVICE_NAME}
 
 ```bash
 #!/bin/bash
-# snapshot.sh - Automated snapshot creation
+# snapshot.sh - 自动化快照创建
 
-# Configuration
+# 配置
 SNAPSHOT_DIR="/var/snapshots"
 STABLED_HOME="$HOME/.stabled"
 KEEP_DAYS=7
 
-# Create snapshot directory
+# 创建快照目录
 mkdir -p $SNAPSHOT_DIR
 
-# Stop node
+# 停止节点
 sudo systemctl stop ${SERVICE_NAME}
 
-# Create snapshot
+# 创建快照
 SNAPSHOT_NAME="stable-snapshot-$(date +%Y%m%d-%H%M%S).tar.lz4"
 tar -cf - -C $STABLED_HOME data/ | lz4 -9 > $SNAPSHOT_DIR/$SNAPSHOT_NAME
 
-# Generate metadata
+# 生成元数据
 cat > $SNAPSHOT_DIR/latest.json <<EOF
 {
   "filename": "$SNAPSHOT_NAME",
@@ -256,19 +260,19 @@ cat > $SNAPSHOT_DIR/latest.json <<EOF
 }
 EOF
 
-# Clean old snapshots
+# 清理旧快照
 find $SNAPSHOT_DIR -name "stable-snapshot-*.tar.lz4" -mtime +$KEEP_DAYS -delete
 
-# Restart node
+# 重启节点
 sudo systemctl start ${SERVICE_NAME}
 
-echo "Snapshot created: $SNAPSHOT_DIR/$SNAPSHOT_NAME"
+echo "快照已创建: $SNAPSHOT_DIR/$SNAPSHOT_NAME"
 ```
 
-### 安排自动化快照
+### 计划自动化快照
 
 ```bash
-# Add to crontab (weekly on Sunday at 2 AM)
+# 添加到 crontab（每周日凌晨 2 点）
 (crontab -l ; echo "0 2 * * 0 /usr/local/bin/snapshot.sh") | crontab -
 ```
 
@@ -277,13 +281,13 @@ echo "Snapshot created: $SNAPSHOT_DIR/$SNAPSHOT_NAME"
 ### 验证快照完整性
 
 ```bash
-# Check snapshot checksum
+# 检查快照校验和
 sha256sum -c checksums.txt
 
-# Verify extraction
+# 验证解压
 tar -I lz4 -tvf snapshot.tar.lz4 | head -20
 
-# Test snapshot size
+# 测试快照大小
 tar -I lz4 -tvf snapshot.tar.lz4 | wc -l
 ```
 
@@ -292,13 +296,13 @@ tar -I lz4 -tvf snapshot.tar.lz4 | wc -l
 #### 问题：快照解压失败
 
 ```bash
-# Check disk space
+# 检查磁盘空间
 df -h
 
-# Verify file integrity
+# 验证文件完整性
 lz4 -t snapshot.tar.lz4
 
-# Try alternative extraction
+# 尝试其他解压方式
 lz4 -d snapshot.tar.lz4 snapshot.tar
 tar -xvf snapshot.tar -C ~/.stabled/
 ```
@@ -306,30 +310,30 @@ tar -xvf snapshot.tar -C ~/.stabled/
 #### 问题：快照后节点无法启动
 
 ```bash
-# Check permissions
+# 检查权限
 ls -la ~/.stabled/data/
 
-# Fix permissions
+# 修复权限
 sudo chown -R $USER:$USER ~/.stabled/
 
-# Verify genesis file
+# 验证创世文件
 sha256sum ~/.stabled/config/genesis.json
 
-# Reset and try again
+# 重置并重试
 stabled comet unsafe-reset-all
-# Then restore snapshot
+# 然后恢复快照
 ```
 
 #### 问题：状态同步失败
 
 ```bash
-# Try different RPC servers
-# Update config.toml with alternative RPCs
+# 尝试不同的RPC服务器
+# 使用替代RPC更新config.toml
 
-# Increase chunk fetchers
+# 增加块获取器数量
 sed -i 's/chunk_fetchers = .*/chunk_fetchers = 8/' ~/.stabled/config/config.toml
 
-# Clear and retry
+# 清除并重试
 stabled comet unsafe-reset-all --keep-addr-book
 ```
 
@@ -338,38 +342,38 @@ stabled comet unsafe-reset-all --keep-addr-book
 ### 下载优化
 
 ```bash
-# Use aria2 for parallel downloads
+# 使用aria2进行并行下载
 aria2c -x 16 -s 16 https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/snapshots/snapshot.tar.lz4
 
-# Use wget with compression
+# 使用带压缩的wget
 wget --header="Accept-Encoding: gzip" -c URL
 
-# Resume interrupted downloads
+# 恢复中断的下载
 curl -C - -o snapshot.tar.lz4 URL
 ```
 
 ### 解压优化
 
 ```bash
-# Use parallel extraction
+# 使用并行解压
 pigz -d -c snapshot.tar.gz | tar -xf - -C ~/.stabled/
 
-# Monitor extraction progress
+# 监控解压进度
 pv snapshot.tar.lz4 | tar -I lz4 -xf - -C ~/.stabled/
 
-# Use more memory for zstd
+# 为zstd使用更多内存
 zstd -d --long=31 --memory=4096MB archive.tar.zst
 ```
 
 ## 最佳实践
 
-1. **始终备份验证者密钥**，然后再替换数据
-2. 解压快照前**验证校验和**
-3. 解压期间**监控磁盘空间**（需要快照大小的2倍）
-4. 尽可能**使用官方快照**
-5. **在非生产环境中**先行测试快照
-6. 为您的归档节点**定期安排快照**
-7. **记录快照来源**以便进行审计追踪
+1. **始终备份验证者密钥**，然后再替换数据。
+2. 在解压快照之前，**验证校验和**。
+3. 在解压过程中**监控磁盘空间**（需要快照大小的2倍）。
+4. 尽可能**使用官方快照**。
+5. 首先在非生产环境中**测试快照**。
+6. 为您的归档节点**安排定期快照**。
+7. **记录快照来源**以供审计追踪。
 
 ## 后续步骤
 

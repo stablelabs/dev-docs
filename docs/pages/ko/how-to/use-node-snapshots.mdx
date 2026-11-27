@@ -1,19 +1,19 @@
 ---
 source_path: how-to/use-node-snapshots.mdx
-source_sha: 993d315124d0c2d5137403d7a1b0197467c89247
+source_sha: 3f863d840eb4cee85b4d4288dfdc4c922f339665
 title: 스냅샷 및 동기화 가이드
-description: "Stable 풀 노드 및 아카이브 노드를 신속하게 부트스트랩하기 위한 스냅샷 기반 동기화 방법."
+description: "Stable 풀 노드 및 아카이브 노드를 빠르게 부트스트랩하기 위한 스냅샷 기반 동기화 방법입니다."
 diataxis: "how-to"
 ---
 
-이 가이드는 스냅샷 및 상태 동기화를 사용하여 Stable 노드를 신속하게 동기화하는 다양한 방법을 다룹니다.
+이 가이드는 스냅샷과 상태 동기화를 사용하여 Stable 노드를 빠르게 동기화하는 다양한 방법에 대해 설명합니다.
 
 ## 동기화 방법 개요
 
-| 방법 | 동기화 시간 | 필요한 저장 공간 | 사용 사례 |
+| 방법 | 동기화 시간 | 필요 저장 공간 | 사용 사례 |
 |--------|-----------|------------------|----------|
-| **가지치기된 스냅샷** | ~10분 | < 5GiB | 일반 풀 노드 |
-| **아카이브 스냅샷** | ~3시간 | ~700 GB | 아카이브 노드, 블록 탐색기 |
+| **Pruned 스냅샷** | ~10분 | < 5 GiB | 일반 풀 노드 |
+| **Archive 스냅샷** | ~3시간 | ~2 TB | 아카이브 노드, 블록 탐색기 |
 
 ## 공식 스냅샷
 
@@ -21,23 +21,27 @@ Stable은 매일(UTC 00:00) 업데이트되는 공식 스냅샷을 제공합니�
 
 ### 스냅샷 정보
 
-### 메인넷
-
-| 유형 | 압축 | 크기 | URL | 업데이트 주기 |
-  |------|-----------------|-------------|------|-----|
-| **가지치기된** | LZ4 | < 5GiB | [다운로드](https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/snapshots/snapshot.tar.lz4) | 매일 |
-| **아카이브** | ZSTD | ~700 GB | [다운로드](https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/snapshots/stable_archive.tar.zst) | 매주 |
-
-### 테스트넷
+### Mainnet
 
 | 유형 | 압축 | 크기 | URL | 업데이트 주기 |
 |------|-----------------|-------------|------|-----|
-| **가지치기된** | LZ4 | < 5GiB | [다운로드](https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/snapshots/snapshot.tar.lz4) | 매일 |
-| **아카이브** | ZSTD | ~1.2 TB | [다운로드](https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/snapshots/stable_archive.tar.zst) | 매주 |
+| **Pruned** | LZ4 | < 5 GiB | [다운로드](https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/snapshots/snapshot.tar.lz4) | 매일 |
+| **Archive** | ZSTD | ~600 GB | [다운로드](https://data-dist.stable.xyz/mainnet/snapshots/stable_archive.tar.zst) | 매월 |
 
-## 가지치기된 스냅샷 사용
+### Testnet
 
-가지치기된 스냅샷에는 최근 블록체인 상태(최근 100-1000개 블록)가 포함됩니다.
+| 유형 | 압축 | 크기 | URL | 업데이트 주기 |
+|------|-----------------|-------------|------|-----|
+| **Pruned** | LZ4 | < 5 GiB | [다운로드](https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/snapshots/snapshot.tar.lz4) | 매일 |
+| **Archive** | ZSTD | ~750 GB | [다운로드](https://data-dist.stable.xyz/testnet/snapshots/stable_archive.tar.zst) | 매월 |
+
+:::note
+아카이브 스냅샷은 압축 해제 후 메인넷의 경우 ~1.5TB, 테스트넷의 경우 ~2TB의 여유 디스크 공간이 필요합니다.
+:::
+
+## Pruned 스냅샷 사용하기
+
+Pruned 스냅샷에는 최근 블록체인 상태(최근 100-1000 블록)가 포함되어 있습니다.
 
 ### 1단계: 환경 변수 설정
 
@@ -52,7 +56,7 @@ export SERVICE_NAME=stable
 # 실행 중인 노드 중지
 sudo systemctl stop ${SERVICE_NAME}
 
-# 중지되었는지 확인
+# 중지 여부 확인
 sudo systemctl status ${SERVICE_NAME}
 ```
 
@@ -62,57 +66,57 @@ sudo systemctl status ${SERVICE_NAME}
 # 백업 디렉토리 생성
 mkdir -p ~/stable-backup
 
-# 현재 상태 백업 (선택 사항, 상당한 공간 필요)
+# 현재 상태 백업 (선택 사항, 많은 공간 필요)
 cp -r ~/.stabled/data ~/stable-backup/
 ```
 
-### 4단계: 가지치기된 스냅샷 다운로드 및 추출
+### 4단계: Pruned 스냅샷 다운로드 및 압축 해제
 
 :::code-group
-```bash [메인넷]
-# 종속성 설치
+```bash [Mainnet]
+# 의존성 설치
 sudo apt install -y wget zstd pv
 
 # 스냅샷 디렉토리 생성
 mkdir -p ~/snapshot
 cd ~/snapshot
 
-# 진행 상황과 함께 가지치기된 스냅샷 다운로드
+# 진행 상황 표시와 함께 pruned 스냅샷 다운로드
 wget -c https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/snapshots/snapshot.tar.lz4
 
-# 오래된 데이터 제거
+# 기존 데이터 제거
 rm -rf ~/.stabled/data/*
 
-# 진행 표시와 함께 스냅샷 추출
+# 진행률 표시와 함께 스냅샷 압축 해제
 pv stable_pruned.tar.zst | zstd -d -c | tar -xf - -C ~/.stabled/
 
-# pv 없이 대체 추출
+# pv 없이 대체 압축 해제
 zstd -d stable_pruned.tar.zst -c | tar -xvf - -C ~/.stabled/
 
 # 정리
 rm stable_pruned.tar.zst
 ```
-```bash [테스트넷]
-# 종속성 설치
+```bash [Testnet]
+# 의존성 설치
 sudo apt install -y wget lz4 pv
 
 # 스냅샷 디렉토리 생성
 mkdir -p ~/snapshot
 cd ~/snapshot
 
-# 진행 상황과 함께 가지치기된 스냅샷 다운로드
+# 진행 상황 표시와 함께 pruned 스냅샷 다운로드
 wget -c https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/snapshots/snapshot.tar.lz4
 
 # 대안: 재개 지원으로 다운로드
 curl -C - -o snapshot.tar.lz4 https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/snapshots/snapshot.tar.lz4
 
-# 오래된 데이터 제거
+# 기존 데이터 제거
 rm -rf ~/.stabled/data/*
 
-# 진행 표시와 함께 스냅샷 추출
+# 진행률 표시와 함께 스냅샷 압축 해제
 pv snapshot.tar.lz4 | tar -I lz4 -xf - -C ~/.stabled/
 
-# pv 없이 대체 추출
+# pv 없이 대체 압축 해제
 tar -I lz4 -xvf snapshot.tar.lz4 -C ~/.stabled/
 
 # 정리
@@ -120,7 +124,7 @@ rm snapshot.tar.lz4
 ```
 :::
 
-### 5단계: 노드 다시 시작
+### 5단계: 노드 재시작
 
 ```bash
 # 노드 시작
@@ -133,9 +137,9 @@ sudo systemctl status ${SERVICE_NAME}
 sudo journalctl -u stabled -f
 ```
 
-## 아카이브 스냅샷 사용
+## 아카이브 스냅샷 사용하기
 
-아카이브 스냅샷에는 완전한 블록체인 기록이 포함됩니다.
+아카이브 스냅샷에는 전체 블록체인 기록이 포함되어 있습니다.
 
 ### 1단계: 시스템 준비
 
@@ -143,55 +147,55 @@ sudo journalctl -u stabled -f
 # 노드 중지
 sudo systemctl stop ${SERVICE_NAME}
 
-# 종속성 설치
+# 의존성 설치
 sudo apt install -y wget zstd pv
 
 # 사용 가능한 디스크 공간 확인 (스냅샷 크기의 2배 필요)
 df -h ~/.stabled
 ```
 
-### 2단계: 아카이브 스냅샷 다운로드 및 추출
+### 2단계: 아카이브 스냅샷 다운로드 및 압축 해제
 
 :::code-group
-```bash [메인넷]
+```bash [Mainnet]
 # 작업 디렉토리 생성
 mkdir -p ~/snapshot
 cd ~/snapshot
 
 # 아카이브 스냅샷 다운로드
-wget -c https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/snapshots/stable_archive.tar.zst
+wget -c https://data-dist.stable.xyz/mainnet/snapshots/stable_archive.tar.zst
 
-# 오래된 데이터 지우기
+# 이전 데이터 삭제
 rm -rf ~/.stabled/data/*
 
-# 더 나은 성능을 위해 고용량 메모리로 추출
+# 더 나은 성능을 위해 높은 메모리로 압축 해제
 pv stable_archive.tar.zst | zstd -d --long=31 --memory=2048MB -c - | tar -xf - -C ~/.stabled/
 
-# 대안: 표준 추출
+# 대안: 표준 압축 해제
 zstd -d --long=31 stable_archive.tar.zst -c | tar -xvf - -C ~/.stabled/
 
 # 정리
 rm stable_archive.tar.zst
 ```
-```bash [테스트넷]
+```bash [Testnet]
 # 작업 디렉토리 생성
 mkdir -p ~/snapshot
 cd ~/snapshot
 
 # 아카이브 스냅샷 다운로드
-wget -c https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/snapshots/stable_archive.tar.zst
+wget -c https://data-dist.stable.xyz/testnet/snapshots/stable_archive.tar.zst
 
-# 오래된 데이터 지우기
+# 이전 데이터 삭제
 rm -rf ~/.stabled/data/*
 
-# 더 나은 성능을 위해 고용량 메모리로 추출
-pv archive.tar.zst | zstd -d --long=31 --memory=2048MB -c - | tar -xf - -C ~/.stabled/
+# 더 나은 성능을 위해 높은 메모리로 압축 해제
+pv stable_archive.tar.zst | zstd -d --long=31 --memory=2048MB -c - | tar -xf - -C ~/.stabled/
 
-# 대안: 표준 추출
-zstd -d --long=31 archive.tar.zst -c | tar -xvf - -C ~/.stabled/
+# 대안: 표준 압축 해제
+zstd -d --long=31 stable_archive.tar.zst -c | tar -xvf - -C ~/.stabled/
 
 # 정리
-rm archive.tar.zst
+rm stable_archive.tar.zst
 ```
 :::
 
@@ -205,7 +209,7 @@ sudo systemctl start ${SERVICE_NAME}
 curl -s localhost:26657/status | jq '.result.sync_info'
 ```
 
-## 자신만의 스냅샷 생성
+## 나만의 스냅샷 만들기
 
 ### 수동 스냅샷 생성
 
@@ -220,7 +224,7 @@ tar -cf - data/ | lz4 -9 > ~/stable-snapshot-$(date +%Y%m%d).tar.lz4
 # 체크섬 생성
 sha256sum ~/stable-snapshot-*.tar.lz4 > checksums.txt
 
-# 노드 다시 시작
+# 노드 재시작
 sudo systemctl start ${SERVICE_NAME}
 ```
 
@@ -230,7 +234,7 @@ sudo systemctl start ${SERVICE_NAME}
 #!/bin/bash
 # snapshot.sh - 자동 스냅샷 생성
 
-# 구성
+# 설정
 SNAPSHOT_DIR="/var/snapshots"
 STABLED_HOME="$HOME/.stabled"
 KEEP_DAYS=7
@@ -259,7 +263,7 @@ EOF
 # 오래된 스냅샷 정리
 find $SNAPSHOT_DIR -name "stable-snapshot-*.tar.lz4" -mtime +$KEEP_DAYS -delete
 
-# 노드 다시 시작
+# 노드 재시작
 sudo systemctl start ${SERVICE_NAME}
 
 echo "스냅샷 생성됨: $SNAPSHOT_DIR/$SNAPSHOT_NAME"
@@ -272,7 +276,7 @@ echo "스냅샷 생성됨: $SNAPSHOT_DIR/$SNAPSHOT_NAME"
 (crontab -l ; echo "0 2 * * 0 /usr/local/bin/snapshot.sh") | crontab -
 ```
 
-## 확인 및 문제 해결
+## 검증 및 문제 해결
 
 ### 스냅샷 무결성 확인
 
@@ -280,7 +284,7 @@ echo "스냅샷 생성됨: $SNAPSHOT_DIR/$SNAPSHOT_NAME"
 # 스냅샷 체크섬 확인
 sha256sum -c checksums.txt
 
-# 추출 확인
+# 압축 해제 검증
 tar -I lz4 -tvf snapshot.tar.lz4 | head -20
 
 # 스냅샷 크기 테스트
@@ -289,7 +293,7 @@ tar -I lz4 -tvf snapshot.tar.lz4 | wc -l
 
 ### 일반적인 문제
 
-#### 문제: 스냅샷 추출 실패
+#### 문제: 스냅샷 압축 해제 실패
 
 ```bash
 # 디스크 공간 확인
@@ -298,7 +302,7 @@ df -h
 # 파일 무결성 확인
 lz4 -t snapshot.tar.lz4
 
-# 다른 추출 방법 시도
+# 대체 압축 해제 시도
 lz4 -d snapshot.tar.lz4 snapshot.tar
 tar -xvf snapshot.tar -C ~/.stabled/
 ```
@@ -315,7 +319,7 @@ sudo chown -R $USER:$USER ~/.stabled/
 # 제네시스 파일 확인
 sha256sum ~/.stabled/config/genesis.json
 
-# 재설정 후 다시 시도
+# 초기화 후 다시 시도
 stabled comet unsafe-reset-all
 # 그런 다음 스냅샷 복원
 ```
@@ -326,7 +330,7 @@ stabled comet unsafe-reset-all
 # 다른 RPC 서버 시도
 # config.toml을 대체 RPC로 업데이트
 
-# 청크 가져오기 수를 늘림
+# 청크 가져오는 개수 늘리기
 sed -i 's/chunk_fetchers = .*/chunk_fetchers = 8/' ~/.stabled/config/config.toml
 
 # 지우고 다시 시도
@@ -348,13 +352,13 @@ wget --header="Accept-Encoding: gzip" -c URL
 curl -C - -o snapshot.tar.lz4 URL
 ```
 
-### 추출 최적화
+### 압축 해제 최적화
 
 ```bash
-# 병렬 추출 사용
+# 병렬 압축 해제 사용
 pigz -d -c snapshot.tar.gz | tar -xf - -C ~/.stabled/
 
-# 추출 진행 상황 모니터링
+# 압축 해제 진행 상황 모니터링
 pv snapshot.tar.lz4 | tar -I lz4 -xf - -C ~/.stabled/
 
 # zstd에 더 많은 메모리 사용
@@ -364,9 +368,9 @@ zstd -d --long=31 --memory=4096MB archive.tar.zst
 ## 모범 사례
 
 1. 데이터를 교체하기 전에 **항상 검증자 키를 백업**하십시오.
-2. 스냅샷을 추출하기 전에 **체크섬을 확인**하십시오.
-3. 추출 중에 **디스크 공간을 모니터링**하십시오 (스냅샷 크기의 2배 필요).
-4. 가능하면 **공식 스냅샷을 사용**하십시오.
+2. 스냅샷을 압축 해제하기 전에 **체크섬을 확인**하십시오.
+3. 압축 해제 중 **디스크 공간을 모니터링**하십시오 (스냅샷 크기의 2배 필요).
+4. 가능한 경우 **공식 스냅샷을 사용**하십시오.
 5. 비프로덕션 환경에서 먼저 **스냅샷을 테스트**하십시오.
 6. 아카이브 노드에 대해 **정기적인 스냅샷을 예약**하십시오.
 7. 감사 추적을 위해 **스냅샷 소스를 문서화**하십시오.

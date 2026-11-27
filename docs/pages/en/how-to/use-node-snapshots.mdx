@@ -11,7 +11,7 @@ This guide covers various methods to synchronize your Stable node quickly using 
 | Method | Sync Time | Storage Required | Use Case |
 |--------|-----------|------------------|----------|
 | **Pruned Snapshot** | ~10 min | < 5 GiB | Regular full nodes |
-| **Archive Snapshot** | ~3 hours | ~700 GB | Archive nodes, block explorers |
+| **Archive Snapshot** | ~3 hours | ~2 TB | Archive nodes, block explorers |
 
 ## Official snapshots
 
@@ -24,14 +24,18 @@ Stable provides official snapshots updated daily (00:00 UTC).
 | Type | Compression | Size | URL | Update Frequency |
   |------|-----------------|-------------|------|-----|
 | **Pruned** | LZ4 | < 5 GiB | [Download](https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/snapshots/snapshot.tar.lz4) | Daily |
-| **Archive** | ZSTD | ~700 GB | [Download](https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/snapshots/stable_archive.tar.zst) | Weekly |
+| **Archive** | ZSTD | ~600 GB | [Download](https://data-dist.stable.xyz/mainnet/snapshots/stable_archive.tar.zst) | Monthly |
 
 ### Testnet
 
 | Type | Compression | Size | URL | Update Frequency |
 |------|-----------------|-------------|------|-----|
 | **Pruned** | LZ4 | < 5 GiB | [Download](https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/snapshots/snapshot.tar.lz4) | Daily |
-| **Archive** | ZSTD | ~1.2 TB | [Download](https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/snapshots/stable_archive.tar.zst) | Weekly |
+| **Archive** | ZSTD | ~750 GB | [Download](https://data-dist.stable.xyz/testnet/snapshots/stable_archive.tar.zst) | Monthly |
+
+:::note
+Archive snapshots require ~1.5 TB (mainnet) / ~2 TB (testnet) of free disk space after extraction.
+:::
 
 ## Using pruned snapshots
 
@@ -157,7 +161,7 @@ mkdir -p ~/snapshot
 cd ~/snapshot
 
 # Download archive snapshot
-wget -c https://stable-data-dist.s3.us-east-1.amazonaws.com/mainnet/snapshots/stable_archive.tar.zst
+wget -c https://data-dist.stable.xyz/mainnet/snapshots/stable_archive.tar.zst
 
 # Clear old data
 rm -rf ~/.stabled/data/*
@@ -177,19 +181,19 @@ mkdir -p ~/snapshot
 cd ~/snapshot
 
 # Download archive snapshot
-wget -c https://stable-data-dist.s3.us-east-1.amazonaws.com/testnet/snapshots/stable_archive.tar.zst
+wget -c https://data-dist.stable.xyz/testnet/snapshots/stable_archive.tar.zst
 
 # Clear old data
 rm -rf ~/.stabled/data/*
 
 # Extract with high memory for better performance
-pv archive.tar.zst | zstd -d --long=31 --memory=2048MB -c - | tar -xf - -C ~/.stabled/
+pv stable_archive.tar.zst | zstd -d --long=31 --memory=2048MB -c - | tar -xf - -C ~/.stabled/
 
 # Alternative: Standard extraction
-zstd -d --long=31 archive.tar.zst -c | tar -xvf - -C ~/.stabled/
+zstd -d --long=31 stable_archive.tar.zst -c | tar -xvf - -C ~/.stabled/
 
 # Clean up
-rm archive.tar.zst
+rm stable_archive.tar.zst
 ```
 :::
 
